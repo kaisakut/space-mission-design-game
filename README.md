@@ -39,11 +39,14 @@ _Being written: all libraries, data, code and images used in this project._
 
 - [React](https://react.dev/) (MIT) — user interface.
 - [three.js](https://threejs.org/) (MIT) — the 3D mission view.
+- Sound effects are synthesised in code with the Web Audio API; the game uses no audio files.
 - NASA Visible Earth, [Blue Marble: Land Surface, Shallow Water, and Shaded Topography](https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography) (NASA Goddard Space Flight Center, Reto Stöckli; public domain) — Earth texture, `public/textures/earth_day_2048.jpg`.
 
 ## AI usage
 
-_To be written: where and how AI tools were used in this project._
+_Being written: where and how AI tools were used in this project._
+
+- No AI-generated images, video or audio are used. Pictures are drawn in code or are NASA images with credit; sound effects are synthesised in code.
 
 ## License
 

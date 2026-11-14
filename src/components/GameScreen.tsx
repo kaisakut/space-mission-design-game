@@ -6,6 +6,8 @@ import { completePicks, type Issue, type Picks } from '../engine/design';
 import type { Forecast } from '../engine/forecast';
 import { agencyDesign, agencyForecast, changeCost, confirmPhase, newGame, pendingChanges, PHASE_COUNT, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
+import { play } from '../audio/sfx';
+import { LOW_MARGIN } from '../engine/design';
 import { AutoFit } from './AutoFit';
 import { ForecastPanel, RUNS } from './ForecastPanel';
 import { Gauges } from './Gauges';
@@ -97,7 +99,15 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     }
     return next;
   };
-  const pick = (slotId: string, optionId: string, multi?: { min: number; max: number; noneFirst?: boolean }) => setDraft(nextDraft(slotId, optionId, multi));
+  const pick = (slotId: string, optionId: string, multi?: { min: number; max: number; noneFirst?: boolean }) => {
+    const next = nextDraft(slotId, optionId, multi);
+    // Sound: a click, or a warning when a margin turns yellow or red, or a double buzz when the launch is now blocked.
+    const d = agencyDesign(game, player, { ...player.picks, ...next }, pending);
+    const blocked = (x: typeof d) => x.issues.some((i) => i.level === 'blocker');
+    const tight = (x: typeof d) => RESOURCES.filter((r) => x.gauges[r].margin < LOW_MARGIN).length;
+    play(blocked(d) && !blocked(state) ? 'block' : tight(d) > tight(state) ? 'warn' : 'select');
+    setDraft(next);
+  };
 
   const runForecast = () => {
     if (!canForecast) return;
@@ -105,11 +115,15 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     const f = agencyForecast(game, player, working, RUNS, 'baseline', pending);
     setGame({ ...game, forecastsUsed: game.forecastsUsed + 1 });
     setMine({ f, key: designKey, phase: game.phase });
+    play('forecastRun');
+    const d = f.successShare - baseline.successShare;
+    if (Math.abs(d) >= 0.02) play(d > 0 ? 'forecastUp' : 'forecastDown', 1.2);
   };
   const doConfirm = () => {
     const picks = {} as Record<AgencyKind, Picks>;
     for (const a of game.agencies) picks[a.id] = a.id === 'player' ? working : aiPicks(game, a);
     const phase = game.phase;
+    play('confirm');
     const g = confirmPhase(game, picks);
     setGame(g);
     setDraft({});

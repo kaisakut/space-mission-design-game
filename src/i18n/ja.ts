@@ -85,6 +85,8 @@ export const ja: Messages = {
   viewIllustration: '説明のための絵です。スコアはゲームの計算の値を使います。',
   viewUnavailable: 'この端末では3D表示を使えません。',
   viewData: '機体にためたデータ',
+  soundOn: '音を鳴らす',
+  soundOff: '音を消す',
   close: '閉じる',
   libraryOpen: 'イベントカードを見る',
   libraryTitle: 'イベントカード',

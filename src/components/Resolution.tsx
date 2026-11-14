@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { play, stopAll } from '../audio/sfx';
 import { completePicks } from '../engine/design';
 import { agencyDesign, agencyForecast, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
@@ -36,6 +37,25 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
     id: a.id,
     score: game.final ? game.final[a.id].score.total : agencyForecast(game, a, a.picks, 60, 'standing').score.p50,
   })).sort((x, y) => y.score - x.score), [game]);
+
+  useEffect(() => {
+    if (!report) return;
+    report.cards.forEach((id, k) => {
+      play(/storm|flare/.test(id) ? 'storm' : 'cardFlip', 0.7 + k * 0.9);
+      game.agencies.forEach((a, i) => {
+        const r = report.results[a.id][id];
+        if (r) play(r === 'protected' || r === 'ready' ? 'markGood' : r === 'partial' ? 'markPartial' : 'markBad', 1.2 + k * 0.9 + i * 0.25);
+      });
+    });
+    if (game.final) {
+      const flown = game.agencies.filter((a) => !['noLaunch'].includes(game.final![a.id].outcome));
+      if (flown.length) play('launch', 0.3);
+      if (game.agencies.some((a) => game.final![a.id].outcome === 'launchFailure')) play('launchFail', 1.5);
+      play(game.agencies.some((a) => game.final![a.id].outcome === 'orbitFailure') ? 'noContact' : 'contact', 1.8);
+    }
+    return () => stopAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!report) return null;
   const possible = m.events.filter((e) => e.phase === phase && e.probability.value > 0);
@@ -112,10 +132,12 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
           );
         })}
 
-        <div className="res-standing">
-          <span className="note">{game.final ? t.finalTitle : t.standingTitle}</span>
-          {standing.map((s, i) => <span key={s.id} className="res-rank"><b>{i + 1}</b> <AgencyLabel id={s.id} /> {Math.round(s.score * 10) / 10}</span>)}
-        </div>
+        {!game.final && (
+          <div className="res-standing">
+            <span className="note">{t.standingTitle}</span>
+            {standing.map((s, i) => <span key={s.id} className="res-rank"><b>{i + 1}</b> <AgencyLabel id={s.id} /> {Math.round(s.score * 10) / 10}</span>)}
+          </div>
+        )}
       </div>
     </div>
   );

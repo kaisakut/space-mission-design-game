@@ -1,12 +1,13 @@
 import { SOURCE_BY_ID } from '../data/sources';
 import type { EventResult } from '../engine/events';
 import { evaluate } from '../engine/design';
+import { play, stopAll } from '../audio/sfx';
 import { resolveEvent } from '../engine/events';
 import { agencyDesign, type AgencyKind, type Game } from '../engine/game';
 import { Rng } from '../engine/rng';
 import { simulate } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { OUTCOME_COLOR, RESULT_MARK, useCauseName, useOutcomeName } from './labels';
 import { Modal } from './Modal';
 import { AgencyLabel, Resolution } from './Resolution';
@@ -72,6 +73,12 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
   const causeName = useCauseName(m);
   const outcomeName = useOutcomeName(m);
   const rank = order.findIndex((a) => a.id === 'player') + 1;
+  useEffect(() => {
+    order.forEach((_, i) => play('barRise', (order.length - 1 - i) * 0.4));
+    play(rank === 1 ? 'rankFirst' : 'rank', order.length * 0.4 + 0.2);
+    return () => stopAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const parts = ['primary', 'secondary', 'science', 'budget', 'schedule'] as const;
 
   // The standard design flown through the same cards and the same failure draws as the player.
@@ -155,7 +162,8 @@ export function FinalScreen({ game, onRestart, onReplaySame }: { game: Game; onR
   const [flight, setFlight] = useState(true);
   return (
     <div className="final-screen">
-      <FinalResults game={game} onRestart={onRestart} onReplaySame={onReplaySame} onAllTurns={() => setOpen(true)} />
+      {/* The standings appear only after the flight scene, so the ending is not given away. */}
+      {!flight && <FinalResults game={game} onRestart={onRestart} onReplaySame={onReplaySame} onAllTurns={() => setOpen(true)} />}
       {flight && <Resolution game={game} phase={5} onClose={() => setFlight(false)} />}
       {open && <Modal title={t.reportsTitle} wide onClose={() => setOpen(false)}><TurnReports game={game} heading={false} /></Modal>}
     </div>

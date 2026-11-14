@@ -5,6 +5,7 @@ import { Glossary } from './components/Glossary';
 import { TitleScreen } from './components/TitleScreen';
 import type { Mission } from './data/types';
 import { useLang } from './i18n';
+import { play as playSfx, setSoundEnabled, soundEnabled } from './audio/sfx';
 
 /** Base text size steps (px of 1rem). Every part of the game screen is sized from this. */
 const SIZES = [11, 12, 13, 14, 15, 16, 18];
@@ -19,6 +20,7 @@ export function App() {
   const [glossary, setGlossary] = useState(false);
   const [library, setLibrary] = useState(false);
   const [size, setSize] = useState(loadSize);
+  const [sound, setSound] = useState(soundEnabled);
   useEffect(() => {
     document.documentElement.style.fontSize = `${size}px`;
     try { localStorage.setItem('uiTextSize', String(size)); } catch { /* storage unavailable */ }
@@ -35,6 +37,8 @@ export function App() {
             <button type="button" className="lang-toggle" aria-label={t.textSmaller} title={t.textSmaller} onClick={() => step(-1)}>A−</button>
             <button type="button" className="lang-toggle" aria-label={t.textLarger} title={t.textLarger} onClick={() => step(1)}>A＋</button>
           </span>
+          <button type="button" className="lang-toggle" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} aria-pressed={sound}
+            onClick={() => { const on = !sound; setSoundEnabled(on); setSound(on); if (on) playSfx('ui'); }}>{sound ? '🔊' : '🔇'}</button>
           <button type="button" className="lang-toggle" onClick={toggle}>{t.langToggle}</button>
         </div>
       </header>

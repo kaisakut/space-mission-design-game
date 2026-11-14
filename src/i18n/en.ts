@@ -83,6 +83,8 @@ export const en = {
   viewIllustration: 'Illustration. Scores use the game engine’s values.',
   viewUnavailable: '3D view is not available on this device.',
   viewData: 'Data on board',
+  soundOn: 'Sound on',
+  soundOff: 'Sound off',
   close: 'Close',
   libraryOpen: 'Browse event cards',
   libraryTitle: 'Event cards',
