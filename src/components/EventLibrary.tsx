@@ -5,6 +5,7 @@ import type { Condition, Effect, EventCard, Mission } from '../data/types';
 import { fmt, tk, useLang } from '../i18n';
 import { AutoFit } from './AutoFit';
 import { useOutcomeName } from './labels';
+import { CardIcon } from './Resolution';
 
 type Entry = { mission: Mission; card: EventCard };
 
@@ -108,8 +109,14 @@ function CardDetail({ entry: { mission, card } }: { entry: Entry }) {
   return (
     <article className="lib-card">
       <p className="note">{L(mission.name)} · {fmt(t.phaseTab, { n: card.phase, name: tk(t, `phase${card.phase}`) })} · <span className={good ? 'ok' : 'bad'}>{good ? t.libKindGood : t.libKindBad}</span></p>
-      <h2>{L(card.name)}</h2>
-      <p className="lib-story">{L(card.story)}</p>
+      {/* The card as it turns over in the game, large, with what it does below. */}
+      <div className={`res-flipcard lib-face ${good ? 'good' : 'bad'}`}>
+        <div className="face front">
+          <CardIcon card={card} />
+          <h2>{L(card.name)}</h2>
+          <span className="res-story">{L(card.story)}</span>
+        </div>
+      </div>
 
       <dl className="lib-facts">
         <dt>{t.libChance}</dt>

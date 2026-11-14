@@ -25,7 +25,7 @@ export function Briefing({ mission, game, onClose }: { mission: Mission; game: G
         <section>
           <h3><Icon name="target" size="1.1em" /> {t.briefGoal}</h3>
           <p>{L(mission.primary.description)}</p>
-          <p className="note">{t.briefWin}</p>
+          <p className="note">{game.mode === 'multi' ? t.briefWinMulti : t.briefWin}</p>
         </section>
         <section>
           <h3><Icon name="coins" size="1.1em" /> {t.briefScore}</h3>
@@ -55,7 +55,6 @@ export function Briefing({ mission, game, onClose }: { mission: Mission; game: G
             <ul className="brief-multi">
               <li>{t.briefMulti1}</li>
               <li>{t.briefMulti2}</li>
-              <li>{t.briefMulti3}</li>
             </ul>
           </section>
         )}

@@ -49,6 +49,7 @@ export const jupiterIcyMoon: Mission = {
     changeMinKUSD: rule(30000, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
     changeDelayDaysPerPhase: rule(45),
   },
+  craftName: tx('the spacecraft', '探査機'),
   outcomeLabels: {
     orbitFailure: tx('Lost during cruise', '航行中に喪失'),
   },
@@ -81,7 +82,7 @@ export const jupiterIcyMoon: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      help: tx('Each one adds points but also requirements. Agencies chasing the same one split its points.', '1つごとに加点されますが、要求も増えます。同じ副目的を狙う機関が多いと得点が割れます。'),
+      help: tx('Each one adds points but also requirements.', '1つごとに加点されますが、要求も増えます。'),
       options: ['jsec-none', 'jsec-plumes', 'jsec-shell', 'jsec-full'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
@@ -307,7 +308,7 @@ export const jupiterIcyMoon: Mission = {
 
   events: [
     {
-      id: 'jbudget-cut', phase: 1, name: tx('Budget cut', '予算の削減'),
+      id: 'jbudget-cut', icon: 'coins', phase: 1, name: tx('Budget cut', '予算の削減'),
       story: tx('The programme budget is cut by 10%.', '計画の予算が10%削減された。'),
       probability: rule(0.35),
       // A 20% reserve absorbs the cut (JPL keeps 20–30% during design); 10% absorbs half and the rest is
@@ -319,7 +320,7 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
     },
     {
-      id: 'jtransistors', phase: 2, name: tx('Weak transistors found', '弱いトランジスタの発覚'),
+      id: 'jtransistors', icon: 'layers', phase: 2, name: tx('Weak transistors found', '弱いトランジスタの発覚'),
       story: tx('Some transistors used all over the spacecraft may fail at lower radiation than expected. Replacing them would miss the launch window; testing them takes months.', '機体じゅうに使ったトランジスタが、想定より弱い放射線で壊れるおそれがわかった。交換すれば打ち上げ窓を逃し、試験には何か月もかかる。'),
       probability: rule(0.4),
       protectedIf: { kind: 'any', of: [{ kind: 'margin', resource: 'schedule', atLeast: 0.1 }, { kind: 'hasTag', tag: 'engineeringModel' }] },
@@ -335,7 +336,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jlaunch-slip', phase: 3, name: tx('Rocket delay', 'ロケットの遅れ'),
+      id: 'jlaunch-slip', icon: 'hourglass', phase: 3, name: tx('Rocket delay', 'ロケットの遅れ'),
       story: tx('The launch vehicle slips by months.', 'ロケットの準備が数か月遅れた。'),
       probability: rule(0.3),
       protectedIf: { kind: 'setting', key: 'targetWindow', atLeast: 1 },
@@ -348,7 +349,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jtest-anomaly', phase: 4, name: tx('Test anomaly', '試験での不具合'),
+      id: 'jtest-anomaly', icon: 'clipboard', phase: 4, name: tx('Test anomaly', '試験での不具合'),
       story: tx('A hidden fault is lurking in the spacecraft.', '機体に隠れた不具合がある。'),
       probability: rule(0.4),
       protectedIf: { kind: 'setting', key: 'testDepth', atLeast: 2 },
@@ -363,14 +364,14 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jlaunch-failure', phase: 4, name: tx('Launch failure', '打ち上げ失敗'),
+      id: 'jlaunch-failure', icon: 'rocket', phase: 4, name: tx('Launch failure', '打ち上げ失敗'),
       story: tx('The rocket fails.', 'ロケットが失敗した。'),
       probability: rule(0, tx('Drawn from the chosen rocket’s reliability instead of a fixed chance.', '一定の確率ではなく、選んだロケットの信頼性から引く。')),
       unprotected: [{ kind: 'missionLost', outcome: 'launchFailure' }],
       lesson: tx('{agency} lost the spacecraft at launch.', '{agency}は、打ち上げで探査機を失った。'),
     },
     {
-      id: 'jcruise', phase: 5, name: tx('Engine trouble after arrival', '到着後のエンジンの不調'),
+      id: 'jcruise', icon: 'orbit', phase: 5, name: tx('Engine trouble after arrival', '到着後のエンジンの不調'),
       story: tx('Before a planned engine burn at Jupiter, valves behave oddly. Skipping the burn keeps the spacecraft safe, but in a longer orbit with fewer close passes.', '木星での噴射の前に、弁の動きがおかしい。噴射を見送れば安全だが、周回が長くなり接近の回数が減る。'),
       probability: rule(0.3),
       partialIf: { kind: 'hasTag', tag: 'opsRehearsed' },
@@ -385,7 +386,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jlong-cruise', phase: 5, name: tx('Wear from a long cruise', '長い航行での消耗'),
+      id: 'jlong-cruise', icon: 'route', phase: 5, name: tx('Wear from a long cruise', '長い航行での消耗'),
       story: tx('After years of swing-bys on the way, parts have worn and the team must nurse the spacecraft through the tour.', '途中のスイングバイで何年も飛ぶうちに部品が消耗し、チームは探査機をいたわりながら観測を続ける。'),
       probability: rule(0.25),
       protectedIf: { kind: 'hasTag', tag: 'direct' },
@@ -395,7 +396,7 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} took the long route and its worn spacecraft observed less.', '{agency}は長い経路をとり、消耗した探査機で観測が減った。'),
     },
     {
-      id: 'jinstrument-dose', phase: 5, name: tx('Instruments wear in the belts', '観測機器が放射線で劣化する'),
+      id: 'jinstrument-dose', icon: 'atom', phase: 5, name: tx('Instruments wear in the belts', '観測機器が放射線で劣化する'),
       story: tx('Instruments observing on every close pass spend the most time switched on deep in the radiation belts.', 'すべての接近で観測する機器は、放射線帯の奥で電源を入れている時間がいちばん長い。'),
       probability: rule(0.8, tx('Game value, after JunoCam (a camera outside the vault), which degraded after many orbits.', 'ゲームの値。容器の外にあるカメラ JunoCam が、多くの周回のあと劣化した例による。')),
       // Observing on fewer passes, or staying out of the belts, spares the instruments.
@@ -411,7 +412,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jradiation', phase: 5, name: tx('Radiation damage', '放射線による損傷'),
+      id: 'jradiation', icon: 'atom', phase: 5, name: tx('Radiation damage', '放射線による損傷'),
       story: tx('Jupiter’s radiation belts slowly damage the electronics.', '木星の放射線帯が、少しずつ電子機器を傷めた。'),
       probability: rule(0.7, tx('Game value. The same vault as the real spacecraft is safe on a tour of repeated flybys; orbiting Europa needs a thicker one.', 'ゲームの値。実機と同じ容器は、接近をくり返す方法なら無害。エウロパを周回するなら厚い容器が要る。')),
       // Clipper's vault was sized for a flyby tour that leaves the belts between passes; living in them needs more.
@@ -422,7 +423,7 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('The same radiation hit everyone; {agency}’s vault was too thin.', '同じ放射線が全機関を襲った。{agency}の保護容器は薄すぎた。'),
     },
     {
-      id: 'jeuropa-orbit', phase: 5, name: tx('Constant radiation in Europa orbit', 'エウロパ周回での絶え間ない放射線'),
+      id: 'jeuropa-orbit', icon: 'shield', phase: 5, name: tx('Constant radiation in Europa orbit', 'エウロパ周回での絶え間ない放射線'),
       story: tx('Staying close to Europa means never leaving the worst radiation.', 'エウロパのそばに居続けるので、最も強い放射線から抜け出せない。'),
       probability: rule(0.8),
       protectedIf: { kind: 'hasTag', tag: 'tour' },
@@ -432,7 +433,7 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} orbited Europa and the electronics did not last.', '{agency}はエウロパを周回し、電子機器が持たなかった。'),
     },
     {
-      id: 'jdsn', phase: 5, name: tx('Antenna time cut', 'アンテナ時間の削減'),
+      id: 'jdsn', icon: 'dish', phase: 5, name: tx('Antenna time cut', 'アンテナ時間の削減'),
       story: tx('Other missions need the big antennas; your time is cut.', 'ほかのミッションが大型アンテナを必要とし、時間が削られた。'),
       probability: rule(0.35),
       protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.7 },
@@ -446,7 +447,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jantenna', phase: 5, name: tx('Antenna fails to open', 'アンテナが開かない'),
+      id: 'jantenna', icon: 'antenna', phase: 5, name: tx('Antenna fails to open', 'アンテナが開かない'),
       story: tx('The high-gain antenna does not unfold fully. Data must trickle home through a small antenna.', '高利得アンテナが開ききらなかった。小さなアンテナで少しずつデータを送るしかない。'),
       probability: rule(0.12),
       partialIf: { kind: 'margin', resource: 'downlink', atLeast: 0.4 },
@@ -461,7 +462,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jcamera-heal', phase: 5, name: tx('Camera damaged by radiation', '放射線でカメラが傷む'),
+      id: 'jcamera-heal', icon: 'eye', phase: 5, name: tx('Camera damaged by radiation', '放射線でカメラが傷む'),
       story: tx('Radiation damages a camera and its images start to break up. Heating it for a while might repair it, if the team knows how to try it safely.', '放射線でカメラが傷み、画像が乱れ始めた。しばらく温めれば直るかもしれない。チームが安全な試し方を知っていれば。'),
       probability: rule(0.3),
       protectedIf: { kind: 'hasTag', tag: 'opsRehearsed' },
@@ -475,7 +476,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jplume', phase: 5, name: tx('Active plume', '活発な噴出'),
+      id: 'jplume', icon: 'dust', phase: 5, name: tx('Active plume', '活発な噴出'),
       story: tx('A plume erupts during a flyby: a rare chance to sample the ocean.', '接近中に噴出が起きた。海を直接調べられる貴重な好機。'),
       probability: rule(0.25),
       unprotected: [],
@@ -484,7 +485,7 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} carried an in-situ instrument and sampled the plume.', '{agency}は、その場で測る機器を積んでいて噴出物を調べられた。'),
     },
     {
-      id: 'jfunding-gap', phase: 1, name: tx('Funding lapse', '予算の成立が遅れる'),
+      id: 'jfunding-gap', icon: 'coins', phase: 1, name: tx('Funding lapse', '予算の成立が遅れる'),
       story: tx('Appropriations lapse and government work stops. Contracts and reviews wait.', '予算の成立が遅れ、政府機関の仕事が止まった。契約と審査が進まない。'),
       probability: est(0.23, ['crs-funding-gaps'], tx('Of the 13 fiscal years 2014–2026, three had a government-wide funding lapse of 16 days or more (16 days in FY2014, 34 in FY2019, 42 in FY2026).', '2014〜2026年度の13年度のうち、政府全体の予算の空白が16日以上続いたのは3回（2014年度16日、2019年度34日、2026年度42日）。')),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
@@ -498,7 +499,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jintegration-slip', phase: 4, name: tx('Assembly and test run long', '組立と試験が長引く'),
+      id: 'jintegration-slip', icon: 'calendar', phase: 4, name: tx('Assembly and test run long', '組立と試験が長引く'),
       story: tx('Problems that only show up once everything is assembled stretch the test campaign.', '組み立てて初めて分かる不具合が続き、試験の日程が延びた。'),
       probability: est(0.5, ['nasa-lcc-growth'], tx('Across 20 NASA science missions launched 2000–2009, launch dates slipped on average more than 13 months from the plan at PDR, mostly during assembly and test. Slipping is the norm, so the game uses 0.5 (the value itself is a game choice).', 'NASAの科学ミッション20機（2000〜2009年打ち上げ）で、打ち上げ日はPDR時点の計画から平均13か月以上遅れ、その大半は組立・試験の間に起きた。遅れるのが普通なので0.5とした（値そのものはゲームの判断）。')),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.15 },
@@ -508,7 +509,7 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} had no schedule margin when assembly and test ran long.', '{agency}は、組立と試験が延びたときに日程の余裕がなかった。'),
     },
     {
-      id: 'launcher-undecided', phase: 1, name: tx('No rocket yet', 'ロケットが決まらない'),
+      id: 'launcher-undecided', icon: 'rocket', phase: 1, name: tx('No rocket yet', 'ロケットが決まらない'),
       story: tx('Which rocket you fly on is stuck in politics. You keep the design compatible with all of them and budget for the wait.', 'どのロケットで打ち上げるかが政治の場で決まらない。どれにも載る設計を保ち、待つ費用を積む。'),
       probability: rule(0.3, tx('Game value. That a mass margin makes the wait harmless is the game’s rule; the US$250 million is the real reserve.', 'ゲームの値。質量の余裕があれば無害、というのはゲームの決めごと。2億5000万ドルは実例の予備費。')),
       protectedIf: { kind: 'margin', resource: 'mass', atLeast: 0.2 },
@@ -524,7 +525,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'instrument-growth', phase: 2, name: tx('Instrument costs grow', '観測機器の費用が膨らむ'),
+      id: 'instrument-growth', icon: 'coins', phase: 2, name: tx('Instrument costs grow', '観測機器の費用が膨らむ'),
       story: tx('One instrument runs far over its estimate while still in design.', '観測機器の1つが、設計の途中で見積もりを大きく超えた。'),
       probability: est(0.5, ['nasa-lcc-growth'], tx('Across 20 NASA science missions, instrument costs grew on average 103% from the start of design to launch. Growth is the norm, so the game uses 0.5 (the value itself is a game choice).', 'NASAの科学ミッション20機で、観測機器の費用は設計の開始から打ち上げまでに平均103%増えた。増えるのが普通なので0.5とした（値そのものはゲームの判断）。')),
       protectedIf: { kind: 'margin', resource: 'budget', atLeast: 0.35 },
@@ -540,7 +541,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'hurricane', phase: 3, name: tx('Hurricane at the launch site', '射場にハリケーン'),
+      id: 'hurricane', icon: 'globe', phase: 3, name: tx('Hurricane at the launch site', '射場にハリケーン'),
       story: tx('A hurricane heads for the launch site days before liftoff. The spacecraft goes back into the hangar.', '打ち上げの直前、ハリケーンが射場に近づいた。探査機を格納庫に戻して待つ。'),
       probability: rule(0.2),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.05 },

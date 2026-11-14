@@ -22,6 +22,7 @@ export function App() {
   const [library, setLibrary] = useState(false);
   // Playing together: leaving the game asks first (nothing is saved).
   const [askQuit, setAskQuit] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
   const leave = () => { setPlay(null); setLibrary(false); setAskQuit(false); };
   const [size, setSize] = useState(loadSize);
   const [sound, setSound] = useState(soundEnabled);
@@ -35,7 +36,7 @@ export function App() {
       <header className="app-header">
         <h1>{t.appTitle}</h1>
         <div className="header-actions">
-          {(play || library) && <button type="button" className="lang-toggle" onClick={() => (play?.settings.seats ? setAskQuit(true) : leave())}>{t.backToTitle}</button>}
+          {(play || library) && <button type="button" className="lang-toggle" onClick={() => (play?.settings.seats && !gameOver ? setAskQuit(true) : leave())}>{t.backToTitle}</button>}
           <button type="button" className="lang-toggle" data-tour="help" onClick={() => setGlossary(true)}>{t.help}</button>
           <span className="size-ctl">
             <button type="button" className="lang-toggle" aria-label={t.textSmaller} title={t.textSmaller} onClick={() => step(-1)}>A−</button>
@@ -48,7 +49,7 @@ export function App() {
       </header>
       <main className="app-main">
         {play
-          ? <GameScreen key={play.key} mission={play.mission} settings={play.settings} />
+          ? <GameScreen key={play.key} mission={play.mission} settings={play.settings} onOver={setGameOver} />
           : library
             ? <EventLibrary />
             : <TitleScreen onStart={(mission, settings) => setPlay({ mission, settings, key: Date.now() })} onLibrary={() => setLibrary(true)} />}

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Option } from '../data/types';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import type { EventCard, Option } from '../data/types';
 import { agencyDesign, type Agency, type Game } from '../engine/game';
 import { firstFailure } from '../engine/simulate';
 import { fmt, useLang } from '../i18n';
@@ -121,10 +121,23 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
 
   const stoppedEarly = (a: Agency) => { const r = final[a.id]; return r.opsFraction < 0.999 && (r.failures.length > 0 || r.outcome === 'lostInOps'); };
   /** Why an agency delivered far less than the best: the largest of its design's shortfalls. */
+  // The reason under a row, chosen the same way for everyone. A craft that was lost: the event that raised the
+  // chance of its failure, if any (its status line already names the failure). A craft that kept going: the
+  // events that cut its results first, then what it carried or planned differently from the best one.
   const gapReason = (a: Agency): string | null => {
     const r = final[a.id];
-    if (best <= 0 || !flewOf(r.outcome) || r.delivered >= best * 0.7) return null;
+    if (best <= 0 || !flewOf(r.outcome)) return null;
     const top = game.agencies.find((x) => final[x.id].delivered === best)!;
+    const hurt = (id: string, who: Agency) => { const x = game.reports.find((rep) => rep.cards.includes(id))?.results[who.id][id]; return x === 'hit' || x === 'partial'; };
+    const firstFail = [...r.failures].sort((x, y) => x.at - y.at)[0];
+    if (stoppedEarly(a)) {
+      if (!firstFail) return null;
+      const raised = game.reports.flatMap((rep) => rep.cards).filter((id) => hurt(id, a) && m.events.find((e) => e.id === id)!.unprotected.concat(m.events.find((e) => e.id === id)!.partial ?? []).some((e) => e.kind === 'failChance' && e.subsystem === firstFail.sub));
+      return raised.length ? fmt(t.gap_raisedBy, { list: raised.map((id) => L(m.events.find((e) => e.id === id)!.name)).join(t.listSep) }) : null;
+    }
+    if (r.delivered >= best * 0.7) return null;
+    const hits = game.reports.flatMap((rep) => rep.cards).filter((id) => hurt(id, a) && !hurt(id, top));
+    if (hits.length) return fmt(t.gap_events, { list: hits.map((id) => L(m.events.find((e) => e.id === id)!.name)).join(t.listSep) });
     const da = designs.get(a.id)!, dt = designs.get(top.id)!;
     const duty = (x: typeof da) => x.settings.dutyCycle ?? 0.5;
     const payloads = (x: typeof da) => x.options.filter((o): o is Extract<Option, { kind: 'part' }> => o.kind === 'part' && o.subsystem === 'payload' && !!o.observes);
@@ -141,13 +154,6 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
       : da.orbit && da.orbit.id !== dt.orbit?.id ? fmt(t.gap_orbit, { name: L(da.orbit.name) }) : null;
     if (sightText) cands.push({ k: ratio(sight(da), sight(dt)), text: sightText });
     cands.push({ k: ratio(sent(da), sent(dt)), text: fmt(t.gap_sent, { n: Math.round(sent(da) * 100) }) });
-    const firstFail = [...r.failures].sort((x, y) => x.at - y.at)[0];
-    // A spacecraft that stopped already says why on its status line.
-    if (!stoppedEarly(a)) cands.push({ k: ratio(r.opsFraction, final[top.id].opsFraction), text: fmt(t.gap_ops, { n: Math.round(r.opsFraction * 100), cause: firstFail ? causeName(`fail:${firstFail.sub}`) : causeName(r.causes[0] ?? '') }) });
-    const explained = cands.reduce((p, c) => p * Math.min(1, c.k), 1);
-    const left = ratio(r.delivered, best) / Math.max(explained, 1e-9);
-    const hits = game.reports.flatMap((rep) => rep.cards.filter((id) => ['hit', 'partial'].includes(rep.results[a.id][id] ?? '') && !['hit', 'partial'].includes(rep.results[top.id][id] ?? '')));
-    if (hits.length) cands.push({ k: left, text: fmt(t.gap_events, { list: hits.map((id) => L(m.events.find((e) => e.id === id)!.name)).join(t.listSep) }) });
     const pick = cands.filter((c) => c.k < 0.9).sort((x, y) => x.k - y.k)[0];
     return pick?.text ?? null;
   };
@@ -220,9 +226,10 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
                 <AgencyLabel id={a.id} />
                 <b className="fl-count">{flew ? <CountUp value={r.delivered} ms={OPS * 1000 * Math.max(0.05, r.opsFraction)} delayMs={opsAt * 1000} instant={instant} /> : '—'}</b>
               </div>
-              <span className="fl-track">
+              {/* A craft that never flew has no bar: its row is one line lower. */}
+              {(flew || !st) && <span className="fl-track">
                 {flew && share > 0 && <span className="fl-bar" style={{ width: `${Math.max(1.5, share * 100)}%`, background: AGENCY_COLOR[a.id], animationDelay: `${opsAt}s`, animationDuration: `${OPS * Math.max(0.05, r.opsFraction) + 0.01}s` }} />}
-              </span>
+              </span>}
               <div className="fl-foot">
                 {st ? <span className={`fl-status appear ${st.bad ? 'bad' : ''}`} style={d(flew ? opsAt + OPS * r.opsFraction : launchedAt + 1)}>{st.text}</span> : <span />}
                 {!st?.text.includes(outcomeName(r.outcome)) && <span className="fl-outcome appear" style={d(opsAt + OPS + 0.2)}>{outcomeName(r.outcome)}</span>}
@@ -254,22 +261,10 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
       </div>
 
       <div className="flight-axis">
-        <div className="fa-track">
+        <div className="fa-track" data-levels="1">
           <span className="fa-head" style={{ animationDelay: `${opsAt}s`, animationDuration: `${OPS}s` }} />
-          {(() => {
-            // Each mark carries the card's name; marks close together are put on two levels so names do not overlap.
-            let lastAt = -1, lastLv = 1;
-            return [...ops5].map((id) => ({ id, at: displayAt(game.seed, id) })).sort((x, y) => x.at - y.at).map(({ id, at }) => {
-              const card = m.events.find((e) => e.id === id)!;
-              const lv = at - lastAt < 0.16 && lastLv === 0 ? 1 : 0;
-              lastAt = at; lastLv = lv;
-              return (
-                <span key={id} className={`fa-event appear ${lv ? 'up' : ''}`} style={{ left: `${at * 100}%`, ...d(opsAt + at * OPS) }}>
-                  <CardIcon card={card} /><span className="fa-name">{L(card.name)}</span>
-                </span>
-              );
-            });
-          })()}
+          <TimelineMarks marks={[...ops5].map((id) => ({ id, at: displayAt(game.seed, id), card: m.events.find((e) => e.id === id)! })).sort((x, y) => x.at - y.at)}
+            delay={(at) => d(opsAt + at * OPS)} name={(c) => L(c.name)} />
         </div>
         <div className="fa-ticks">{ticks.map((x, i) => <span key={i}>{x}</span>)}</div>
         <p className="note small">
@@ -279,5 +274,44 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
         </p>
       </div>
     </section>
+  );
+}
+
+/**
+ * The cards' marks on the timeline, earliest first. A name that would overlap the one before goes up a level
+ * (three at most); one that overlaps on every level keeps only its icon (the list on the right names it).
+ * Widths are measured once the marks are on screen.
+ */
+function TimelineMarks({ marks, delay, name }: { marks: { id: string; at: number; card: EventCard }[]; delay: (at: number) => CSSProperties; name: (c: EventCard) => string }) {
+  const box = useRef<HTMLSpanElement>(null);
+  const [place, setPlace] = useState<Record<string, number>>({});
+  useLayoutEffect(() => {
+    const track = box.current?.parentElement;
+    if (!track) return;
+    const W = track.clientWidth;
+    const ends = [-Infinity, -Infinity, -Infinity];
+    const out: Record<string, number> = {};
+    for (const mk of marks) {
+      const el = track.querySelector<HTMLElement>(`[data-mark="${mk.id}"]`);
+      const w = el ? el.getBoundingClientRect().width : 0;
+      const x = mk.at * W, left = x - w / 2, right = x + w / 2;
+      const lv = ends.findIndex((e) => left > e + 6);
+      if (lv >= 0) { out[mk.id] = lv; ends[lv] = right; } else out[mk.id] = -1;
+    }
+    if (JSON.stringify(out) !== JSON.stringify(place)) setPlace(out);
+    const top = Math.max(0, ...Object.values(out));
+    track.dataset.levels = String(top + 1);
+  });
+  return (
+    <span ref={box} className="fa-marks">
+      {marks.map(({ id, at, card }) => {
+        const lv = place[id] ?? 0;
+        return (
+          <span key={id} data-mark={id} className={`fa-event appear lv${Math.max(0, lv)} ${lv < 0 ? 'icon-only' : ''}`} style={{ left: `${at * 100}%`, ...delay(at) }} title={name(card)}>
+            <CardIcon card={card} /><span className="fa-name" aria-hidden={lv < 0}>{name(card)}</span>
+          </span>
+        );
+      })}
+    </span>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { tk, useLang } from '../i18n';
 
 /**
@@ -23,12 +23,26 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
   const [i, setI] = useState(0);
   const step = steps[i]!;
   // Steps whose part of the screen is missing (no mission view, no weak point to click) are passed over.
-  const ok = (k: number) => !steps[k]!.needs || !!document.querySelector(steps[k]!.needs!);
+  // Decided once, so the numbering counts only the steps this guide will show (1/6 … 6/6, no gaps).
+  const [shown] = useState(() => steps.map((x) => !x.needs || !!document.querySelector(x.needs)));
+  const ok = (k: number) => shown[k]!;
+  const pos = shown.slice(0, i).filter(Boolean).length + 1, total = shown.filter(Boolean).length;
   const after = (k: number, dir: 1 | -1) => { let j = k + dir; while (j >= 0 && j < steps.length && !ok(j)) j += dir; return j; };
   const last = after(i, 1) >= steps.length;
   const next = () => (last ? onClose() : setI(after(i, 1)));
   // The hole in the dimmed screen follows the target (it can move when the layout changes).
   const [hole, setHole] = useState<DOMRect | null>(null);
+  // The guide box sits at the bottom of the middle column (its lower half is free), not over the side columns.
+  const [spot, setSpot] = useState<CSSProperties>({});
+  useEffect(() => {
+    const read = () => {
+      const c = document.querySelector('.col-center')?.getBoundingClientRect();
+      if (c) setSpot({ left: c.left + c.width / 2, right: 'auto', bottom: window.innerHeight - c.bottom + 12, transform: 'translateX(-50%)', maxWidth: Math.min(c.width - 16, 30 * 16), minWidth: 0 });
+    };
+    read();
+    window.addEventListener('resize', read);
+    return () => window.removeEventListener('resize', read);
+  }, []);
   useEffect(() => {
     if (!step.target) { setHole(null); return; }
     const read = () => setHole(document.querySelector(`[data-tour="${step.target}"]`)?.getBoundingClientRect() ?? null);
@@ -64,8 +78,8 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
           <div className="tour-block" style={{ left: hole.right + 4, top: hole.top - 4, right: 0, height: hole.height + 8 }} />
         </>
       ) : <div className="tour-block" style={{ inset: 0 }} />}
-      <div className="tour" role="dialog" aria-label={t.tourTitle}>
-        <div className="tour-head"><b>{t.tourTitle}</b><span className="note">{i + 1} / {steps.length}</span></div>
+      <div className="tour" role="dialog" aria-label={t.tourTitle} style={spot}>
+        <div className="tour-head"><b>{t.tourTitle}</b><span className="note">{pos} / {total}</span></div>
         <p>{tk(t, step.key)}</p>
         {step.act && <p className="note small">{t.tourDoIt}</p>}
         <div className="tour-actions">

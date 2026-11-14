@@ -169,7 +169,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
     if (es.length > 0 && subs.length === es.length) {
       const f = final[a].failures.find((x) => subs.includes(x.sub));
       const ff = f ? firstFailure(final[a], m.opsDays.value) : null;
-      return f && ff ? `${fmt(t.failedLost, { n: ff.day })}${ff.goalMet ? t.afterGoal : t.beforeGoal}` : t.riskRoseNoFailure;
+      return f && ff ? `${fmt(t.failedLost, { n: ff.day, craft: m.craftName ? L(m.craftName) : '' })}${ff.goalMet ? t.afterGoal : t.beforeGoal}` : t.riskRoseNoFailure;
     }
     return text.resultLine(card, res);
   };
@@ -201,10 +201,13 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
         <h2>{t.finalTitle}</h2>
         <span className="final-tags">
           {game.practice && <span className="tag-practice">{t.tagPractice}</span>}
+          {game.sameEvents && <span className="tag-setting">{t.tagSameEvents}</span>}
           <span className="tag-setting">{game.hints ? t.tagHintsOn : t.tagHintsOff}</span>
         </span>
         <b className="final-rank appear" style={d(rankAt)}>{multi ? (top.length > 1 ? fmt(t.winnersTied, { names: tidy(agencyName.list(top, (id) => agencyName.spaced(agencyName.inText(id)))) }) : fmt(t.winner, { name: agencyName.inText(top[0]!) })) : fmt(t.resultsRank, { n: ord(rank) })}</b>
       </div>
+      {/* Only the middle scrolls: the heading and the buttons below always stay on screen. */}
+      <div className="final-body">
       {!multi && game.hintsUsed.player > 0 && <p className="note small final-hints">{fmt(t.hintsUsed, { n: game.hintsUsed.player })}</p>}
       <div className="final-bars">
         {order.map((a, i) => {
@@ -308,7 +311,8 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
           </div>
         )}
       </div>
-      <div className="mission-actions">
+      </div>
+      <div className="mission-actions final-actions">
         <button type="button" className="primary" onClick={onRestart}>{t.playAgain}</button>
         <button type="button" className="secondary" onClick={onReplaySame}>{t.samePlayAgain}</button>
         <button type="button" className="secondary" onClick={onAllTurns}>⤢ {t.showAllReports}</button>

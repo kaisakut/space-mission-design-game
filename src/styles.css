@@ -693,9 +693,7 @@ button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
 
 /* Step 14: flight details. Timeline marks are named; a mark close to the previous one goes up a level. */
 .fa-track { height: 2.5em; }
-.fa-track:has(.up) { height: 3.9em; }
 .fa-event { display: flex; flex-direction: column; align-items: center; gap: 0.05em; bottom: 0.25em; }
-.fa-event.up { bottom: 1.75em; }
 .fa-name { font-size: 0.72em; color: #e8d6a8; white-space: nowrap; }
 /* The front face is a 3D plane of its own, so its text never shows through while the card turns. */
 .res-flipcard .front { transform: rotateY(0deg) translateZ(1px); }
@@ -805,7 +803,6 @@ button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
 .turn-screen .primary { font-size: 1.1rem; padding: 0.5em 1.4em; }
 @media (prefers-reduced-motion: reduce) { .order-list li { transition: none; } }
 /* Step 19: shared scenes when playing together. */
-.res-shared { margin: 0.2em 0 0.4em; color: var(--warn); font-weight: 600; }
 .whose { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4em 0.5em; margin: 0.4em 0 0.6em; }
 .whose button { background: #0c1324; color: inherit; border: 1px solid var(--line); border-radius: 999px; padding: 0.15em 0.7em 0.15em 0.3em; font: inherit; cursor: pointer; }
 .whose button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
@@ -818,3 +815,38 @@ button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
 .fb-row.pickable { grid-template-columns: 1.5em 15em minmax(0, 1fr) 3.5em minmax(0, 16em); }
 .fb-name { min-width: 0; overflow: hidden; }
 .fb-name .agency-label { display: inline-flex; align-items: center; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Step 20: the results screen is three rows; text is never shrunk, only the middle row scrolls. */
+.final-wrap { height: 100%; min-height: 0; }
+.final-screen { height: 100%; min-height: 0; }
+.final-screen .panel.final { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.panel.final > .card-head, .panel.final > .final-actions { flex: none; }
+.final-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 0.3em; }
+.panel.final > .final-actions { margin-top: 0.5em; padding-top: 0.5em; border-top: 1px solid var(--line); }
+/* Step 20: timeline names on up to three levels; a name that still overlaps is hidden (its icon stays). */
+.fa-track { height: 2.5em; }
+.fa-track[data-levels="2"] { height: 3.9em; }
+.fa-track[data-levels="3"] { height: 5.3em; }
+.fa-marks { position: absolute; inset: 0; }
+.fa-event.lv1 { bottom: 1.65em; }
+.fa-event.lv2 { bottom: 3.05em; }
+.fa-event.icon-only .fa-name { visibility: hidden; }
+/* The right column: rows keep their size; only the list of events scrolls, never showing a cut line. */
+.flight-right { gap: 0.35em; overflow-y: auto; }
+.fl-row { flex: none; padding: 0.25em 0.6em; }
+.fl-track { margin: 0.15em 0; }
+.fl-events { flex: 1 1 auto; min-height: 3em; overflow-y: auto; }
+
+/* Event card icons: the event's own icon, with the kind of effect as a small mark in the corner. */
+.card-icon.has-kind { position: relative; display: inline-block; flex: none; vertical-align: middle; }
+.card-icon.has-kind > svg:first-child { display: block; width: 100%; height: 100%; }
+.card-icon.has-kind .card-kind { position: absolute; right: -0.35em; bottom: -0.25em; width: 42%; height: 42%; background: #101c38; border-radius: 50%; padding: 0.06em; }
+.ops-event .card-icon.has-kind .card-kind, .fl-ev-name .card-icon.has-kind .card-kind, .fa-event .card-icon.has-kind .card-kind { display: none; }
+.lib-face { animation: none; margin: 0.4em auto 0.9em; width: min(22em, 100%); }
+.lib-face .front h2 { color: #e8ecf4; margin: 0.1em 0 0.2em; }
+.lib-face .res-story { color: #dfe5f0; }
+.mv-info.backed { background: rgba(10, 16, 36, 0.78); border-radius: 6px; padding: 0.3em 0.5em; }
+/* Full-screen scenes keep text at 12px or more (the small name marks too). */
+.resolution .agency-dot { font-size: max(12px, 0.75em); }
+.resolution .ai-tag { font-size: max(12px, 0.7em); }
+.fl-events li { flex: none; }
+.turn-name-row { display: inline-flex; align-items: center; gap: 0.2em; }

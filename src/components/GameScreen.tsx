@@ -31,7 +31,7 @@ const fmtDelta = (x: number) => (Math.abs(x) >= 100 ? Math.round(x).toLocaleStri
  * The game: one turn per phase. Choose, forecast (once, or freely in practice mode), confirm, then see
  * what happened to all four agencies. The page never scrolls: a bar on top, three columns, a rival strip.
  */
-export function GameScreen({ mission, settings }: { mission: Mission; settings: PlaySettings }) {
+export function GameScreen({ mission, settings, onOver }: { mission: Mission; settings: PlaySettings; onOver?: (over: boolean) => void }) {
   const tutorial = settings.tutorial;
   const { t, L } = useLang();
   const [game, setGame] = useState<Game>(() => newGame(mission, newSeed(), settings.practice, settings.hints, settings.seats));
@@ -72,6 +72,8 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   const standard = useMemo(() => completePicks(mission, {}), [mission]);
   const causeName = useCauseName(mission);
   const over = game.phase > PHASE_COUNT;
+  // The header's "back" asks first only while a game is in progress (not on the results screen).
+  useEffect(() => { onOver?.(over); }, [over, onOver]);
 
   // The free baseline: the confirmed design, standard choices for the rest. Its own random stream.
   // The player's forecasts share one seed and stream: an unchanged design gives exactly the baseline's numbers.
@@ -278,7 +280,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   const unseen = mission.slots.filter((sl) => sl.phase === game.phase && !seen.has(sl.id) && mission.slots.filter((x) => x.phase === game.phase).length > 1);
   const confirm = () => ((game.forecastsUsed[player.id] === 0 && !myForecast) || unseen.length ? setAskConfirm(true) : doConfirm());
   const restart = (seed = newSeed()) => {
-    const g = newGame(mission, seed, game.practice, game.hints, settings.seats);
+    const g = { ...newGame(mission, seed, game.practice, game.hints, settings.seats), ...(seed === game.seed ? { sameEvents: true } : {}) };
     setGame(g); setDraft({}); setMine(null); setTab(1);
     setStage(g.mode === 'multi' ? 'order' : 'turn'); setTurnIndex(0); setHanded({}); setGathered(null);
   };
@@ -289,7 +291,12 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
     return fmt(tk(t, `issue_${i.code}`), values);
   };
   const blockers = state.issues.filter((i) => i.level === 'blocker');
-  const warnings = state.issues.filter((i) => i.level === 'warning');
+  // A gauge with little margin is listed whatever it is. The schedule's low margin is shown here only: the engine
+  // does not count it as a warning (that would change the runs; it belongs to the data and balance work).
+  const sched = state.gauges.schedule;
+  const schedLow: Issue[] = sched.margin >= 0 && sched.margin < LOW_MARGIN && !state.issues.some((i) => i.resource === 'schedule')
+    ? [{ level: 'warning', code: 'lowMargin', resource: 'schedule', values: { margin: Math.round(sched.margin * 100) } }] : [];
+  const warnings = [...state.issues.filter((i) => i.level === 'warning'), ...schedLow];
 
   // Weak points: the most common causes in the forecast shown, with a jump to a decision that protects against them.
   const shown = myForecast?.f ?? baseline;
@@ -384,7 +391,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   }, [baseline]);
 
   if (over && game.final) {
-    return <SeatContext.Provider value={seats}><AutoFit className="final-wrap" min={0.8}><FinalScreen game={game} onRestart={() => restart()} onReplaySame={() => restart(game.seed)} /></AutoFit></SeatContext.Provider>;
+    return <SeatContext.Provider value={seats}><div className="final-wrap"><FinalScreen game={game} onRestart={() => restart()} onReplaySame={() => restart(game.seed)} /></div></SeatContext.Provider>;
   }
 
   const forecastFirst = canForecast && (!myForecast || stale);
@@ -409,12 +416,14 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
     );
   }
 
+  const name = <button type="button" className="link-btn turn-name" title={t.briefOpen} onClick={() => setBrief(true)}><b>{L(mission.name)}</b> <span className="info-btn" aria-hidden>i</span></button>;
   return (
     <SeatContext.Provider value={seats}>
     <div className={`game ${multi ? 'turn-multi' : ''}`} style={multi ? { ['--seat' as string]: AGENCY_COLOR[player.id] } : undefined}>
       <div className="turnbar">
         <div className="turn-title" title={L(mission.summary)}>
-          <button type="button" className="link-btn turn-name" title={t.briefOpen} onClick={() => setBrief(true)}><b>{L(mission.name)}</b> <span className="info-btn" aria-hidden>i</span></button>
+          {/* A replay with the same events says so beside the mission name. */}
+          {game.sameEvents ? <span className="turn-name-row">{name}<span className="tag-setting">{t.tagSameEvents}</span></span> : name}
           {game.practice && <span className="tag-practice">{t.tagPractice}</span>}
           {multi && <span className="turn-of"><span className="seat-dot" style={{ background: AGENCY_COLOR[player.id] }} aria-hidden />{fmt(t.turnOf, { name: agencyName(player.id) })}<span className="note small turn-pos">{fmt(t.turnPosition, { i: turnIndex + 1, n: game.order.length })}</span></span>}
           <span className="note">{fmt(t.turnTitle, { n: game.phase, total: PHASE_COUNT, name: tk(t, `phase${game.phase}`) })}</span>

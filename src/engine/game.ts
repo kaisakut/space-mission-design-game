@@ -1,4 +1,4 @@
-import type { Effect, Mission, Option } from '../data/types';
+import type { Effect, Mission } from '../data/types';
 import { completePicks, evaluate, type Adjustments, type DesignState, type Picks } from './design';
 import { resolveEvent, type EventResult } from './events';
 import { runForecast, type Forecast } from './forecast';
@@ -58,6 +58,8 @@ export interface Game {
   /** Forecasts used in the current phase, per seat. */
   forecastsUsed: Record<AgencyKind, number>;
   practice: boolean;
+  /** A replay of an earlier game's events ("same events, new design"); display only. */
+  sameEvents?: boolean;
   /** Whether the hint button is offered (chosen before the game; never changes the draws). */
   hints: boolean;
   /** Hints used in the whole game, per seat. */
@@ -212,37 +214,7 @@ export function confirmPhase(g: Game, picksByAgency: Record<AgencyKind, Picks>):
       const d = evaluate(m, a.picks, { extraKUSD: a.changeKUSD, extraDays: a.changeDays });
       final[a.id] = simulate(m, d, new Rng(g.seed, `failures:${a.id}`), { drawn: all, results: a.results });
     }
-    shareSecondaryPoints(m, agencies, final);
     next.final = final;
   }
   return next;
 }
-
-/** Agencies chasing the same secondary objective split its points. */
-function shareSecondaryPoints(m: Mission, agencies: Agency[], final: Record<AgencyKind, RunResult>) {
-  const tagsOf = (a: Agency) => new Set(completeOptions(m, a.picks).flatMap((o) => o.tags ?? []));
-  const chasers = new Map<string, number>();
-  for (const o of m.secondary) if (o.chosenBy) chasers.set(o.id, agencies.filter((a) => tagsOf(a).has(o.chosenBy!)).length);
-  for (const a of agencies) {
-    const r = final[a.id];
-    const tags = tagsOf(a);
-    let shared = 0;
-    for (const o of m.secondary) {
-      if (!o.chosenBy || !tags.has(o.chosenBy)) continue;
-      const n = Math.max(1, chasers.get(o.id) ?? 1);
-      // simulate() gave full points for objectives met; scale them by the number of agencies chasing them.
-      shared += (o.points.value / n);
-    }
-    if (r.score.secondary > 0) {
-      const full = m.secondary.reduce((s, o) => s + (o.chosenBy && tags.has(o.chosenBy) ? o.points.value : 0), 0);
-      r.score.secondary = Math.round((r.score.secondary * (shared / Math.max(full, 1e-9))) * 10) / 10;
-      r.score.total = Math.round((r.score.primary + r.score.secondary + r.score.science + r.score.budget + r.score.schedule) * 10) / 10;
-    }
-  }
-}
-
-const completeOptions = (m: Mission, picks: Picks): Option[] => {
-  const byId = optionById(m);
-  const p = completePicks(m, picks);
-  return Object.values(p).flat().map((id) => byId.get(id)).filter((o): o is Option => !!o);
-};

@@ -64,6 +64,7 @@ export const lunarIceRover: Mission = {
     changeMinKUSD: rule(5000, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
     changeDelayDaysPerPhase: rule(30),
   },
+  craftName: tx('the rover', 'ローバー'),
   outcomeLabels: {
     launchFailure: tx('Landing failure', '着陸失敗'),
     orbitFailure: tx('Stuck on the lander', '着陸機から降りられず'),
@@ -99,7 +100,7 @@ export const lunarIceRover: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      help: tx('Each one adds points but also requirements. Agencies chasing the same one split its points.', '1つごとに加点されますが、要求も増えます。同じ副目的を狙う機関が多いと得点が割れます。'),
+      help: tx('Each one adds points but also requirements.', '1つごとに加点されますが、要求も増えます。'),
       options: ['lsec-none', 'lsec-isotopes', 'lsec-coldtrap', 'lsec-full'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
@@ -371,7 +372,7 @@ export const lunarIceRover: Mission = {
 
   events: [
     {
-      id: 'lbudget-cut', phase: 1, name: tx('Budget cut', '予算の削減'),
+      id: 'lbudget-cut', icon: 'coins', phase: 1, name: tx('Budget cut', '予算の削減'),
       story: tx('The programme budget is cut by 10%.', '計画の予算が10%削減された。'),
       probability: rule(0.3),
       // A 20% reserve absorbs the cut (JPL keeps 20–30% during design); 10% absorbs half and the rest is
@@ -389,7 +390,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'lpart-delay', phase: 2, name: tx('Instrument delay', '機器の納期遅延'),
+      id: 'lpart-delay', icon: 'box', phase: 2, name: tx('Instrument delay', '機器の納期遅延'),
       story: tx('An instrument arrives months late.', '科学機器の納入が数か月遅れた。'),
       probability: rule(0.35),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
@@ -402,7 +403,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'lander-delay', phase: 3, name: tx('Lander delay', '着陸機の遅れ'),
+      id: 'lander-delay', icon: 'lander', phase: 3, name: tx('Lander delay', '着陸機の遅れ'),
       story: tx('The commercial lander slips by months.', '民間の着陸機の完成が数か月遅れた。'),
       probability: rule(0.4),
       protectedIf: { kind: 'setting', key: 'targetWindow', atLeast: 1 },
@@ -416,7 +417,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'ltest-anomaly', phase: 4, name: tx('Test anomaly', '試験での不具合'),
+      id: 'ltest-anomaly', icon: 'clipboard', phase: 4, name: tx('Test anomaly', '試験での不具合'),
       story: tx('A hidden fault is lurking in the rover.', 'ローバーに隠れた不具合がある。'),
       probability: rule(0.4),
       protectedIf: { kind: 'setting', key: 'testDepth', atLeast: 2 },
@@ -426,7 +427,7 @@ export const lunarIceRover: Mission = {
       lesson: tx('Light testing let a fault through to the Moon for {agency}.', '{agency}は、試験が薄く不具合を月まで持ち込んだ。'),
     },
     {
-      id: 'landing-failure', phase: 4, name: tx('Landing failure', '着陸失敗'),
+      id: 'landing-failure', icon: 'lander', phase: 4, name: tx('Landing failure', '着陸失敗'),
       story: tx('The lander does not touch down safely.', '着陸機が無事に降りられなかった。'),
       probability: rule(0, tx('Drawn from the chosen lander’s reliability instead of a fixed chance.', '一定の確率ではなく、選んだ着陸機の信頼性から引く。')),
       unprotected: [{ kind: 'missionLost', outcome: 'launchFailure' }],
@@ -439,7 +440,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'lsolar-storm', phase: 5, name: tx('Solar storm', '太陽嵐'),
+      id: 'lsolar-storm', icon: 'sun', phase: 5, name: tx('Solar storm', '太陽嵐'),
       story: tx('High-energy particles from a solar flare reach the Moon, which has no magnetic field to shield it.', '太陽フレアの高エネルギー粒子が月に届いた。月には守ってくれる磁場がない。'),
       probability: est(0.55, ['nasa-donki'], tx(
         'Share of 100-day periods in 2014–2025 with at least one solar energetic particle episode seen near Earth (GOES or SOHO) in DONKI: 339 of 613. The Moon is near Earth, so far-away spacecraft records are left out. See data/donki-sep-2014-2025.json (nearEarth).',
@@ -450,7 +451,7 @@ export const lunarIceRover: Mission = {
       lesson: tx('The same solar storm hit everyone; {agency}’s team was slow to put the rover in safe mode.', '同じ太陽嵐が全機関を襲った。{agency}のチームは、ローバーを安全な状態にするのが遅れた。'),
     },
     {
-      id: 'stuck', phase: 5, name: tx('Stuck in soft soil', '柔らかい土にはまる'),
+      id: 'stuck', icon: 'rover', phase: 5, name: tx('Stuck in soft soil', '柔らかい土にはまる'),
       story: tx('A wheel sinks into loose regolith.', '車輪がやわらかいレゴリスに沈んだ。'),
       probability: rule(0.3),
       // Short careful drives keep off soft ground; a steady plan or a tested rover gets free; long drives risk the most.
@@ -467,7 +468,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'long-night', phase: 5, name: tx('Longer shadow than planned', '想定より長い影'),
+      id: 'long-night', icon: 'moon', phase: 5, name: tx('Longer shadow than planned', '想定より長い影'),
       story: tx('The safe spot falls into shadow for longer than expected.', '安全な待機場所が、想定より長く影に入った。'),
       probability: rule(0.5),
       // Heaters protect a rover that stays near its safe spot; one that drives deep into the shadows is only partly covered.
@@ -478,7 +479,7 @@ export const lunarIceRover: Mission = {
       lesson: tx('{agency}’s rover froze in a long shadow: no heaters and a small battery.', '{agency}のローバーは長い影で凍りついた。ヒーターがなく電池も小さかった。'),
     },
     {
-      id: 'comm-gap', phase: 5, name: tx('Antenna time cut', 'アンテナ時間の削減'),
+      id: 'comm-gap', icon: 'dish', phase: 5, name: tx('Antenna time cut', 'アンテナ時間の削減'),
       story: tx('Other missions need the big antennas and your allotted contact time is cut. Data piles up on board.', 'ほかのミッションが大型アンテナを必要とし、割り当ての通信時間が削られた。送れないデータがたまっていく。'),
       probability: rule(0.4),
       protectedIf: { kind: 'hasTag', tag: 'dsn:priority' },
@@ -494,7 +495,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'tip-over', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
+      id: 'tip-over', icon: 'lander', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
       story: tx('The lander touches down but tips over. The rover may not be able to drive off cleanly, and the solar arrays face the wrong way.', '着陸はできたが横倒しになった。ローバーがうまく降りられず、太陽電池も違う方向を向いている。'),
       probability: est(0.5, ['nasa-clps-agu-2025', 'nasa-clps-timeline', 'nasa-im2-end', 'sfn-im2'], tx('Of the three CLPS landings that reached the surface (IM-1, Blue Ghost 1, IM-2), two ended on their side. With only three, the game uses 0.5 rather than two thirds.', 'CLPSで月面に着陸できた3回（IM-1、Blue Ghost 1、IM-2）のうち2回が横倒しだった。3回しかないので、3分の2ではなく0.5とした。')),
       partialIf: { kind: 'hasTag', tag: 'lander:large' },
@@ -509,7 +510,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'ice-rich', phase: 5, name: tx('Ice-rich spot', '氷の多い場所'),
+      id: 'ice-rich', icon: 'drill', phase: 5, name: tx('Ice-rich spot', '氷の多い場所'),
       story: tx('The neutron data point to a buried ice-rich layer.', '中性子のデータが、氷の多い層が埋まっていることを示した。'),
       probability: rule(0.35),
       unprotected: [],
@@ -518,7 +519,7 @@ export const lunarIceRover: Mission = {
       lesson: tx('{agency} had a drill and could sample the ice-rich layer.', '{agency}はドリルを積んでいて、氷の多い層を掘れた。'),
     },
     {
-      id: 'lfunding-gap', phase: 1, name: tx('Funding lapse', '予算の成立が遅れる'),
+      id: 'lfunding-gap', icon: 'coins', phase: 1, name: tx('Funding lapse', '予算の成立が遅れる'),
       story: tx('Appropriations lapse and government work stops. Contracts and reviews wait.', '予算の成立が遅れ、政府機関の仕事が止まった。契約と審査が進まない。'),
       probability: est(0.23, ['crs-funding-gaps'], tx('Of the 13 fiscal years 2014–2026, three had a government-wide funding lapse of 16 days or more (16 days in FY2014, 34 in FY2019, 42 in FY2026).', '2014〜2026年度の13年度のうち、政府全体の予算の空白が16日以上続いたのは3回（2014年度16日、2019年度34日、2026年度42日）。')),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
@@ -532,7 +533,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'lintegration-slip', phase: 4, name: tx('Assembly and test run long', '組立と試験が長引く'),
+      id: 'lintegration-slip', icon: 'calendar', phase: 4, name: tx('Assembly and test run long', '組立と試験が長引く'),
       story: tx('Problems that only show up once everything is assembled stretch the test campaign.', '組み立てて初めて分かる不具合が続き、試験の日程が延びた。'),
       probability: est(0.5, ['nasa-lcc-growth'], tx('Across 20 NASA science missions launched 2000–2009, launch dates slipped on average more than 13 months from the plan at PDR, mostly during assembly and test. Slipping is the norm, so the game uses 0.5 (the value itself is a game choice).', 'NASAの科学ミッション20機（2000〜2009年打ち上げ）で、打ち上げ日はPDR時点の計画から平均13か月以上遅れ、その大半は組立・試験の間に起きた。遅れるのが普通なので0.5とした（値そのものはゲームの判断）。')),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.15 },
@@ -542,7 +543,7 @@ export const lunarIceRover: Mission = {
       lesson: tx('{agency} had no schedule margin when assembly and test ran long.', '{agency}は、組立と試験が延びたときに日程の余裕がなかった。'),
     },
     {
-      id: 'first-flight-wait', phase: 3, name: tx('Waiting on the first flight', '初飛行の結果待ち'),
+      id: 'first-flight-wait', icon: 'hourglass', phase: 3, name: tx('Waiting on the first flight', '初飛行の結果待ち'),
       story: tx('Your lander has never landed. Nothing moves until its first flight is in.', '選んだ着陸機はまだ月に降りたことがない。初飛行の結果が出るまで、次へ進めない。'),
       probability: rule(0.5),
       protectedIf: { kind: 'hasTag', tag: 'lander:committed' },

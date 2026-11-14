@@ -197,6 +197,8 @@ export type Effect =
 
 export interface EventCard {
   id: string;
+  /** Line icon on the card (src/components/icons.tsx): what the event is about. */
+  icon?: IconName;
   phase: 1 | 2 | 3 | 4 | 5;
   name: Text;
   /** Shown when the card is drawn. */
@@ -315,6 +317,8 @@ export interface Mission {
   view?: MissionViewConfig;
   /** Wording that differs from the default for this mission (e.g. "landing failure" instead of "launch failure"). */
   outcomeLabels?: Partial<Record<Outcome, Text>>;
+  /** What the player sends (satellite, rover, spacecraft), for sentences such as "lost the rover on day 51". */
+  craftName?: Text;
 }
 
 /**

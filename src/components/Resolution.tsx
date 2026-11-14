@@ -5,6 +5,7 @@ import { completePicks } from '../engine/design';
 import { agencyDesign, agencyForecast, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
 import { AutoFit } from './AutoFit';
+import { Icon } from './icons';
 import { Flight, FLIGHT_SECONDS } from './Flight';
 import { AGENCY_COLOR, RESULT_MARK, useAgencyName, useCardText } from './labels';
 import type { AgencyKind as Seat } from '../engine/game';
@@ -28,8 +29,8 @@ export function AgencyLabel({ id }: { id: AgencyKind }) {
 export function CardIcon({ card }: { card: EventCard }) {
   const kind = card.readyIf ? 'good' : card.unprotected[0]?.kind ?? 'failChance';
   const s = { fill: 'none', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  return (
-    <svg viewBox="0 0 48 48" className="card-icon" aria-hidden="true">
+  const mark = (
+    <svg viewBox="0 0 48 48" className={card.icon ? 'card-kind' : 'card-icon'} aria-hidden="true">
       {kind === 'good' && <path {...s} d="M24 6l5 11 12 1-9 8 3 12-11-7-11 7 3-12-9-8 12-1z" />}
       {kind === 'resource' && <><circle {...s} cx="24" cy="24" r="16" /><path {...s} d="M29 17c-2-2-9-3-10 1-1 5 11 3 10 9-1 4-8 3-11 1M24 12v24" /></>}
       {kind === 'delayDays' && <><circle {...s} cx="24" cy="26" r="15" /><path {...s} d="M24 17v10l7 4M19 6h10" /></>}
@@ -38,6 +39,8 @@ export function CardIcon({ card }: { card: EventCard }) {
       {kind === 'missionLost' && <><circle {...s} cx="24" cy="24" r="17" /><path {...s} d="M16 16l16 16M32 16L16 32" /></>}
     </svg>
   );
+  // The event's own icon says what it is about; the small corner mark keeps the kind of effect (lost data, delay…).
+  return card.icon ? <span className="card-icon has-kind"><Icon name={card.icon} size="100%" />{mark}</span> : mark;
 }
 
 /**
@@ -55,7 +58,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const text = useCardText(m);
   const names = useAgencyName();
   const slots = m.slots.filter((s) => s.phase === phase);
-  // Playing together: who met a split card how, in words with names; and secondary objectives several chose.
+  // Playing together: who met a split card how, in words with names.
   const nameList = (ids: Seat[]) => names.list(ids, (id) => names.spaced(names.inText(id)));
   const splitText = (id: string) => {
     if (!report) return '';
@@ -63,10 +66,6 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
     for (const a of game.agencies) { const r = report.results[a.id][id]; if (r) groups.set(r, [...(groups.get(r) ?? []), a.id]); }
     return names.tidy([...groups].map(([r, ids]) => fmt(tk(t, `split_${r}`), { names: nameList(ids) })).join(' '));
   };
-  const shared = names.multi && phase === 1 ? m.secondary.filter((o) => o.chosenBy).map((o) => {
-    const ids = game.agencies.filter((a) => Object.values(a.picks).flat().some((pid) => byId.get(pid)?.tags?.includes(o.chosenBy!))).map((a) => a.id);
-    return ids.length >= 2 ? names.tidy(fmt(t.sharedSecondary, { names: nameList(ids), goal: L(o.name) })) : '';
-  }).filter(Boolean) : [];
   const cards = report?.cards ?? [];
   // A card every agency met the same way is shown as one line and takes less time; a split result gets
   // its four boxes, one after another, and more time.
@@ -131,6 +130,10 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
     return () => window.removeEventListener('keydown', k);
   }, [advance]);
 
+  // Shrink to fit, but never below 12 px for the smallest text of this scene (about 0.7 of its base size);
+  // what still does not fit scrolls.
+  const rootPx = typeof document !== 'undefined' ? parseFloat(getComputedStyle(document.documentElement).fontSize) || 14 : 14;
+  const resMin = Math.min(1, 12 / (rootPx * 1.4 * 0.7));
   if (!report) return null;
   const possible = m.events.filter((e) => e.phase === phase && e.probability.value > 0);
   const title = flightOn ? t.flightTitle : fmt(t.resolutionTitle, { n: phase, name: tk(t, `phase${phase}`) });
@@ -151,7 +154,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
           )}
         </div>
 
-        {flightOn && game.final ? <Flight game={game} start={0} instant={done} /> : <AutoFit className="res-fit" min={0.72}>
+        {flightOn && game.final ? <Flight game={game} start={0} instant={done} /> : <AutoFit className="res-fit" min={resMin}>
         <div className="res-grid">
           {game.agencies.map((a, i) => {
             const d = agencyDesign(game, a);
@@ -162,9 +165,11 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
             return (
               <div key={a.id} className={`res-col appear ${a.id === 'player' && game.mode !== 'multi' ? 'me' : ''} ${cards.length === 0 ? 'roomy' : ''}`} style={{ animationDelay: `${i * 0.2}s`, borderTopColor: AGENCY_COLOR[a.id] }}>
                 <AgencyLabel id={a.id} />
+                {/* Every agency lists its picks in the items' order (as in the middle column), so they line up. */}
                 <ul className="res-picks">
-                  {changed.map((p) => <li key={`${p.slot}-${p.id}`} className="changed" title={t.changedFromStandard}>{L(byId.get(p.id)!.name)}</li>)}
-                  {same.map((p) => <li key={`${p.slot}-${p.id}`}>{L(byId.get(p.id)!.name)}</li>)}
+                  {picks.filter((p) => changed.includes(p) || same.includes(p)).map((p) => p.changed
+                    ? <li key={`${p.slot}-${p.id}`} className="changed" title={t.changedFromStandard}>{L(byId.get(p.id)!.name)}</li>
+                    : <li key={`${p.slot}-${p.id}`}>{L(byId.get(p.id)!.name)}</li>)}
                 </ul>
                 <div className="res-budget"><span style={{ width: `${Math.min(100, used)}%` }} /></div>
                 <div className="note small">{fmt(t.rivalBudget, { n: used })}</div>
@@ -172,7 +177,6 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
             );
           })}
         </div>
-        {shared.map((x) => <p key={x} className="res-shared appear">{x}</p>)}
 
         {cards.length === 0 ? (
           <div className="res-none">

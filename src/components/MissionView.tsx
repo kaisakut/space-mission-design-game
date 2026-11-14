@@ -187,7 +187,7 @@ export function MissionView({ mission, state, ghost }: { mission: Mission; state
   const view = (size: 'small' | 'big') => (
     <div className={`mission-view ${size}`}>
       <Scene model={model} ghost={ghostModel} fast={fast} onMeter={onMeter} />
-      <div className="mv-info">
+      <div className={`mv-info ${model.kind === 'moon' ? 'backed' : ''}`}>
         {/* Engine values for what the picture shows. */}
         {model.kind === 'jupiter' ? <>
           <div>{tk(t, `viewPath_${model.path}`)}</div>

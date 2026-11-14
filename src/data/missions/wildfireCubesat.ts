@@ -115,13 +115,14 @@ export const wildfireCubesat: Mission = {
   ],
   rubric: { primary: rule(35), secondary: rule(15), science: rule(30), budget: rule(10), schedule: rule(10) },
 
+  craftName: tx('the satellite', '衛星'),
   slots: [
     // Phase 1: concept
     {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      help: tx('Each one adds points but also requirements. Agencies chasing the same one split its points.', '1つごとに加点されますが、要求も増えます。同じ副目的を狙う機関が多いと得点が割れます。'),
+      help: tx('Each one adds points but also requirements.', '1つごとに加点されますが、要求も増えます。'),
       options: ['sec-none', 'sec-night', 'sec-fast', 'sec-life'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
@@ -435,7 +436,7 @@ export const wildfireCubesat: Mission = {
 
   events: [
     {
-      id: 'budget-cut', phase: 1, name: tx('Budget cut', '予算の削減'),
+      id: 'budget-cut', icon: 'coins', phase: 1, name: tx('Budget cut', '予算の削減'),
       story: tx('The programme budget is cut by 10%.', '計画の予算が10%削減された。'),
       probability: rule(0.3),
       // A 20% reserve absorbs the cut (JPL keeps 20–30% during design); 10% absorbs half and the rest is
@@ -447,7 +448,7 @@ export const wildfireCubesat: Mission = {
       lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
     },
     {
-      id: 'part-delay', phase: 2, name: tx('Supplier delay', '部品の納期遅延'),
+      id: 'part-delay', icon: 'box', phase: 2, name: tx('Supplier delay', '部品の納期遅延'),
       story: tx('A supplier is late with a key part.', '主要部品の納入が遅れた。'),
       probability: rule(0.35),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.15 },
@@ -461,7 +462,7 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      id: 'long-wait', phase: 3, name: tx('Long wait in the rocket', '打ち上げ待ちで電池が減る'),
+      id: 'long-wait', icon: 'bolt', phase: 3, name: tx('Long wait in the rocket', '打ち上げ待ちで電池が減る'),
       story: tx('Your CubeSat is loaded into the rocket months before launch and waits there without charging.', 'キューブサットは打ち上げの何か月も前にロケットに積まれ、充電できないまま待つ。'),
       probability: rule(0.3),
       protectedIf: { kind: 'margin', resource: 'power', atLeast: 0.4 },
@@ -475,7 +476,7 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      id: 'test-anomaly', phase: 4, name: tx('Test anomaly', '試験での不具合'),
+      id: 'test-anomaly', icon: 'clipboard', phase: 4, name: tx('Test anomaly', '試験での不具合'),
       story: tx('A hidden fault is lurking in the spacecraft.', '機体に隠れた不具合がある。'),
       probability: rule(0.4),
       protectedIf: { kind: 'setting', key: 'testDepth', atLeast: 2 },
@@ -491,14 +492,14 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      id: 'launch-failure', phase: 4, name: tx('Launch failure', '打ち上げ失敗'),
+      id: 'launch-failure', icon: 'rocket', phase: 4, name: tx('Launch failure', '打ち上げ失敗'),
       story: tx('The rocket fails to reach orbit.', 'ロケットが軌道に届かなかった。'),
       probability: rule(0, tx('Drawn from the chosen rocket’s reliability instead of a fixed chance.', '一定の確率ではなく、選んだロケットの信頼性から引く。')),
       unprotected: [{ kind: 'missionLost', outcome: 'launchFailure' }],
       lesson: tx('{agency} lost its satellite at launch.', '{agency}は、打ち上げで衛星を失った。'),
     },
     {
-      id: 'solar-flare', phase: 5, name: tx('Solar storm', '太陽嵐'),
+      id: 'solar-flare', icon: 'sun', phase: 5, name: tx('Solar storm', '太陽嵐'),
       story: tx(
         'A solar flare sends a burst of high-energy particles. They can upset or damage the spacecraft computer.',
         '太陽フレアに伴って高エネルギーの粒子が降り注いだ。機体の計算機が誤動作したり壊れたりするおそれがある。',
@@ -512,7 +513,7 @@ export const wildfireCubesat: Mission = {
       lesson: tx('The same solar storm hit everyone; {agency} had no radiation protection.', '同じ太陽嵐が全機関を襲った。{agency}には放射線対策がなかった。'),
     },
     {
-      id: 'wheel-failure', phase: 5, name: tx('Reaction wheel failure', 'ホイールの故障'),
+      id: 'wheel-failure', icon: 'wheel', phase: 5, name: tx('Reaction wheel failure', 'ホイールの故障'),
       story: tx('A reaction wheel stops spinning.', '姿勢制御のホイールが止まった。'),
       probability: rule(0.15),
       protectedIf: { kind: 'hasTag', tag: 'spareWheel' },
@@ -526,7 +527,7 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      id: 'station-cut', phase: 5, name: tx('Ground station time cut', '地上局の割り当て減'),
+      id: 'station-cut', icon: 'antenna', phase: 5, name: tx('Ground station time cut', '地上局の割り当て減'),
       story: tx('Other users need the ground stations, and your contact time is cut.', 'ほかの利用者が地上局を必要とし、通信時間が削られた。'),
       probability: rule(0.25),
       protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.75 },
@@ -534,7 +535,7 @@ export const wildfireCubesat: Mission = {
       lesson: tx('{agency} could not downlink everything when station time was cut.', '{agency}は、地上局の時間が減ったときにデータを送りきれなかった。'),
     },
     {
-      id: 'storm-drag', phase: 5, name: tx('Geomagnetic storm drag', '磁気嵐で大気の抵抗が増える'),
+      id: 'storm-drag', icon: 'magnet', phase: 5, name: tx('Geomagnetic storm drag', '磁気嵐で大気の抵抗が増える'),
       story: tx('A geomagnetic storm heats the upper atmosphere. Low satellites feel extra drag and lose their pointing for a while.', '磁気嵐で上層大気が温まった。低い軌道の衛星は抵抗が増え、しばらく姿勢を保てない。'),
       probability: rule(0.3),
       protectedIf: { kind: 'hasTag', tag: 'orbit:high' },
@@ -548,7 +549,7 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      id: 'battery-wear', phase: 5, name: tx('Battery wear', '電池の劣化'),
+      id: 'battery-wear', icon: 'bolt', phase: 5, name: tx('Battery wear', '電池の劣化'),
       story: tx('A satellite in low orbit charges and discharges its battery about 5,500 times a year. Imaging on every orbit drains it deeper each time.', '低軌道の衛星は、年に約5,500回、電池の充電と放電をくり返す。毎周回撮影すると、そのたびに深く放電する。'),
       probability: rule(0.8, tx('Game value: a card for the general rule that repeated deep discharges wear a battery out sooner. The chance is high because the design, not luck, decides it.', 'ゲームの値：深い放電をくり返すと電池が早く劣化する、という一般的な性質をカードにした。確率は設計で決まるので高くした。')),
       // A steady or conservative plan keeps discharges shallow; a large power margin also helps.
@@ -564,7 +565,7 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      id: 'big-fire-season', phase: 5, name: tx('Major fire season', '大規模な火災シーズン'),
+      id: 'big-fire-season', icon: 'flame', phase: 5, name: tx('Major fire season', '大規模な火災シーズン'),
       story: tx('An intense fire season: a chance for valuable observations.', '火災が多い季節になった。価値ある観測の好機。'),
       probability: rule(0.3),
       unprotected: [],
@@ -573,7 +574,7 @@ export const wildfireCubesat: Mission = {
       lesson: tx('{agency} had the power margin to observe the major fire season.', '{agency}は、電力に余裕があり大規模な火災シーズンを観測できた。'),
     },
     {
-      id: 'funding-gap', phase: 1, name: tx('Funding lapse', '予算の成立が遅れる'),
+      id: 'funding-gap', icon: 'coins', phase: 1, name: tx('Funding lapse', '予算の成立が遅れる'),
       story: tx('Appropriations lapse and government work stops. Contracts and reviews wait.', '予算の成立が遅れ、政府機関の仕事が止まった。契約と審査が進まない。'),
       probability: est(0.23, ['crs-funding-gaps'], tx('Of the 13 fiscal years 2014–2026, three had a government-wide funding lapse of 16 days or more (16 days in FY2014, 34 in FY2019, 42 in FY2026).', '2014〜2026年度の13年度のうち、政府全体の予算の空白が16日以上続いたのは3回（2014年度16日、2019年度34日、2026年度42日）。')),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
@@ -587,7 +588,7 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      id: 'integration-slip', phase: 4, name: tx('Assembly and test run long', '組立と試験が長引く'),
+      id: 'integration-slip', icon: 'calendar', phase: 4, name: tx('Assembly and test run long', '組立と試験が長引く'),
       story: tx('Problems that only show up once everything is assembled stretch the test campaign.', '組み立てて初めて分かる不具合が続き、試験の日程が延びた。'),
       probability: est(0.5, ['nasa-lcc-growth'], tx('Across 20 NASA science missions launched 2000–2009, launch dates slipped on average more than 13 months from the plan at PDR, mostly during assembly and test. Slipping is the norm, so the game uses 0.5 (the value itself is a game choice).', 'NASAの科学ミッション20機（2000〜2009年打ち上げ）で、打ち上げ日はPDR時点の計画から平均13か月以上遅れ、その大半は組立・試験の間に起きた。遅れるのが普通なので0.5とした（値そのものはゲームの判断）。')),
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.15 },
@@ -597,7 +598,7 @@ export const wildfireCubesat: Mission = {
       lesson: tx('{agency} had no schedule margin when assembly and test ran long.', '{agency}は、組立と試験が延びたときに日程の余裕がなかった。'),
     },
     {
-      id: 'rocket-grounded', phase: 3, name: tx('Rocket grounded', 'ロケットが飛行停止'),
+      id: 'rocket-grounded', icon: 'rocket', phase: 3, name: tx('Rocket grounded', 'ロケットが飛行停止'),
       story: tx('Another launch of the same rocket fails, and the fleet is grounded until the cause is found.', '同じロケットの別の打ち上げが失敗し、原因が分かるまで飛べなくなった。'),
       probability: rule(0.2),
       protectedIf: { kind: 'setting', key: 'targetWindow', atLeast: 1 },
