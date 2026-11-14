@@ -114,7 +114,8 @@ function satellite(m: EarthModel): THREE.Group {
 
 export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolean; textureUrl?: string }): EarthScene {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // Capped at 1.5: a small view does not need a full Retina buffer, and the GPU work drops by almost half.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   host.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
@@ -169,17 +170,17 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
   const firePoints = new THREE.Points(fireGeo, new THREE.PointsMaterial({ size: 0.011, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false }));
   firePoints.visible = false;
   earth.add(firePoints);
-  const paintFires = () => {
-    for (let k = 0; k < cells.length; k++) {
-      const lv = (Math.max(cells[k]![2], cells[k]![3]) / 9) ** 3;
-      const l = lit[k]!;
-      fireColors[k * 3] = 0.015 + 0.2 * lv + 0.8 * l;
-      fireColors[k * 3 + 1] = 0.006 + 0.02 * lv + 0.6 * l;
-      fireColors[k * 3 + 2] = 0.01 + 0.15 * l;
-    }
-    (fireGeo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+  const fireLevel = cells.map((c) => (Math.max(c[2], c[3]) / 9) ** 3);
+  const paintFire = (k: number) => {
+    const lv = fireLevel[k]!, l = lit[k]!;
+    fireColors[k * 3] = 0.015 + 0.2 * lv + 0.8 * l;
+    fireColors[k * 3 + 1] = 0.006 + 0.02 * lv + 0.6 * l;
+    fireColors[k * 3 + 2] = 0.01 + 0.15 * l;
   };
-  paintFires();
+  for (let k = 0; k < cells.length; k++) paintFire(k);
+  // Only the dots that are lit (a few dozen at a time) are updated each frame.
+  const active = new Set<number>();
+  const COS_REACH = Math.cos(0.07);
 
   let model: EarthModel | null = null;
   let parts: THREE.Object3D[] = [];
@@ -225,14 +226,18 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
     if (orbitChanged) { covCtx.clearRect(0, 0, cov.width, cov.height); covTex.needsUpdate = true; }
   };
 
+  let lastW = 0, lastH = 0;
   const resize = () => {
     const w = host.clientWidth, h = host.clientHeight;
-    if (!w || !h) return;
+    if (!w || !h || (w === lastW && h === lastH)) return;
+    lastW = w; lastH = h;
     renderer.setSize(w, h, false);
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    // Resizing clears the canvas: draw at once, or the view blinks until the next frame.
+    if (model) frame(0);
   };
   const ro = new ResizeObserver(resize);
   ro.observe(host);
@@ -282,20 +287,22 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
       }
       // Fires under the camera light up: day side only for daytime cameras, a share set by the camera.
       if (model.fires) {
-        for (let k = 0; k < lit.length; k++) lit[k] = Math.max(0, lit[k]! - dt * 0.6);
+        const changed = active.size > 0;
+        for (const k of active) { lit[k] = Math.max(0, lit[k]! - dt * 0.6); paintFire(k); if (!lit[k]) active.delete(k); }
         if (observing && model.camera) {
           const sunLocal = SUN.clone().applyQuaternion(earth.getWorldQuaternion(new THREE.Quaternion()).invert());
-          const reach = 0.07;
+          const sl = Math.hypot(...sub) || 1;
+          const sx = sub[0] / sl, sy = sub[1] / sl, sz = sub[2] / sl;
           for (let k = 0; k < fireDirs.length; k++) {
             const f = fireDirs[k]!;
-            if (angleBetween(f, sub) > reach) continue;
+            if (f[0] * sx + f[1] * sy + f[2] * sz < COS_REACH) continue;
             const day = f[0] * sunLocal.x + f[1] * sunLocal.y + f[2] * sunLocal.z > 0;
             const level = day ? cells[k]![2] : cells[k]![3];
             if (!level || (model.camera.dayOnly && !day)) continue;
-            if (((k * 2654435761) % 1000) / 1000 < model.camera.share) lit[k] = 1;
+            if (((k * 2654435761) % 1000) / 1000 < model.camera.share) { lit[k] = 1; paintFire(k); active.add(k); }
           }
         }
-        paintFires();
+        if (changed || active.size) (fireGeo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
       }
       // Link to a station in view; thickness follows the radio rate.
       const lam = footprintAngle(model.altKm);
@@ -323,11 +330,11 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
     renderer.render(scene, camera);
   };
 
+  // About 30 frames a second is plenty for a slow orbit and halves the work; fast-forward draws every frame.
   let raf = 0, last = performance.now();
   const loop = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000);
-    last = now;
-    if (visible && !document.hidden && !opts.reduceMotion) frame(dt);
+    if (visible && !document.hidden && !opts.reduceMotion && (fast || dt >= 1 / 32)) { last = now; frame(dt); }
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);

@@ -98,9 +98,10 @@ export function MissionView({ mission, state, ghost }: { mission: Mission; state
   const lastMeter = useRef(0);
   const onMeter = (l: number, o: boolean) => {
     const now = performance.now();
-    if (now - lastMeter.current < 120) return;
+    if (now - lastMeter.current < 200) return;
     lastMeter.current = now;
-    setMeter({ l, o });
+    // Only re-render the overlay when the level moved visibly.
+    setMeter((m) => (Math.abs(m.l - l) < 0.02 && m.o === o ? m : { l, o }));
   };
   if (!model) return null;
   const view = (size: 'small' | 'big') => (
