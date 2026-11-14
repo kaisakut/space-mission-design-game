@@ -38,6 +38,11 @@ for (const m of MISSIONS) {
   const mine = agencyForecast(g0, player, { ...player.picks }, 100, 'baseline', { kUSD: 0, days: 0 }, FORECAST_SEED);
   check(card.successShare === base.successShare && card.score.p50 === base.score.p50, `${m.id}: mission card and first baseline agree (${Math.round(card.successShare * 100)}%)`);
   check(JSON.stringify(base.score) === JSON.stringify(mine.score) && base.successShare === mine.successShare, `${m.id}: an unchanged design forecasts exactly the baseline`);
+
+  // The 100 runs on the card must not misstate the difficulty: within 3 points of 5,000 runs (another stream).
+  const long = runForecast(m, {}, 4242, 1, 5000, { stream: 'reference' });
+  const gap = Math.abs(card.successShare - long.successShare) * 100;
+  check(gap <= 3, `${m.id}: mission card success ${Math.round(card.successShare * 100)}% is within 3 points of 5,000 runs (${(long.successShare * 100).toFixed(1)}%)`);
 }
 if (failed) process.exit(1);
 
@@ -138,7 +143,8 @@ for (const m of MISSIONS) {
       const r = measure(m, picks);
       const ds = r.s - base.s, dsc = r.sc - base.sc;
       if (showTable) console.log(`     ${m.id} ${slot.id}=${id}: success ${ds >= 0 ? '+' : ''}${ds.toFixed(1)}, score ${dsc >= 0 ? '+' : ''}${dsc.toFixed(1)}`);
-      if (slot.id !== 'secondary' && Math.abs(dsc) < 0.1) warn.push(`${slot.id}=${id} hardly changes the score (${dsc.toFixed(2)})`);
+      // "No effect" only when neither the score nor the success rate moves (a safer choice at the same score is a trade-off).
+      if (slot.id !== 'secondary' && Math.abs(dsc) < 0.1 && Math.abs(ds) < 2) warn.push(`${slot.id}=${id} hardly changes the score (${dsc.toFixed(2)})`);
       if (ds >= 2 && dsc < 0) {
         // A safer choice that costs some score is a fair trade-off (the price of the extra success), so it is only noted.
         // The real balance problem, an option that is never the best in any design, is checked by `npm run audit:options`.

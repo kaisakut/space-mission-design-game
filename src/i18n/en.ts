@@ -93,6 +93,7 @@ export const en = {
   standardWouldScore: 'The auto-plan, flown through the same events: {s}',
   samePlayAgain: 'Same events, new design',
   part_primary: 'Primary',
+  briefSecondary: "Pick up to {n}; {p} points each: {list}",
   part_secondary: 'Secondary',
   part_science: 'Science',
   part_budget: 'Budget',

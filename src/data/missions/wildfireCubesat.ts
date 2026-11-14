@@ -91,7 +91,7 @@ export const wildfireCubesat: Mission = {
       id: 'night-fires',
       name: tx('Night-time fires', '夜間の火災'),
       description: tx('Also detect fires at night (needs a thermal infrared camera).', '夜間の火災も検知する（熱赤外カメラが必要）。'),
-      points: rule(5),
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')),
       rule: { kind: 'hasTag', tag: 'night' },
       chosenBy: 'goal:night',
     },
@@ -99,7 +99,7 @@ export const wildfireCubesat: Mission = {
       id: 'fast-alert',
       name: tx('Fast alert', '速報'),
       description: tx('Alert within minutes of a detection: a station in view on almost every orbit (a commercial network) and radio capacity at least twice the data made each day.', '検知から数分で知らせる。ほぼ毎周回見える地上局（商用の局網）と、1日に作るデータの2倍以上を送れる余裕が必要。'),
-      points: rule(5),
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')),
       // A satellite can only send what it saw when it passes a station: fast alerts need stations all around the world.
       rule: { kind: 'all', of: [{ kind: 'hasTag', tag: 'frequentContact' }, { kind: 'margin', resource: 'downlink', atLeast: 0.5 }] },
       chosenBy: 'goal:fast',
@@ -108,7 +108,7 @@ export const wildfireCubesat: Mission = {
       id: 'long-life',
       name: tx('Long life', '長寿命'),
       description: tx('Keep operating for the full mission length.', 'ミッション期間の最後まで運用を続ける。'),
-      points: rule(5),
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')),
       rule: { kind: 'survive' },
       chosenBy: 'goal:life',
     },
@@ -122,7 +122,8 @@ export const wildfireCubesat: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      help: tx('Each one adds points but also requirements.', '1つごとに加点されますが、要求も増えます。'),
+      // The numbers are written out: if the points or the limit change, change this text too (check:data does not read it).
+      help: tx('Up to two; each is worth 7.5 points and adds requirements.', '2つまで選べます。1つ7.5点ですが、要求も増えます。'),
       options: ['sec-none', 'sec-night', 'sec-fast', 'sec-life'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
@@ -426,7 +427,7 @@ export const wildfireCubesat: Mission = {
     {
       kind: 'choice', id: 'test-full', icon: 'clipboard', name: tx('Full', '徹底'),
       description: tx('Adds a "day in the life" rehearsal of the whole mission.', '運用1日分を通して試す試験（DITL）も行う。'),
-      cost: rule(120), leadDays: rule(50), settings: { testDepth: rule(3) },
+      cost: rule(120), leadDays: rule(40), settings: { testDepth: rule(3) },
     },
 
     { kind: 'choice', id: 'ops-steady', icon: 'eye', name: tx('Steady', '標準'), description: tx('Observe on most passes over land.', '陸上を通るときはたいてい観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },

@@ -80,17 +80,17 @@ export const lunarIceRover: Mission = {
     {
       id: 'isotopes', name: tx('Isotopes', '同位体'),
       description: tx('Measure the water’s isotopes (needs the mass spectrometer).', '水の同位体を測る（質量分析計が必要）。'),
-      points: rule(5), rule: { kind: 'hasTag', tag: 'isotopes' }, chosenBy: 'goal:isotopes',
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')), rule: { kind: 'hasTag', tag: 'isotopes' }, chosenBy: 'goal:isotopes',
     },
     {
       id: 'cold-trap', name: tx('Drill in a cold trap', '低温域で掘る'),
       description: tx('Land by a permanently shadowed crater and drill there.', '永久影のクレーターのそばに着陸し、そこで掘る。'),
-      points: rule(5), rule: { kind: 'all', of: [{ kind: 'hasTag', tag: 'site:coldtrap' }, { kind: 'hasTag', tag: 'drill' }] }, chosenBy: 'goal:coldtrap',
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')), rule: { kind: 'all', of: [{ kind: 'hasTag', tag: 'site:coldtrap' }, { kind: 'hasTag', tag: 'drill' }] }, chosenBy: 'goal:coldtrap',
     },
     {
       id: 'full-mission', name: tx('All three lunar days', '月の昼3回分'),
       description: tx('Keep driving for the full 100 days.', '100日間、最後まで走り続ける。'),
-      points: rule(5), rule: { kind: 'survive' }, chosenBy: 'goal:full',
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')), rule: { kind: 'survive' }, chosenBy: 'goal:full',
     },
   ],
   rubric: { primary: rule(35), secondary: rule(15), science: rule(30), budget: rule(10), schedule: rule(10) },
@@ -100,7 +100,8 @@ export const lunarIceRover: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      help: tx('Each one adds points but also requirements.', '1つごとに加点されますが、要求も増えます。'),
+      // The numbers are written out: if the points or the limit change, change this text too (check:data does not read it).
+      help: tx('Up to two; each is worth 7.5 points and adds requirements.', '2つまで選べます。1つ7.5点ですが、要求も増えます。'),
       options: ['lsec-none', 'lsec-isotopes', 'lsec-coldtrap', 'lsec-full'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {

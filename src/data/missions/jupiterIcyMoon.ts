@@ -62,17 +62,17 @@ export const jupiterIcyMoon: Mission = {
     {
       id: 'plumes', name: tx('Sample plumes', '噴出物を調べる'),
       description: tx('Analyse material thrown out from Europa (needs an in-situ instrument).', 'エウロパから噴き出た物質を分析する（その場で測る機器が必要）。'),
-      points: rule(5), rule: { kind: 'hasTag', tag: 'insitu' }, chosenBy: 'goal:plumes',
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')), rule: { kind: 'hasTag', tag: 'insitu' }, chosenBy: 'goal:plumes',
     },
     {
       id: 'shell', name: tx('Sound the ice shell', '氷の殻を透かす'),
       description: tx('Measure the ice thickness with radar.', 'レーダーで氷の厚さを測る。'),
-      points: rule(5), rule: { kind: 'hasTag', tag: 'radar' }, chosenBy: 'goal:shell',
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')), rule: { kind: 'hasTag', tag: 'radar' }, chosenBy: 'goal:shell',
     },
     {
       id: 'full-tour', name: tx('Complete the tour', '観測期間を完走'),
       description: tx('Keep working to the end of the prime mission.', '本来の任務の最後まで観測を続ける。'),
-      points: rule(5), rule: { kind: 'survive' }, chosenBy: 'goal:full',
+      points: rule(7.5, tx('Game value: two picked make the rubric’s 15 points.', 'ゲームの値：2つ選ぶと配点の15点になる。')), rule: { kind: 'survive' }, chosenBy: 'goal:full',
     },
   ],
   rubric: { primary: rule(35), secondary: rule(15), science: rule(30), budget: rule(10), schedule: rule(10) },
@@ -82,7 +82,8 @@ export const jupiterIcyMoon: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      help: tx('Each one adds points but also requirements.', '1つごとに加点されますが、要求も増えます。'),
+      // The numbers are written out: if the points or the limit change, change this text too (check:data does not read it).
+      help: tx('Up to two; each is worth 7.5 points and adds requirements.', '2つまで選べます。1つ7.5点ですが、要求も増えます。'),
       options: ['jsec-none', 'jsec-plumes', 'jsec-shell', 'jsec-full'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
@@ -210,7 +211,7 @@ export const jupiterIcyMoon: Mission = {
       cost: rule(0),
       solarFactor: nasa(0.04, ['jpl-clipper-presskit'], SUN_NOTE),
       contactMinPerDay: rule(480, CONTACT_NOTE),
-      science: { remote: rule(30), radar: rule(30), insitu: rule(20), field: rule(30) },
+      science: { remote: rule(18), radar: rule(18), insitu: rule(12), field: rule(18) },
       tags: ['tour', 'radiation:low'],
     },
 

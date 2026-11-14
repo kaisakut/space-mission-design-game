@@ -95,6 +95,7 @@ export const ja: Messages = {
   standardWouldScore: '自動計画のまま同じイベントを飛んだ場合：{s}点',
   samePlayAgain: '同じイベントで設計し直す',
   part_primary: '主目的',
+  briefSecondary: "{n}つまで選べる。1つ{p}点：{list}",
   part_secondary: '副目的',
   part_science: '科学',
   part_budget: '予算',

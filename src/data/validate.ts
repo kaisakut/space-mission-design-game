@@ -135,5 +135,10 @@ export function validateMission(m: Mission): DataIssue[] {
   const total = r.primary.value + r.secondary.value + r.science.value + r.budget.value + r.schedule.value;
   if (total !== 100) err(`${m.id}.rubric`, `rubric adds up to ${total}, expected 100`);
   if (m.primary.points.value !== r.primary.value) err(`${m.id}.primary`, 'primary points differ from the rubric');
+  // The most you can earn from secondary objectives (as many as the slot lets you pick) must be the rubric's share.
+  const secSlot = m.slots.find((s) => s.id === 'secondary');
+  const canPick = secSlot?.multi?.max ?? m.secondary.length;
+  const best = [...m.secondary].map((s) => s.points.value).sort((a, b) => b - a).slice(0, canPick).reduce((a, b) => a + b, 0);
+  if (best !== r.secondary.value) err(`${m.id}.secondary`, `secondary points you can choose (${best}) differ from the rubric (${r.secondary.value})`);
   return issues;
 }

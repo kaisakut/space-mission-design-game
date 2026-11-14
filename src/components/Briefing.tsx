@@ -13,7 +13,8 @@ export function Briefing({ mission, game, onClose }: { mission: Mission; game: G
   const r = mission.rubric;
   const parts: { key: 'primary' | 'secondary' | 'science' | 'budget' | 'schedule'; text: string }[] = [
     { key: 'primary', text: L(mission.primary.name) },
-    { key: 'secondary', text: mission.secondary.map((s) => L(s.name)).join(t.listSep) },
+    // How many can be picked and what each is worth come from the data (all secondary objectives share one value).
+    { key: 'secondary', text: fmt(t.briefSecondary, { n: mission.slots.find((s) => s.id === 'secondary')?.multi?.max ?? mission.secondary.length, p: mission.secondary[0]?.points.value ?? 0, list: mission.secondary.map((s) => L(s.name)).join(t.listSep) }) },
     { key: 'science', text: fmt(t.briefScience, { unit: L(mission.rules.scienceUnit).replace(/^件の/, '') }) },
     { key: 'budget', text: t.briefBudget },
     { key: 'schedule', text: t.briefSchedule },

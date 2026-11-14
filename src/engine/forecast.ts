@@ -23,7 +23,9 @@ export const forecastRng = (seed: number, turn: number, run: number) => new Rng(
  * Seed of the player's forecasts (the baseline and their own), the same in every game: the mission card, the
  * first baseline and a forecast of an unchanged design all show the same numbers. The real game uses its own seed.
  */
-export const FORECAST_SEED = 20261114;
+// Chosen so that the 100 runs shown are close to the long-run values for every mission (checked by
+// `npm run check:engine`). Pick it again after changing mission data, if that check fails.
+export const FORECAST_SEED = 331;
 
 /**
  * Runs the current design to the end `runs` times. Undecided slots use their standard choice.
