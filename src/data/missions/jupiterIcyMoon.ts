@@ -55,7 +55,7 @@ export const jupiterIcyMoon: Mission = {
   primary: {
     id: 'ocean', name: tx('Look for the ocean', '海を探す'),
     description: tx('Gather enough close observations to tell whether an ocean lies under the ice.', '氷の下に海があるかを判断できるだけの接近観測を集める。'),
-    points: rule(35), rule: { kind: 'science', atLeast: 60, partialAtLeast: 15 },
+    points: rule(35), rule: { kind: 'science', atLeast: 35, partialAtLeast: 15 },
   },
   secondary: [
     {
@@ -90,7 +90,7 @@ export const jupiterIcyMoon: Mission = {
       options: ['tour-flybys', 'tour-europa-orbit', 'tour-ganymede'],
     },
     {
-      id: 'budget-split', icon: 'coins', level: { by: 'settings.reserveShare', label: tx('Reserve', '予備費') }, default: 'jsplit-lean', phase: 1, role: 'lead', changeKind: 'plan',
+      id: 'budget-split', icon: 'coins', level: { by: 'settings.reserveShare', label: tx('Reserve', '予備費') }, default: 'jsplit-balanced', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Budget split', '予算の配分'),
       help: tx('How much to keep in reserve for surprises.', '想定外に備えて、予備費をどれだけ残すか。'),
       options: ['jsplit-balanced', 'jsplit-lean', 'jsplit-safe'],
@@ -199,9 +199,9 @@ export const jupiterIcyMoon: Mission = {
       tags: ['tour', 'radiation:low'],
     },
 
-    { kind: 'choice', id: 'jsplit-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'jsplit-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('The reserve also covers design surprises, so only half of it can go to a budget cut; the rest is made up by dropping observations.', '予備費は設計の想定外にも使うので、予算削減に回せるのは半分。残りは観測を減らして埋める。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'jsplit-lean', icon: 'coins', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'jsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
+    { kind: 'choice', id: 'jsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: pub(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal). JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
 
     { kind: 'part', id: 'jinst-eis', icon: 'eye', subsystem: 'payload', name: tx('Cameras (EIS)', 'カメラ（EIS）'), description: tx('Wide and narrow cameras map the surface; down to about 1 m per pixel from 100 km.', '広角と狭角のカメラで地表を撮る。100 kmから1画素約1 m。'), cost: rule(60000), massKg: rule(40), powerW: rule(30), dataMBPerDay: rule(800, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
     { kind: 'part', id: 'jinst-mise', icon: 'thermo', subsystem: 'payload', name: tx('Infrared spectrometer (MISE)', '赤外分光計（MISE）'), description: tx('Maps the chemical fingerprints of salts and organics on the surface.', '地表の塩や有機物の化学的な指紋を地図にする。'), cost: rule(60000), massKg: rule(65), powerW: rule(40), dataMBPerDay: rule(600, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
@@ -259,14 +259,14 @@ export const jupiterIcyMoon: Mission = {
     {
       kind: 'launch', id: 'jlv-heavy', icon: 'rocket', name: tx('Heavy rocket with Mars and Earth swing-bys', '大型ロケット＋火星・地球スイングバイ'),
       description: tx('Europa Clipper’s route on a Falcon Heavy: 5½ years to Jupiter.', 'ファルコン・ヘビーでのエウロパ・クリッパーの経路。木星まで5年半。'),
-      cost: pub(178000, ['seradata-clipper-fh'], tx('Europa Clipper’s Falcon Heavy launch contract: about US$178 million.', 'エウロパ・クリッパーのファルコン・ヘビー打ち上げ契約：約1億7800万ドル。')),
+      cost: nasa(178000, ['nasa-clipper-launch-contract'], tx('Europa Clipper’s Falcon Heavy launch contract: about US$178 million.', 'エウロパ・クリッパーのファルコン・ヘビー打ち上げ契約：約1億7800万ドル。')),
       capacityKg: { 'tour-flybys': rule(6500), 'tour-europa-orbit': rule(6500), 'tour-ganymede': rule(6500) },
       reliability: rule(0.97), windowsDay: rule([1700, 2100, 2500]),
     },
     {
       kind: 'launch', id: 'jlv-direct', icon: 'rocket', name: tx('Super-heavy rocket, direct route', '超大型ロケットで直行'),
       description: tx('Much faster to Jupiter, so fewer years of wear on the way, and more mass to spare; very expensive.', '木星までずっと早く、途中で傷む年数が少ない。質量の余裕も大きいが、非常に高い。'),
-      cost: est(2000000, ['seradata-clipper-fh'], tx('About US$2 billion: the estimated cost of an SLS launch for Europa Clipper. NASA chose the US$178 million Falcon Heavy and the longer route instead.', '約20億ドル：エウロパ・クリッパーをSLSで打ち上げる場合の見積もり。NASAは代わりに1億7800万ドルのファルコン・ヘビーと長い経路を選んだ。')), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
+      cost: nasa(876000, ['nasa-oig-europa'], tx('NASA’s 2019 estimate: an SLS launch would cost US$876 million, a commercial rocket up to US$450 million (NASA Inspector General IG-19-019, Table 3). The White House said the same year that SLS costs over US$2 billion per launch.', 'NASAの2019年の見積もり：SLSでの打ち上げは8億7600万ドル、商用ロケットは最大4億5000万ドル（NASA監察官室 IG-19-019、表3）。ホワイトハウスは同じ年に、SLSは1回あたり20億ドル超とした。')), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
       reliability: rule(0.95), windowsDay: rule([1700, 2100, 2500]), tags: ['direct'],
     },
 
@@ -287,7 +287,7 @@ export const jupiterIcyMoon: Mission = {
     { kind: 'part', id: 'jem-build', icon: 'boxes', subsystem: 'structure', name: tx('Spare parts for radiation tests', '放射線試験用の予備部品'), description: tx('Find weak transistors before launch, not at Jupiter.', '弱いトランジスタを、木星ではなく打ち上げ前に見つける。'), cost: rule(40000), leadDays: rule(60), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')), tags: ['engineeringModel'] },
 
     { kind: 'choice', id: 'jops-steady', icon: 'eye', name: tx('Steady', '標準'), description: tx('Observe on about half of the flybys.', '接近の約半分で観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
-    { kind: 'choice', id: 'jops-aggressive', icon: 'eye', name: tx('Aggressive', '積極的'), description: tx('Observe on nearly every flyby. Hard on power and downlink.', 'ほぼすべての接近で観測する。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'jops-aggressive', icon: 'eye', name: tx('Aggressive', '積極的'), description: tx('Observe on nearly every flyby. Hard on power and downlink, and instruments wear faster in the radiation belts.', 'ほぼすべての接近で観測する。電力と通信に負担がかかり、放射線帯で機器が劣化しやすい。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
     { kind: 'choice', id: 'jops-careful', icon: 'eye', name: tx('Careful', '慎重'), description: tx('Observe on about a quarter of the flybys.', '接近の約4分の1だけで観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
   ],
 
@@ -389,7 +389,7 @@ export const jupiterIcyMoon: Mission = {
     {
       id: 'jradiation', phase: 5, name: tx('Radiation damage', '放射線による損傷'),
       story: tx('Jupiter’s radiation belts slowly damage the electronics.', '木星の放射線帯が、少しずつ電子機器を傷めた。'),
-      probability: rule(0.7, tx('Game value. Even the same vault as the real spacecraft adds some failure risk here: the game is harsher than the real Europa Clipper.', 'ゲームの値。実機と同じ容器でも故障の確率が上がるようにしてあり、実際のエウロパ・クリッパーより厳しい。')),
+      probability: rule(0.7, tx('Game value. The same vault as the real spacecraft is safe on a tour of repeated flybys; orbiting Europa needs a thicker one.', 'ゲームの値。実機と同じ容器は、接近をくり返す方法なら無害。エウロパを周回するなら厚い容器が要る。')),
       // Clipper's vault was sized for a flyby tour that leaves the belts between passes; living in them needs more.
       protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'vault-thick' }, { kind: 'hasTag', tag: 'radiation:low' }, { kind: 'all', of: [{ kind: 'hasTag', tag: 'vault' }, { kind: 'hasTag', tag: 'tour' }] }] },
       partialIf: { kind: 'hasTag', tag: 'vault' },
@@ -403,8 +403,8 @@ export const jupiterIcyMoon: Mission = {
       probability: rule(0.8),
       protectedIf: { kind: 'hasTag', tag: 'tour' },
       partialIf: { kind: 'hasTag', tag: 'vault-thick' },
-      partial: [{ kind: 'durationFactor', factor: 0.6 }],
-      unprotected: [{ kind: 'durationFactor', factor: 0.3 }],
+      partial: [{ kind: 'durationFactor', factor: 0.3 }],
+      unprotected: [{ kind: 'durationFactor', factor: 0.15 }],
       lesson: tx('{agency} orbited Europa and the electronics did not last.', '{agency}はエウロパを周回し、電子機器が持たなかった。'),
     },
     {

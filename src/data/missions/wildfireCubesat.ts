@@ -55,7 +55,7 @@ export const wildfireCubesat: Mission = {
   rules: {
     scienceUnit: tx('fires', '件の火災'),
     budgetFullLeftShare: rule(0.15, tx('Game value, set so that adding one small safeguard to the standard design still earns full budget points.', 'ゲームの値。標準の設計に小さな備えを1つ足しても満点のままになるように決めた。')),
-    scienceFullScore: rule(200000, tx('Science value for the full science score; a standard design earns about 40% of it.', '科学価値の満点の基準。標準の設計でその約4割。')),
+    scienceFullScore: rule(120000, tx('Science value for the full science score; a standard design earns about 20% of it.', '科学価値の満点の基準。標準の設計でその約2割。')),
     earlyFailureByTestDepth: est([0.18, 0.08, 0.04], ['langer-2016', 'nasa-cubesat101'], tx(
       'Chance the satellite never works after launch, by test depth. Basic testing: 18% of 178 CubeSats launched by mid-2014 never made contact (Langer 2016). The values for deeper testing are game values. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
       '試験の深さごとの、打ち上げ後に動かない確率。最小限の試験の値：2014年半ばまでに打ち上げたキューブサット178機のうち18%が一度も通信できなかった（Langer 2016）。それより深い試験の値はゲームの値。CubeSat 101 では打ち上げ前の検証試験（振動・熱真空）を必須としている。',
@@ -170,7 +170,7 @@ export const wildfireCubesat: Mission = {
     {
       id: 'window', icon: 'calendar', level: { by: 'settings.targetWindow', label: tx('Time in hand', '余裕') }, default: 'window-first', phase: 3, role: 'lead', changeKind: 'plan',
       label: tx('Rideshare flight', '打ち上げの便'),
-      help: tx('CubeSats ride along on scheduled rideshare flights (day 300 and day 420 here). Take the first for the best schedule score, or book the next one to keep time in hand.', 'キューブサットは、決まった日に飛ぶ相乗りロケットの便に乗ります（ここでは300日目と420日目）。最初の便なら日程の点が高く、次の便を予約すれば時間に余裕ができます。'),
+      help: tx('CubeSats ride on rockets that fly on set dates; the dates depend on the launch you chose. Take the first flight for the best schedule score, or book the next one to keep time in hand.', 'キューブサットは、決まった日に飛ぶロケットの便に乗ります。便の日は、選んだ打ち上げ方法で決まります。最初の便なら日程の点が高く、次の便を予約すれば時間に余裕ができます。'),
       options: ['window-first', 'window-second'],
     },
     {
@@ -236,7 +236,7 @@ export const wildfireCubesat: Mission = {
     {
       kind: 'orbit', id: 'orbit-sso-600', icon: 'orbit', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
       description: tx('Higher: longer passes over each ground station and less air drag in solar storms, but needs a device to come down at the end.', '高い分、地上局の上を通る時間が長く、磁気嵐で大気の抵抗も受けにくい。ただし最後に降ろす装置が要る。'),
-      cost: est(40, ['fcc-5-year-rule'], tx('Game value for buying, fitting and testing a drag sail. The US FCC requires disposal within 5 years of mission end; from 600 km a CubeSat takes far longer on its own. No public price was found, so the cost stays modest.', '抵抗帆の購入・取り付け・試験のゲームの値。米国FCCはミッション終了から5年以内の処分を求めており、600 kmからでは自然に落ちるまでずっと長くかかる。公開された価格は見つからなかったため、費用は控えめにした。')),
+      cost: rule(40, tx('Game value for buying, fitting and testing a drag sail. The US FCC requires disposal within 5 years of mission end; from 600 km a CubeSat takes far longer on its own. No public price was found, so the cost stays modest.', '抵抗帆の購入・取り付け・試験のゲームの値。米国FCCはミッション終了から5年以内の処分を求めており、600 kmからでは自然に落ちるまでずっと長くかかる。公開された価格は見つからなかったため、費用は控えめにした。')),
       addsMassKg: pub(0.21, ['npc-artica'], tx('A commercial CubeSat drag sail (210 g) that brings a satellite down from 650 km in under 5 years.', '市販のCubeSat用抵抗帆（210 g）。650 kmから5年以内に降ろせる。')),
       altitudeKm: rule(600, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
@@ -246,9 +246,9 @@ export const wildfireCubesat: Mission = {
       tags: ['orbit:high'],
     },
 
-    { kind: 'choice', id: 'split-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'split-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('The reserve also covers design surprises, so only half of it can go to a budget cut; the rest is made up by dropping observations.', '予備費は設計の想定外にも使うので、予算削減に回せるのは半分。残りは観測を減らして埋める。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'split-lean', icon: 'coins', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'split-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
+    { kind: 'choice', id: 'split-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: pub(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal). JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
 
     {
       kind: 'part', id: 'cam-vis', icon: 'eye', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'),
@@ -351,12 +351,12 @@ export const wildfireCubesat: Mission = {
 
     {
       kind: 'choice', id: 'window-first', icon: 'calendar', name: tx('Take the first flight', '最初の便に乗る'),
-      description: tx('Full schedule score. If the satellite is late, it waits for the next flight 120 days later; after that there is none.', '日程の点は満点。完成が遅れると120日後の次の便を待つ。その次はない。'),
+      description: tx('Full schedule score. If the satellite is late, it waits for the next flight; after that there is none.', '日程の点は満点。完成が遅れると次の便を待つ。その次はない。'),
       cost: rule(0), settings: { targetWindow: rule(0) },
     },
     {
       kind: 'choice', id: 'window-second', icon: 'calendar', name: tx('Book the next flight', '次の便を予約する'),
-      description: tx('Plan for the flight 120 days later: half the schedule score, but 120 more days for surprises.', '120日後の便に合わせて計画する。日程の点は半分だが、想定外に備える時間が120日増える。'),
+      description: tx('Plan for the next flight: half the schedule score, but more time for surprises.', '次の便に合わせて計画する。日程の点は半分だが、想定外に備える時間が増える。'),
       cost: rule(0), settings: { targetWindow: rule(1) },
     },
     {
@@ -376,7 +376,7 @@ export const wildfireCubesat: Mission = {
       tags: ['frequentContact'],
       settings: {
         highLatStation: rule(1),
-        networkFactor: est(3, ['nasa-soa-comms', 'via-firesat-latency'], tx('Pay-per-pass services are one of the ground options NASA lists for small missions; the game counts them as three times your own stations.', 'NASAは小型ミッションの地上局の選択肢として1回ごとの有料サービスを挙げている。ゲームでは自前の局の3倍の通信時間として扱う。')),
+        networkFactor: rule(3, tx('Pay-per-pass services are one of the ground options NASA lists for small missions; the game counts them as three times your own stations.', 'NASAは小型ミッションの地上局の選択肢として1回ごとの有料サービスを挙げている。ゲームでは自前の局の3倍の通信時間として扱う。')),
       },
     },
     {
@@ -415,7 +415,7 @@ export const wildfireCubesat: Mission = {
     },
 
     { kind: 'choice', id: 'ops-steady', icon: 'eye', name: tx('Steady', '標準'), description: tx('Observe on most passes over land.', '陸上を通るときはたいてい観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
-    { kind: 'choice', id: 'ops-aggressive', icon: 'eye', name: tx('Aggressive', '積極的'), description: tx('Observe on every pass; strains power and downlink.', '毎回観測する。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'ops-aggressive', icon: 'eye', name: tx('Aggressive', '積極的'), description: tx('Observe on every pass. Strains power and downlink, and wears the battery faster.', '毎回観測する。電力と通信に負担がかかり、電池が早く劣化しやすい。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
     { kind: 'choice', id: 'ops-conservative', icon: 'eye', name: tx('Conservative', '控えめ'), description: tx('Observe fire-season regions only.', '火災の季節の地域だけ観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
   ],
 
@@ -536,13 +536,18 @@ export const wildfireCubesat: Mission = {
     {
       id: 'battery-wear', phase: 5, name: tx('Battery wear', '電池の劣化'),
       story: tx('A satellite in low orbit charges and discharges its battery about 5,500 times a year. Imaging on every orbit drains it deeper each time.', '低軌道の衛星は、年に約5,500回、電池の充電と放電をくり返す。毎周回撮影すると、そのたびに深く放電する。'),
-      probability: est(0.8, ['knap-battery'], tx('Game value: deep cycling is a matter of design, not luck, so the chance is high. Cycle depth is one of the main drivers of battery wear in LEO nanosatellites (Knap et al.).', 'ゲームの値：深い放電は運ではなく設計で決まるので、確率を高くした。低軌道の超小型衛星では、放電の深さが電池の劣化の大きな要因（Knapら）。')),
+      probability: rule(0.8, tx('Game value: a card for the general rule that repeated deep discharges wear a battery out sooner. The chance is high because the design, not luck, decides it.', 'ゲームの値：深い放電をくり返すと電池が早く劣化する、という一般的な性質をカードにした。確率は設計で決まるので高くした。')),
       // A steady or conservative plan keeps discharges shallow; a large power margin also helps.
       protectedIf: { kind: 'any', of: [{ kind: 'settingAtMost', key: 'dutyCycle', atMost: 0.6 }, { kind: 'margin', resource: 'power', atLeast: 0.6 }] },
       partialIf: { kind: 'margin', resource: 'power', atLeast: 0.4 },
       partial: [{ kind: 'failChance', subsystem: 'power', add: 0.15 }],
       unprotected: [{ kind: 'failChance', subsystem: 'power', add: 0.4 }],
       lesson: tx('{agency} imaged on every orbit with little power to spare, and its battery wore out early.', '{agency}は電力に余裕がないまま毎周回撮影し、電池が早く劣化した。'),
+      realCase: {
+        who: tx('Battery tests for nanosatellites', '超小型衛星の電池の試験'), year: '2020',
+        text: tx('A battery in low orbit goes through about 5,500 charge cycles a year. In these tests, temperature was the largest cause of wear.', '低軌道の電池は年に約5,500回の充放電をくり返す。この試験では、温度が劣化の最大の要因だった。'),
+        sources: ['knap-battery'],
+      },
     },
     {
       id: 'big-fire-season', phase: 5, name: tx('Major fire season', '大規模な火災シーズン'),

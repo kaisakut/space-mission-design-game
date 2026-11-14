@@ -65,8 +65,8 @@ for (const m of MISSIONS) {
 
 /** Options left never best on purpose, with the reason (see notes/選択肢の点検.md). */
 const NEVER_BEST: Record<string, string> = {
-  'jupiter-icy-moon:jlv-direct': 'about 2 B$, as NASA found when it chose Falcon Heavy for Europa Clipper',
-  'wildfire-cubesat:window-second': 'flights are 120 days apart and the satellite\'s own delays are shorter, so the first flight is rarely missed',
+  'jupiter-icy-moon:jlv-direct': 'about 876 M$ in NASA\'s estimate, about five times the heavy rocket, so it loses budget points',
+  'wildfire-cubesat:window-second': 'the satellite\'s own delays are shorter than the gap to the next flight, so the first flight is rarely missed',
 };
 
 // Best choice share: in each random design, which option of the box gives the highest mean score.

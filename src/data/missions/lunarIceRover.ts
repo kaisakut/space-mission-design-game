@@ -42,7 +42,7 @@ export const lunarIceRover: Mission = {
   ),
   difficulty: 'intermediate',
   playable: true,
-  budgetKUSD: est(500000, ['spo-viper', 'spacenews-viper-griffin'], tx(
+  budgetKUSD: rule(500000, tx(
     'Game value for the rover, its instruments and a medium lander. For comparison, NASA’s cost commitment for VIPER was $433.5 million without delivery (later estimated at $609.6 million), and the Griffin delivery grew from $199.5 million to $323 million.',
     'ローバー・機器・中型の着陸機を合わせたゲームの値。比較のため：VIPERの費用の約束は輸送を含まず4億3350万ドル（のちの見込みは6億960万ドル）、Griffinによる輸送の契約は1億9950万ドルから3億2300万ドルに増えた。',
   )),
@@ -108,7 +108,7 @@ export const lunarIceRover: Mission = {
       options: ['site-ridge', 'site-nobile', 'site-coldtrap'],
     },
     {
-      id: 'budget-split', icon: 'coins', level: { by: 'settings.reserveShare', label: tx('Reserve', '予備費') }, default: 'lsplit-lean', phase: 1, role: 'lead', changeKind: 'plan',
+      id: 'budget-split', icon: 'coins', level: { by: 'settings.reserveShare', label: tx('Reserve', '予備費') }, default: 'lsplit-balanced', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Budget split', '予算の配分'),
       help: tx('How much to keep in reserve for surprises.', '想定外に備えて、予備費をどれだけ残すか。'),
       options: ['lsplit-balanced', 'lsplit-lean', 'lsplit-safe'],
@@ -213,9 +213,9 @@ export const lunarIceRover: Mission = {
       tags: ['site:coldtrap'],
     },
 
-    { kind: 'choice', id: 'lsplit-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'lsplit-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('The reserve also covers design surprises, so only half of it can go to a budget cut; the rest is made up by dropping observations.', '予備費は設計の想定外にも使うので、予算削減に回せるのは半分。残りは観測を減らして埋める。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'lsplit-lean', icon: 'coins', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'lsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
+    { kind: 'choice', id: 'lsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: pub(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal). JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
 
     {
       kind: 'part', id: 'inst-nss', icon: 'atom', subsystem: 'payload', name: tx('Neutron spectrometer (NSS)', '中性子分光計（NSS）'),
@@ -298,9 +298,9 @@ export const lunarIceRover: Mission = {
       description: tx('The class chosen for VIPER: up to 500 kg to the surface.', 'VIPERに選ばれた級。月面へ最大500 kg。'),
       cost: pub(199500, ['spacenews-viper-griffin'], tx('VIPER’s delivery task order, including launch and landing.', 'VIPERの輸送契約（打ち上げと着陸を含む）。')),
       capacityKg: {
-        'site-ridge': pub(500, ['astrobotic-griffin']),
-        'site-nobile': pub(500, ['astrobotic-griffin']),
-        'site-coldtrap': pub(500, ['astrobotic-griffin']),
+        'site-ridge': pub(500, ['astrobotic-griffin'], tx('The value at the time of the VIPER contract; Astrobotic now lists 625 kg.', 'VIPERの契約時の値。現在の公称は625 kg。')),
+        'site-nobile': pub(500, ['astrobotic-griffin'], tx('The value at the time of the VIPER contract; Astrobotic now lists 625 kg.', 'VIPERの契約時の値。現在の公称は625 kg。')),
+        'site-coldtrap': pub(500, ['astrobotic-griffin'], tx('The value at the time of the VIPER contract; Astrobotic now lists 625 kg.', 'VIPERの契約時の値。現在の公称は625 kg。')),
       },
       reliability: est(0.75, ['astrobotic-pm1', 'upi-im1', 'sfn-im2', 'nasa-blue-ghost', 'spacepolicy-clps'], tx(
         'Chance of reaching the surface. Of NASA’s four commercial lunar deliveries in 2024–2025, three reached the surface (Peregrine did not), but two of those landed on their side; landing on the side is a separate card. NASA called these deliveries “shots on goal” and said a 50-50 success rate would be acceptable.',
@@ -310,8 +310,8 @@ export const lunarIceRover: Mission = {
     },
     {
       kind: 'launch', id: 'lander-large', icon: 'lander', name: tx('Large commercial lander', '大型の民間着陸機'),
-      description: tx('The class NASA turned to for VIPER in 2025: about the same price and carries far more, and a tip-over does less damage, but it had not landed yet.', '2025年にNASAがVIPERの輸送に選び直した級。価格はほぼ同じで積める量はずっと多く、横倒しの被害も小さいが、まだ着陸の実績がなかった。'),
-      cost: pub(190000, ['spacepolicy-viper-blue'], tx('VIPER’s 2025 task order on Blue Origin’s Blue Moon MK1, up to $190 million.', '2025年のVIPER輸送契約（ブルー・オリジンのBlue Moon MK1）、最大1億9000万ドル。')),
+      description: tx('The class NASA turned to for VIPER in 2025: about the same price, and a tip-over does less damage, but it had not landed yet.', '2025年にNASAがVIPERの輸送に選び直した級。価格はほぼ同じで、横倒しの被害も小さいが、まだ着陸の実績がなかった。'),
+      cost: nasa(190000, ['nasa-viper-blue'], tx('VIPER’s 2025 task order on Blue Origin’s Blue Moon MK1, up to $190 million.', '2025年のVIPER輸送契約（ブルー・オリジンのBlue Moon MK1）、最大1億9000万ドル。')),
       capacityKg: { 'site-ridge': rule(1500), 'site-nobile': rule(1500), 'site-coldtrap': rule(1500) },
       reliability: rule(0.65, tx('Game value: a new lander with no landing yet. NASA made the VIPER delivery depend on the lander’s first flight.', 'ゲームの値：まだ着陸の実績がない新しい着陸機。NASAはVIPERの輸送を、この着陸機の初飛行の結果しだいとした。')),
       windowsDay: rule([1000, 1200, 1400]),
@@ -349,7 +349,7 @@ export const lunarIceRover: Mission = {
     },
 
     { kind: 'choice', id: 'ldrive-steady', icon: 'route', name: tx('Steady', '標準'), description: tx('Drive between planned science stations and drill at each.', '計画した観測地点のあいだを走り、各地点で掘る。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
-    { kind: 'choice', id: 'ldrive-aggressive', icon: 'route', name: tx('Aggressive', '積極的'), description: tx('Drive and drill as much as possible; uses more power.', 'できるだけ走って掘る。電力を多く使う。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'ldrive-aggressive', icon: 'route', name: tx('Aggressive', '積極的'), description: tx('Drive and drill as much as possible. Uses more power, and raises the risk of getting stuck in soft soil and of being caught in shadow overnight.', 'できるだけ走って掘る。電力を多く使い、砂にはまる危険と、影で夜を越せない危険が増える。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
     { kind: 'choice', id: 'ldrive-careful', icon: 'route', name: tx('Careful', '慎重'), description: tx('Short drives in well-mapped areas.', 'よく調べた範囲を短く走る。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
   ],
 
