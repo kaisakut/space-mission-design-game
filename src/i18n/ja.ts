@@ -15,6 +15,9 @@ export const ja: Messages = {
   branchStart: '出発点',
   branchRuns: '{n} 回',
   branchZoom: 'クリックで拡大',
+  branchWhere: '分かれた所',
+  branchTo: '分かれた先',
+  branchWhy: '分かれた理由',
   branchLegend:
     '1 本の線は、同じ道すじをたどった予測の回のまとまりです。線が太いほど回数が多く、色は行き着いた結果を表します。状態が最初に食い違ったフェーズで線が分かれます。',
 
@@ -27,8 +30,8 @@ export const ja: Messages = {
   designNote: '各枠から選択肢を選んでください。選ぶたびにゲージが動きます。',
   phase1: '構想',
   phase2: '宇宙機',
-  phase3: '打ち上げ',
-  phase4: '試験',
+  phase3: '打ち上げの手配',
+  phase4: '試験と打ち上げ',
   phase5: '運用',
   phaseTab: '{n}. {name}',
   details: '詳しく',
@@ -122,4 +125,12 @@ export const ja: Messages = {
   cause_blocked_powerShort: '電力が足りない',
   cause_warn_downlinkShort: '無線機が遅くデータを送りきれない',
   cause_warn_missedWindow: '最初の打ち上げ窓を逃した',
+  reason_hit: '{name}で被害',
+  reason_partial: '{name}で一部被害',
+  reason_protected: '{name}を防いだ',
+  reason_ready: '{name}を活かした',
+  reason_missed: '{name}を活かせなかった',
+  reason_absent: '「{x}」が起きなかった',
+  reason_less: '「{x}」が少ない',
+  reason_share: 'この枝 {a}%／ほか {b}%',
 };

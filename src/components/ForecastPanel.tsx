@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Mission, Outcome } from '../data/types';
 import type { Picks } from '../engine/design';
-import { runForecast, type Forecast } from '../engine/forecast';
+import { branchReasons, runForecast, type Forecast } from '../engine/forecast';
+import type { BranchNode } from '../engine/branchTree';
 import { OUTCOMES } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
 import { BranchMap } from './BranchMap';
@@ -33,6 +34,22 @@ export function ForecastPanel({ mission, picks, seed, turn }: { mission: Mission
     if (c.startsWith('warn:')) return tk(t, `cause_warn_${c.slice(5)}`);
     if (c.startsWith('blocked:')) return tk(t, `cause_blocked_${c.slice(8)}`) === `cause_blocked_${c.slice(8)}` ? t.cause_blocked : tk(t, `cause_blocked_${c.slice(8)}`);
     return tk(t, `cause_${c}`);
+  };
+  const happening = (key: string) => {
+    const [id, result] = key.split(':');
+    const card = mission.events.find((e) => e.id === id);
+    if (card && result) return fmt(tk(t, `reason_${result}`), { name: L(card.name) });
+    return causeName(key);
+  };
+  const reasons = result?.f.tree ? branchReasons(result.f.tree, result.f.runs) : new Map();
+  const reasonOf = (n: BranchNode) => {
+    const r = reasons.get(n);
+    if (!r) return null;
+    const what = happening(r.key);
+    return {
+      title: r.present ? what : fmt(r.shareIn === 0 ? t.reason_absent : t.reason_less, { x: what }),
+      detail: fmt(t.reason_share, { a: Math.round(r.shareIn * 100), b: Math.round(r.shareOut * 100) }),
+    };
   };
   const nameOf = (k: string) => (OUTCOMES as string[]).includes(k) ? tk(t, `outcome_${k}`) : tk(t, `state_${k}`);
 
@@ -71,6 +88,7 @@ export function ForecastPanel({ mission, picks, seed, turn }: { mission: Mission
               nameOf={nameOf}
               phaseName={(p) => fmt(t.phaseTab, { n: p, name: tk(t, `phase${p}`) })}
               finalOrder={[...OUTCOMES]}
+              reasonOf={reasonOf}
             />
           )}
         </>

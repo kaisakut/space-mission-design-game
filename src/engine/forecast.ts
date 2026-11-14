@@ -54,3 +54,54 @@ export function runForecast(m: Mission, picks: Picks, seed: number, turn: number
     topCauses,
   };
 }
+
+/** Why a branch split off: the happening whose share differs most between this branch and its siblings. */
+export interface BranchReason {
+  /** A phaseLog entry. */
+  key: string;
+  /** True when the branch is marked by this happening; false when by its absence. */
+  present: boolean;
+  shareIn: number;
+  shareOut: number;
+}
+
+/**
+ * For every branch that splits off, finds the happening in the split phase that best tells it apart from
+ * its sibling branches (largest difference in the share of runs where it happened).
+ * Splits after phase 5 (on the outcome alone) are explained by phase 5 happenings.
+ */
+export function branchReasons(tree: BranchNode, runs: RunResult[], phases = 5): Map<BranchNode, BranchReason> {
+  const out = new Map<BranchNode, BranchReason>();
+  const walk = (n: BranchNode) => {
+    if (n.children.length) {
+      const p = Math.min(n.split, phases) - 1;
+      const logOf = (id: number) => new Set(runs[id - 1]?.phaseLog[p] ?? []);
+      const keys = new Set(n.runs.flatMap((id) => [...logOf(id)]));
+      for (const ch of n.children) {
+        const others = n.runs.filter((id) => !ch.runs.includes(id));
+        // Prefer something that happened in this branch (unless an absence differs by much more); on ties prefer
+        // failures, then damage, then missed chances, then successful protection.
+        let best: (BranchReason & { rank: number }) | null = null;
+        for (const key of keys) {
+          const shareIn = ch.runs.filter((id) => logOf(id).has(key)).length / ch.runs.length;
+          const shareOut = others.length ? others.filter((id) => logOf(id).has(key)).length / others.length : 0;
+          if (shareIn === shareOut) continue;
+          const present = shareIn > shareOut;
+          const rank = Math.abs(shareIn - shareOut) + (present ? 0.25 : 0) + priority(key) * 0.01;
+          if (!best || rank > best.rank) best = { key, present, shareIn, shareOut, rank };
+        }
+        if (best) out.set(ch, { key: best.key, present: best.present, shareIn: best.shareIn, shareOut: best.shareOut });
+      }
+    }
+    n.children.forEach(walk);
+  };
+  walk(tree);
+  return out;
+}
+
+const priority = (key: string) => {
+  if (key.startsWith('fail:') || key === 'launchFailure' || key === 'earlyFailure' || key.startsWith('blocked:')) return 4;
+  if (key.endsWith(':hit') || key.endsWith(':partial')) return 3;
+  if (key.endsWith(':missed')) return 2;
+  return 1;
+};

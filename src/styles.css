@@ -116,3 +116,9 @@ button.primary:hover { background: #3d7ef0; }
 .summary .big small { color: var(--muted); font-size: 11px; }
 .summary ol { margin: 4px 0 0; padding-left: 20px; font-size: 14px; }
 .summary ol small { color: var(--muted); }
+.br-why { color: var(--muted); font-size: 11px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.br-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.br-table th { text-align: left; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 4px 8px; }
+.br-table td { border-bottom: 1px solid #1a2440; padding: 5px 8px; vertical-align: top; }
+.br-table small { color: var(--muted); margin-left: 4px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }

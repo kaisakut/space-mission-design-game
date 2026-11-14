@@ -20,6 +20,8 @@ export interface BranchMapProps {
   phaseName: (t: number) => string;
   /** Outcomes shown last (for example failures), in this order. */
   finalOrder?: string[];
+  /** Why a branch split off: a short title and a detail line. Without it, the label shows status and run count. */
+  reasonOf?: (n: BranchNode) => { title: string; detail: string } | null;
 }
 
 const BG_SPLIT = 'rgba(255, 183, 77, 0.06)';
@@ -27,7 +29,7 @@ const SPLIT = '#ffb74d';
 const TEXT = '#e8ecf4';
 const MUTED = '#8c9ab8';
 
-export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder = [] }: BranchMapProps) {
+export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder = [], reasonOf }: BranchMapProps) {
   const { t } = useLang();
   const [zoom, setZoom] = useState(false);
   useEffect(() => {
@@ -39,7 +41,7 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
 
   const T = phases;
   const total = tree.runs.length || 1;
-  const W = 1000, LEFT = 74, FINAL = 210, TOP = 46, LANE = 78;
+  const W = 1200, LEFT = 74, FINAL = 200, TOP = 46, LANE = 84;
   const colW = (W - LEFT - FINAL - 16) / T;
   const xc = (p: number) => (p > T ? W - FINAL - 26 : LEFT + (p - 0.5) * colW);
   const leaves = leavesOf(tree);
@@ -96,11 +98,21 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
               return <path key={j} d={`M${a},${y} C${(a + b) / 2},${y} ${(a + b) / 2},${cy} ${b},${cy}`} fill="none" stroke={colorOf(main(ch))} strokeWidth={sw(ch)} strokeOpacity={0.75} />;
             })}
             {n.children.length > 0 && <circle cx={xc(n.split) - 26} cy={y} r={7} fill="#0b1020" stroke={SPLIT} strokeWidth={3} />}
-            {n !== tree && n.from <= T && (
-              <text x={xc(n.from) + 30} y={y - sw(n) / 2 - 6} fontSize="11" fill={MUTED}>
-                {nameOf(n.label)} · {fmt(t.branchRuns, { n: n.runs.length })}
-              </text>
-            )}
+            {n !== tree && n.from <= T && (() => {
+              const r = reasonOf?.(n);
+              const base = `${nameOf(n.label)} · ${fmt(t.branchRuns, { n: n.runs.length })}`;
+              const x = xc(n.from) + 30;
+              const room = (n.children.length ? xc(n.split) - 30 : W - FINAL - 8) - x;
+              if (!r) return <text x={x} y={y - sw(n) / 2 - 6} fontSize="11" fill={MUTED}>{fit(base, room, 11)}</text>;
+              const title = fit(r.title, room, 11.5);
+              return (
+                <g>
+                  <title>{`${r.title}\n${r.detail}`}</title>
+                  <text x={x} y={y - sw(n) / 2 - 18} fontSize="11.5" fill={TEXT}>{title}</text>
+                  <text x={x} y={y - sw(n) / 2 - 5} fontSize="10" fill={MUTED}>{fit(`${r.detail} · ${base}`, room, 10)}</text>
+                </g>
+              );
+            })()}
           </g>
         );
       })}
@@ -113,9 +125,10 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
         const y = ys.get(n)!;
         return (
           <foreignObject key={i} x={W - FINAL + 4} y={y - LANE / 2 + 8} width={FINAL - 8} height={LANE - 16}>
-            <div className="br-final" style={{ borderLeftColor: colorOf(main(n)) }}>
+            <div className="br-final" style={{ borderLeftColor: colorOf(main(n)) }} title={n.from > T ? reasonOf?.(n)?.detail : undefined}>
               <div className="br-title">{leafName(n)}</div>
               <div className="br-count"><b>{fmt(t.branchRuns, { n: n.runs.length })}</b> ({pct(n.runs.length)}%)</div>
+              {n.from > T && reasonOf?.(n) && <div className="br-why">{reasonOf(n)!.title}</div>}
             </div>
           </foreignObject>
         );
@@ -138,6 +151,33 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
         </div>
       )}
       <p className="note">{t.branchLegend}</p>
+      {reasonOf && (
+        <table className="br-table">
+          <thead><tr><th>{t.branchWhere}</th><th>{t.branchTo}</th><th>{t.branchWhy}</th></tr></thead>
+          <tbody>
+            {nodes.filter((x) => x.children.length).sort((a, b) => a.split - b.split).flatMap((x) => x.children.map((ch, j) => {
+              const r = reasonOf(ch);
+              return (
+                <tr key={`${x.split}-${x.runs[0]}-${j}`}>
+                  {j === 0 && <td rowSpan={x.children.length}>{x.split > T ? t.branchOutcome : phaseName(x.split)}</td>}
+                  <td><span className="swatch" style={{ background: colorOf(main(ch)) }} />{nameOf(ch.label)} <small>{fmt(t.branchRuns, { n: ch.runs.length })}</small></td>
+                  <td>{r ? <>{r.title} <small>{r.detail}</small></> : '—'}</td>
+                </tr>
+              );
+            }))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
+}
+
+/** Shorten a label to fit a width in pixels (wide characters such as Japanese count about one font size each). */
+function fit(text: string, px: number, fontSize: number): string {
+  let w = 0;
+  for (let i = 0; i < text.length; i++) {
+    w += text.charCodeAt(i) > 0x2e80 ? fontSize : fontSize * 0.58;
+    if (w > px) return `${text.slice(0, Math.max(1, i - 1))}…`;
+  }
+  return text;
 }

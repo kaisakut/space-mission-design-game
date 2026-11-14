@@ -30,6 +30,11 @@ export interface RunResult {
   causes: string[];
   events: RunEvent[];
   launchDay: number | null;
+  /**
+   * What happened in each phase (index 0 = phase 1), used to explain the branch map:
+   * '<event id>:<result>' for drawn cards, 'launchFailure', 'earlyFailure', 'blocked:<issue>', 'fail:<subsystem>'.
+   */
+  phaseLog: string[][];
 }
 
 export interface SimulateOptions {
@@ -57,6 +62,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   const causes: string[] = [];
   const events: RunEvent[] = [];
   const states: RunStatus[] = [];
+  const phaseLog: string[][] = [[], [], [], [], []];
   const designWarn = d.issues.some((i) => i.level === 'warning');
   const designBlock = !canLaunch(d);
 
@@ -78,6 +84,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
       if (!drawn) continue;
       const r = resolveEvent(card, d);
       events.push({ id: card.id, phase, result: r.result });
+      phaseLog[phase - 1]!.push(`${card.id}:${r.result}`);
       if (r.result === 'hit' || r.result === 'partial') { hits++; causes.push(card.id); }
       r.effects.forEach(apply);
     }
@@ -97,11 +104,12 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
     if (blocker) { lost = 'noLaunch'; causes.unshift(`blocked:${blocker.code}`); }
     else if (spent > budgetAvail) { lost = 'noLaunch'; causes.unshift('blocked:overBudget'); }
     else if (launchDay === null) { lost = 'noLaunch'; causes.unshift('blocked:noWindow'); }
+    if (lost) phaseLog[3]!.push(causes[0]!);
   }
-  if (!lost && d.launch && !rng.chance(d.launch.reliability.value)) { lost = 'launchFailure'; causes.unshift('launchFailure'); }
+  if (!lost && d.launch && !rng.chance(d.launch.reliability.value)) { lost = 'launchFailure'; causes.unshift('launchFailure'); phaseLog[3]!.push('launchFailure'); }
   if (!lost) {
     const depth = Math.max(1, Math.min(3, d.settings.testDepth ?? 1));
-    if (rng.chance(m.rules.earlyFailureByTestDepth.value[depth - 1] ?? 0)) { lost = 'orbitFailure'; causes.unshift('earlyFailure'); }
+    if (rng.chance(m.rules.earlyFailureByTestDepth.value[depth - 1] ?? 0)) { lost = 'orbitFailure'; causes.unshift('earlyFailure'); phaseLog[3]!.push('earlyFailure'); }
   }
   states.push(status());
 
@@ -123,7 +131,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
       if (FATAL.includes(f.sub)) fatalAt = Math.min(fatalAt, f.at);
       else if (f.sub === 'payload') instrumentShare = Math.min(instrumentShare, f.at);
     }
-    for (const f of failures.sort((a, b) => a.at - b.at)) causes.push(`fail:${f.sub}`);
+    for (const f of failures.sort((a, b) => a.at - b.at)) { causes.push(`fail:${f.sub}`); phaseLog[4]!.push(`fail:${f.sub}`); }
     opsFraction = Math.min(fatalAt, instrumentShare) * Math.min(durationFactor, 1);
   }
 
@@ -183,7 +191,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   // A spacecraft lost late in operations that already met the primary objective still counts as a success.
   const endedEarly = outcome === 'lostInOps' || outcome === 'noLaunch' || outcome === 'launchFailure' || outcome === 'orbitFailure';
   states.push(endedEarly ? 'lost' : primaryMet === 0 ? 'critical' : hits > 0 || fatalAt < 1 || primaryMet < 1 ? 'atRisk' : 'nominal');
-  return { states, outcome, score, delivered: Math.round(delivered), causes, events, launchDay };
+  return { states, outcome, score, delivered: Math.round(delivered), causes, events, launchDay, phaseLog };
 }
 
 /** The launch failure card is decided by the rocket's reliability, not drawn like other cards. */
