@@ -18,6 +18,7 @@ const SSO_NOTE = tx(
   'Inclination at which J2 turns the orbit plane once a year (sun-synchronous), from the standard J2 formula.',
   '地球の扁平（J2）による軌道面の回転が1年で1周になる傾斜角（太陽同期）を、標準のJ2の式で計算。',
 );
+const FIRMS_NOTE = tx('Real 2024 fire detections under the ground track (NASA FIRMS MODIS); day passes only for day cameras. See data/firms-coverage-2024.json.', '地上軌跡の下にあった2024年の実際の火災検知（NASA FIRMS MODIS）。昼だけのカメラは昼に通ったときだけ数える。data/firms-coverage-2024.json を参照。');
 const MASS_NOTE = tx('6U × 1.33 kg per U (the CubeSat unit mass in CubeSat 101).', '6U × 1Uあたり1.33 kg（CubeSat 101のCubeSat 1単位の質量）。');
 
 /**
@@ -48,6 +49,15 @@ export const wildfireCubesat: Mission = {
     cost: rule(400, tx('Game value; the sources list no prices.', 'ゲームの値（資料に価格の記載なし）。')),
     devDays: est(270, ['nasa-cubesat101'], tx('A CubeSat can be designed, built and tested in as little as 9 months (typically 18–24); the game uses the shortest.', 'CubeSatは最短9か月で設計・製造・試験できる（通常18〜24か月）。ゲームでは最短を使う。')),
     maxMassKg: est(8, ['nasa-cubesat101'], MASS_NOTE),
+    failPerYear: rule(0.05, tx('Game value for the bus computer and electronics in one year.', '本体の計算機と電子機器が1年で故障する確率のゲームの値。')),
+  },
+  rules: {
+    scienceUnit: tx('fires', '件の火災'),
+    scienceFullScore: rule(200000, tx('Science value for the full science score; a standard design earns about 40% of it.', '科学価値の満点の基準。標準の設計でその約4割。')),
+    earlyFailureByTestDepth: rule([0.15, 0.08, 0.04], tx(
+      'Game values: chance the satellite never works after launch, by test depth. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
+      '試験の深さごとの、打ち上げ後に動かない確率（ゲームの値）。CubeSat 101 では打ち上げ前の検証試験（振動・熱真空）を必須としている。',
+    )),
   },
   primary: {
     id: 'detect-and-deliver',
@@ -57,7 +67,7 @@ export const wildfireCubesat: Mission = {
       '活動中の山火事を検知し、1日以内に地上へ届ける。',
     ),
     points: rule(35),
-    rule: 'primaryDetectDeliver',
+    rule: { kind: 'science', atLeast: 20000, partialAtLeast: 2000 },
   },
   secondary: [
     {
@@ -65,21 +75,24 @@ export const wildfireCubesat: Mission = {
       name: tx('Night-time fires', '夜間の火災'),
       description: tx('Also detect fires at night (needs a thermal infrared camera).', '夜間の火災も検知する（熱赤外カメラが必要）。'),
       points: rule(5),
-      rule: 'secondaryNight',
+      rule: { kind: 'hasTag', tag: 'night' },
+      chosenBy: 'goal:night',
     },
     {
       id: 'fast-alert',
       name: tx('Fast alert', '速報'),
-      description: tx('Deliver half of the detections within 3 hours.', '検知の半数を3時間以内に届ける。'),
+      description: tx('Send data quickly: radio capacity at least twice the data made each day.', 'すぐに送れる余裕を持つ。送れる量が、1日に作るデータの2倍以上。'),
       points: rule(5),
-      rule: 'secondaryFastAlert',
+      rule: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
+      chosenBy: 'goal:fast',
     },
     {
       id: 'long-life',
       name: tx('Long life', '長寿命'),
       description: tx('Keep operating for the full mission length.', 'ミッション期間の最後まで運用を続ける。'),
       points: rule(5),
-      rule: 'secondaryLongLife',
+      rule: { kind: 'survive' },
+      chosenBy: 'goal:life',
     },
   ],
   rubric: { primary: rule(35), secondary: rule(15), science: rule(25), budget: rule(15), schedule: rule(10) },
@@ -166,7 +179,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: nasa(51.6, ['nasa-soa-launch']),
       deltaVms: rule(0),
       contactMinPerDay: est(21, ['nasa-orbits-catalog'], CONTACT_NOTE),
-      coverageTable: 'firms-coverage-2024',
+      science: { day: est(198436, ['nasa-firms'], FIRMS_NOTE), dayNight: est(387362, ['nasa-firms'], FIRMS_NOTE) },
     },
     {
       kind: 'orbit', id: 'orbit-sso-500', name: tx('Sun-synchronous, 500 km', '太陽同期軌道 500 km'),
@@ -176,7 +189,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: est(97.4, ['nasa-orbits-catalog'], SSO_NOTE),
       deltaVms: rule(0),
       contactMinPerDay: est(17, ['nasa-orbits-catalog'], CONTACT_NOTE),
-      coverageTable: 'firms-coverage-2024',
+      science: { day: est(158040, ['nasa-firms'], FIRMS_NOTE), dayNight: est(304111, ['nasa-firms'], FIRMS_NOTE) },
     },
     {
       kind: 'orbit', id: 'orbit-sso-600', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
@@ -186,7 +199,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
       deltaVms: rule(0),
       contactMinPerDay: est(22, ['nasa-orbits-catalog'], CONTACT_NOTE),
-      coverageTable: 'firms-coverage-2024',
+      science: { day: est(157475, ['nasa-firms'], FIRMS_NOTE), dayNight: est(311631, ['nasa-firms'], FIRMS_NOTE) },
       tags: ['orbit:high'],
     },
 
@@ -200,7 +213,7 @@ export const wildfireCubesat: Mission = {
       cost: rule(60),
       massKg: pub(0.5, ['dragonfly-gecko'], tx('Off-the-shelf CubeSat RGB imager, including electronics.', '市販のCubeSat用RGBカメラ（電子回路込み）。')),
       powerW: pub(3.5, ['dragonfly-gecko'], tx('Power while imaging (under 3.5 W).', '撮影中の電力（3.5 W未満）。')),
-      dataMBPerDay: rule(300, DATA_NOTE), scienceWeight: rule(0.5),
+      dataMBPerDay: rule(300, DATA_NOTE), scienceWeight: rule(0.5), observes: 'day',
     },
     {
       kind: 'part', id: 'cam-swir', subsystem: 'payload', name: tx('Short-wave infrared camera', '短波赤外カメラ'),
@@ -208,7 +221,7 @@ export const wildfireCubesat: Mission = {
       cost: rule(250),
       massKg: pub(0.82, ['skylabs-nanoimager'], tx('CubeSat InGaAs short-wave infrared imager.', 'CubeSat用のInGaAs短波赤外カメラ。')),
       powerW: pub(6.7, ['skylabs-nanoimager'], tx('Average power.', '平均電力。')),
-      dataMBPerDay: rule(500, DATA_NOTE), scienceWeight: rule(1),
+      dataMBPerDay: rule(500, DATA_NOTE), scienceWeight: rule(1), observes: 'day',
     },
     {
       kind: 'part', id: 'cam-tir', subsystem: 'payload', name: tx('Thermal infrared camera', '熱赤外カメラ'),
@@ -216,7 +229,7 @@ export const wildfireCubesat: Mission = {
       cost: rule(450),
       massKg: est(2.0, ['eoportal-prefire', 'nasa-cubesat101'], tx('A CubeSat thermal infrared spectrometer fills about 1.5U (PREFIRE); 1.5U × 1.33 kg per U.', 'CubeSat用の熱赤外分光計は約1.5U（PREFIRE）。1.5U × 1Uあたり1.33 kg。')),
       powerW: rule(9, tx('No public figure found for a CubeSat thermal infrared imager; game value above the other two cameras.', 'CubeSat用熱赤外カメラの電力の公表値が見つからないため、他の2つより大きいゲームの値とした。')),
-      dataMBPerDay: rule(700, DATA_NOTE), scienceWeight: rule(1.2), tags: ['night'],
+      dataMBPerDay: rule(700, DATA_NOTE), scienceWeight: rule(1.2), observes: 'dayNight', tags: ['night'],
     },
 
     {

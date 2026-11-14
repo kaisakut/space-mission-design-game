@@ -3,6 +3,7 @@ import type { Mission } from '../data/types';
 import { evaluate, type Issue, type Picks } from '../engine/design';
 import { fmt, tk, useLang } from '../i18n';
 import { Gauges } from './Gauges';
+import { ForecastPanel } from './ForecastPanel';
 import { OptionCard } from './OptionCard';
 
 const PHASES = [1, 2, 3, 4, 5] as const;
@@ -51,6 +52,7 @@ export function DesignScreen({ mission }: { mission: Mission }) {
   const warnings = state.issues.filter((i) => i.level === 'warning');
 
   return (
+    <>
     <section className="design">
       <div className="design-side">
         <h2>{L(mission.name)}</h2>
@@ -94,5 +96,7 @@ export function DesignScreen({ mission }: { mission: Mission }) {
         ))}
       </div>
     </section>
+    <ForecastPanel mission={mission} picks={state.picks} seed={2026} turn={phase} />
+    </>
   );
 }

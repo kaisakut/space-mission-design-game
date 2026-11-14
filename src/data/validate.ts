@@ -88,6 +88,22 @@ export function validateMission(m: Mission): DataIssue[] {
     if (p < 0 || p > 1) err(w, 'probability must be between 0 and 1');
   }
 
+  const orbitList = m.options.filter((o) => o.kind === 'orbit');
+  for (const o of m.options) {
+    if (o.kind !== 'part' || o.subsystem !== 'payload') continue;
+    if (!o.observes) err(`${m.id}.options.${o.id}`, 'instrument has no observation mode (observes)');
+    else for (const orb of orbitList) if (orb.kind === 'orbit' && !orb.science[o.observes]) err(`${m.id}.options.${orb.id}`, `no science opportunities for mode '${o.observes}'`);
+  }
+  const checkRule = (r: import('./types').ObjectiveRule, where: string): void => {
+    if (r.kind === 'hasTag' && !tags.has(r.tag)) err(where, `no option gives tag '${r.tag}'`);
+    if (r.kind === 'all') r.of.forEach((x) => checkRule(x, where));
+  };
+  for (const ob of [m.primary, ...m.secondary]) {
+    checkRule(ob.rule, `${m.id}.objectives.${ob.id}`);
+    if (ob.chosenBy && !tags.has(ob.chosenBy)) err(`${m.id}.objectives.${ob.id}`, `no option gives tag '${ob.chosenBy}'`);
+  }
+  if (m.rules.earlyFailureByTestDepth.value.length < 3) err(`${m.id}.rules`, 'earlyFailureByTestDepth needs 3 values');
+
   const r = m.rubric;
   const total = r.primary.value + r.secondary.value + r.science.value + r.budget.value + r.schedule.value;
   if (total !== 100) err(`${m.id}.rubric`, `rubric adds up to ${total}, expected 100`);

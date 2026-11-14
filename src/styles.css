@@ -105,3 +105,14 @@ button.primary:hover { background: #3d7ef0; }
 .basis-rule { background: #333c52; color: #c8d0e0; }
 .basis-placeholder { background: #6b2020; color: #fff; }
 .src { margin-left: 6px; color: #6f9cf0; font-size: 11px; }
+
+/* Forecast */
+.forecast select { background: #0b1020; color: inherit; border: 1px solid #3a4a6e; border-radius: 6px; padding: 4px 8px; }
+.summary { display: grid; grid-template-columns: 180px 220px 1fr; gap: 16px; margin: 8px 0 12px; }
+@media (max-width: 760px) { .summary { grid-template-columns: 1fr; } }
+.summary .big { display: flex; flex-direction: column; }
+.summary .big span, .summary .causes > span { color: var(--muted); font-size: 12px; }
+.summary .big b { font-size: 30px; font-variant-numeric: tabular-nums; }
+.summary .big small { color: var(--muted); font-size: 11px; }
+.summary ol { margin: 4px 0 0; padding-left: 20px; font-size: 14px; }
+.summary ol small { color: var(--muted); }

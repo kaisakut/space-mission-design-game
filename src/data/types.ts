@@ -90,8 +90,10 @@ export interface Part extends OptionBase {
   deltaVms?: Sourced;
   /** Chance the part fails during one year of operation (before redundancy). */
   failPerYear?: Sourced;
-  /** Science value per detection, for instruments. */
+  /** Science value of one observation, for instruments. */
   scienceWeight?: Sourced;
+  /** Observation mode of an instrument; must be a key of every orbit's `science` (e.g. 'day', 'dayNight'). */
+  observes?: string;
 }
 
 export interface Orbit extends OptionBase {
@@ -102,8 +104,13 @@ export interface Orbit extends OptionBase {
   deltaVms: Sourced;
   /** Average ground-station contact per day, minutes. */
   contactMinPerDay: Sourced;
-  /** Id of the precomputed coverage table in data/ used to count real fire detections. */
-  coverageTable?: string;
+  /** Sunlight compared with Earth orbit (1 near Earth, about 1/27 at Jupiter). Default 1. */
+  solarFactor?: Sourced;
+  /**
+   * Observation opportunities per year for each observation mode, in the mission's science unit
+   * (e.g. real fires the ground track passes over). An instrument observes a share of them set by the plan.
+   */
+  science: Record<string, Sourced>;
 }
 
 export interface LaunchVehicle extends OptionBase {
@@ -185,7 +192,20 @@ export interface EventCard {
   lesson: Text;
 }
 
-export type Outcome = 'fullSuccess' | 'partialSuccess' | 'noLaunch' | 'launchFailure' | 'orbitFailure' | 'lostInOps';
+/** objectiveMissed: flew to the end but delivered too little for the primary objective. */
+export type Outcome = 'fullSuccess' | 'partialSuccess' | 'objectiveMissed' | 'noLaunch' | 'launchFailure' | 'orbitFailure' | 'lostInOps';
+
+/** How an objective is judged; combined from a few standard checks so any mission can use them. */
+export type ObjectiveRule =
+  /** Observations delivered to the ground (mission's science unit): full at `atLeast`, half at `partialAtLeast`. */
+  | { kind: 'science'; atLeast: number; partialAtLeast?: number }
+  /** The design carries something with this tag and the mission reached operations. */
+  | { kind: 'hasTag'; tag: Tag }
+  /** The spacecraft operated for the whole mission. */
+  | { kind: 'survive' }
+  /** A gauge margin at launch is at least this much. */
+  | { kind: 'margin'; resource: Resource; atLeast: number }
+  | { kind: 'all'; of: ObjectiveRule[] };
 
 export interface Objective {
   id: string;
@@ -193,8 +213,19 @@ export interface Objective {
   description: Text;
   /** Points if fully met; partly met gives half. */
   points: Sourced;
-  /** Engine rule that decides whether it is met, by id. */
-  rule: string;
+  rule: ObjectiveRule;
+  /** Secondary objectives only count when the player picked an option with this tag. */
+  chosenBy?: Tag;
+}
+
+/** Mission-wide rules the engine needs. */
+export interface MissionRules {
+  /** Name of one observation, e.g. "fires". */
+  scienceUnit: Text;
+  /** Science value that earns the full science score. */
+  scienceFullScore: Sourced;
+  /** Chance the spacecraft fails right after launch, for test depth 1, 2, 3. */
+  earlyFailureByTestDepth: Sourced<number[]>;
 }
 
 export interface Rubric {
@@ -215,6 +246,8 @@ export interface Bus {
   devDays: Sourced;
   /** Mass limit of the satellite itself, kg (a launch may allow less). */
   maxMassKg: Sourced;
+  /** Chance per year that the bus computer fails, before events add to it. */
+  failPerYear: Sourced;
 }
 
 export interface Mission {
@@ -226,6 +259,7 @@ export interface Mission {
   playable: boolean;
   budgetKUSD: Sourced;
   bus: Bus;
+  rules: MissionRules;
   /** Mission length in operation, days. */
   opsDays: Sourced;
   primary: Objective;

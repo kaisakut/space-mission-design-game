@@ -32,7 +32,7 @@ const FIELD_LABEL: Record<string, string> = {
   cost: 'stat_cost', massKg: 'stat_mass', powerW: 'stat_power', generatesW: 'stat_generates', dataMBPerDay: 'stat_data',
   downlinkMBPerMin: 'stat_downlink', contactMinPerDay: 'stat_contact', altitudeKm: 'stat_altitude', inclinationDeg: 'stat_inclination',
   leadDays: 'stat_days', reliability: 'stat_reliability', windowsDay: 'stat_windows', capacityKg: 'stat_capacity', deltaVms: 'stat_deltaV',
-  failPerYear: 'stat_failPerYear', scienceWeight: 'stat_science', settings: 'stat_setting', storageMB: 'stat_storage',
+  failPerYear: 'stat_failPerYear', scienceWeight: 'stat_science', science: 'stat_opportunities', settings: 'stat_setting', storageMB: 'stat_storage',
 };
 
 /** Every sourced value of an option, for the details panel. */
@@ -41,7 +41,7 @@ function sourcedFields(o: Option): [string, Sourced<unknown>][] {
   const isSourced = (v: unknown): v is Sourced<unknown> => typeof v === 'object' && v !== null && 'basis' in v && 'value' in v;
   for (const [k, v] of Object.entries(o)) {
     if (isSourced(v)) out.push([k, v]);
-    else if (k === 'capacityKg' || k === 'settings') for (const [k2, v2] of Object.entries(v as Record<string, unknown>)) if (isSourced(v2)) out.push([`${k}.${k2}`, v2]);
+    else if (k === 'capacityKg' || k === 'settings' || k === 'science') for (const [k2, v2] of Object.entries(v as Record<string, unknown>)) if (isSourced(v2)) out.push([`${k}.${k2}`, v2]);
   }
   return out;
 }

@@ -67,10 +67,10 @@ const num = (v: { value: number } | undefined) => v?.value ?? 0;
  *
  * Rules (all visible to the player through the gauge tooltips):
  * - Mass: bus + parts, against the launch capacity to the chosen orbit (or the satellite limit if lower).
- * - Power (orbit average): bus + camera × observation share + radio × share of the day in contact,
- *   against what the solar panels make on average.
+ * - Power (orbit average): bus + instruments × observation share + radios × share of the day in contact,
+ *   against what the solar panels make on average (× the destination's sunlight factor).
  * - Budget: bus + options + launch, against the budget minus the reserve.
- * - Downlink: data the camera makes per day (scaled by the observation plan), against what the radio
+ * - Downlink: data the instruments make per day (scaled by the observation plan), against what the radios
  *   can send in the day's ground contact.
  * - Schedule: development days + option lead times, against the first launch window.
  */
@@ -100,8 +100,9 @@ export function evaluate(m: Mission, rawPicks: Picks): DesignState {
   const contactShare = orbit ? num(orbit.contactMinPerDay) / MIN_PER_DAY : 0;
   let powerUsed = num(m.bus.powerW);
   let powerGen = 0;
+  const solar = orbit?.solarFactor?.value ?? 1;
   for (const p of parts) {
-    powerGen += num(p.generatesW);
+    powerGen += num(p.generatesW) * solar;
     if (p.subsystem === 'payload') powerUsed += num(p.powerW) * duty;
     else if (p.subsystem === 'comms') powerUsed += num(p.powerW) * contactShare;
     else powerUsed += num(p.powerW);
@@ -113,10 +114,11 @@ export function evaluate(m: Mission, rawPicks: Picks): DesignState {
   const spent = num(m.bus.cost) + options.reduce((a, o) => a + num(o.cost), 0);
 
   // Downlink (per day)
-  const camera = parts.find((p) => p.subsystem === 'payload');
-  const radio = parts.find((p) => p.subsystem === 'comms');
-  const dataPerDay = camera ? num(camera.dataMBPerDay) * (duty / 0.5) : 0;
-  const sendPerDay = radio && orbit ? num(radio.downlinkMBPerMin) * num(orbit.contactMinPerDay) : 0;
+  // All instruments and radios count, so missions can carry several.
+  const instruments = parts.filter((p) => p.subsystem === 'payload');
+  const radios = parts.filter((p) => p.subsystem === 'comms');
+  const dataPerDay = instruments.reduce((a, p) => a + num(p.dataMBPerDay), 0) * (duty / 0.5);
+  const sendPerDay = orbit ? radios.reduce((a, p) => a + num(p.downlinkMBPerMin), 0) * num(orbit.contactMinPerDay) : 0;
 
   // Schedule
   let readyDay = num(m.bus.devDays);
