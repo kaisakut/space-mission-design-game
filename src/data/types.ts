@@ -112,8 +112,8 @@ export interface Orbit extends OptionBase {
   /** Sunlight compared with Earth orbit (1 near Earth, about 1/27 at Jupiter). Default 1. */
   solarFactor?: Sourced;
   /**
-   * Observation opportunities per year for each observation mode, in the mission's science unit
-   * (e.g. real fires the ground track passes over). An instrument observes a share of them set by the plan.
+   * Observation opportunities over the whole mission (opsDays) for each observation mode, in the mission's science unit
+   * (e.g. real fires the ground track passes over in a year-long mission). An instrument observes a share of them set by the plan.
    */
   science: Record<string, Sourced>;
 }

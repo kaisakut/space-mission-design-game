@@ -130,9 +130,9 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
     playEvents(5);
     const parts = d.options.filter((o): o is Part => o.kind === 'part');
     const failures: { sub: Subsystem; at: number }[] = [];
-    // Failure chances are per year; shorter missions face a proportional share.
+    // Failure chances are per year: over the mission the chance is 1 − (1 − p)^years, so long missions never exceed 100%.
     const years = m.opsDays.value / 365;
-    const tryFail = (sub: Subsystem, p: number) => { if (p > 0 && rng.chance(Math.min(p * years, 1))) failures.push({ sub, at: rng.float() }); };
+    const tryFail = (sub: Subsystem, p: number) => { if (p > 0 && rng.chance(1 - Math.pow(1 - Math.min(p, 1), years))) failures.push({ sub, at: rng.float() }); };
     tryFail('cdh', m.bus.failPerYear.value + (failAdd.cdh ?? 0));
     for (const p of parts) if (p.failPerYear) tryFail(p.subsystem, p.failPerYear.value + (failAdd[p.subsystem] ?? 0));
     for (const [sub, add] of Object.entries(failAdd) as [Subsystem, number][]) {

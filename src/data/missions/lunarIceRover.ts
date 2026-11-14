@@ -165,7 +165,7 @@ export const lunarIceRover: Mission = {
     {
       id: 'ops-plan', phase: 5, role: 'science', changeKind: 'plan',
       label: tx('Driving plan', '走行計画'),
-      help: tx('Driving and drilling more gathers more data but uses more power and risks getting stuck.', '多く走り多く掘るほどデータは増えますが、電力を使い、はまる危険も増えます。'),
+      help: tx('Driving and drilling more gathers more data but uses more power.', '多く走り多く掘るほどデータは増えますが、電力を使います。'),
       options: ['ldrive-steady', 'ldrive-aggressive', 'ldrive-careful'],
     },
   ],
@@ -291,7 +291,7 @@ export const lunarIceRover: Mission = {
         'site-nobile': pub(500, ['astrobotic-griffin']),
         'site-coldtrap': pub(500, ['astrobotic-griffin']),
       },
-      reliability: est(0.75, ['astrobotic-pm1', 'sfn-im2', 'spacepolicy-clps'], tx(
+      reliability: est(0.75, ['astrobotic-pm1', 'upi-im1', 'sfn-im2', 'nasa-blue-ghost', 'spacepolicy-clps'], tx(
         'Chance of reaching the surface. Of NASA’s four commercial lunar deliveries in 2024–2025, three reached the surface (Peregrine did not), but two of those landed on their side; landing on the side is a separate card. NASA called these deliveries “shots on goal” and said a 50-50 success rate would be acceptable.',
         '月面に届く確率。2024〜2025年のNASAの民間月輸送4回のうち、月面に届いたのは3回（Peregrineは届かず）。ただしそのうち2回は横倒しだった（横倒しは別のカード）。NASAはこの輸送を「シュートの数を打つ」方式と呼び、成功率5割でも受け入れられるとしていた。',
       )),
@@ -338,7 +338,7 @@ export const lunarIceRover: Mission = {
     },
 
     { kind: 'choice', id: 'ldrive-steady', name: tx('Steady', '標準'), description: tx('Drive between planned science stations and drill at each.', '計画した観測地点のあいだを走り、各地点で掘る。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
-    { kind: 'choice', id: 'ldrive-aggressive', name: tx('Aggressive', '積極的'), description: tx('Drive and drill as much as possible; uses power and risks getting stuck.', 'できるだけ走って掘る。電力を使い、はまる危険も増える。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'ldrive-aggressive', name: tx('Aggressive', '積極的'), description: tx('Drive and drill as much as possible; uses more power.', 'できるだけ走って掘る。電力を多く使う。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
     { kind: 'choice', id: 'ldrive-careful', name: tx('Careful', '慎重'), description: tx('Short drives in well-mapped areas.', 'よく調べた範囲を短く走る。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
   ],
 
@@ -439,17 +439,11 @@ export const lunarIceRover: Mission = {
       protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
       lesson: tx('{agency} could not send everything once Earth rose again.', '{agency}は、地球が昇ってからもデータを送りきれなかった。'),
-      realCase: {
-        who: tx('NASA Deep Space Network', 'NASAの深宇宙通信網'),
-        year: '2023',
-        text: tx('NASA’s Inspector General found that demand on the Deep Space Network sometimes exceeds what it can provide by about 40%.', 'NASAの監察官室によると、深宇宙通信網への需要は、ときに供給を約40%上回る。'),
-        sources: ['nasa-oig-dsn'],
-      },
     },
     {
       id: 'tip-over', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
       story: tx('The lander touches down but tips over. The rover may not be able to drive off cleanly, and the solar arrays face the wrong way.', '着陸はできたが横倒しになった。ローバーがうまく降りられず、太陽電池も違う方向を向いている。'),
-      probability: rule(0.3, tx('Game value. Two of the three commercial landers that reached the Moon in 2024–2025 ended up on their side.', 'ゲームの値。2024〜2025年に月面に届いた民間の着陸機3機のうち、2機が横倒しになった。')),
+      probability: rule(0.3, tx('Game value, set lower than the 2024–2025 record (two of the three commercial landers that reached the Moon ended up on their side) so that this one card does not decide most games.', 'ゲームの値。2024〜2025年の実績（月面に届いた民間の着陸機3機のうち2機が横倒し）より低くし、このカード1枚で多くのゲームが決まらないようにした。')),
       partialIf: { kind: 'hasTag', tag: 'lander:large' },
       partial: [{ kind: 'scienceFactor', factor: 0.8 }],
       unprotected: [{ kind: 'scienceFactor', factor: 0.5 }, { kind: 'durationFactor', factor: 0.6 }],

@@ -13,10 +13,12 @@ for (const m of MISSIONS) {
   const issues = validateMission(m);
   const e = issues.filter((i) => i.level === 'error');
   const p = issues.filter((i) => i.level === 'placeholder');
+  const w = issues.filter((i) => i.level === 'warning');
   errors += e.length;
   placeholders += p.length;
-  console.log(`${m.id}: ${e.length} error(s), ${p.length} placeholder value(s)`);
+  console.log(`${m.id}: ${e.length} error(s), ${w.length} warning(s), ${p.length} placeholder value(s)`);
   for (const i of e) console.log(`  ERROR ${i.where}: ${i.message}`);
+  for (const i of w) console.log(`  warn  ${i.where}: ${i.message}`);
   if (process.argv.includes('--list')) for (const i of p) console.log(`  todo  ${i.where}: ${i.message}`);
 }
 if (errors || (strict && placeholders)) process.exit(1);

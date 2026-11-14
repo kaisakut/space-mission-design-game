@@ -67,8 +67,8 @@ export const wildfireCubesat: Mission = {
     id: 'detect-and-deliver',
     name: tx('Detect and deliver', '検知して届ける'),
     description: tx(
-      'Detect active wildfires and deliver the detections to the ground within a day.',
-      '活動中の山火事を検知し、1日以内に地上へ届ける。',
+      'Detect active wildfires and deliver the detections to the ground.',
+      '活動中の山火事を検知し、その結果を地上へ届ける。',
     ),
     points: rule(35),
     rule: { kind: 'science', atLeast: 20000, partialAtLeast: 2000 },
@@ -112,7 +112,7 @@ export const wildfireCubesat: Mission = {
     {
       id: 'orbit', default: 'orbit-sso-500', phase: 1, role: 'lead', changeKind: 'hardware',
       label: tx('Target orbit', '目標の軌道'),
-      help: tx('Decides revisit, ground contact and how long the satellite lasts. Changing it later is expensive.', '観測の頻度、地上局との通信時間、衛星の寿命が決まります。後から変えると高くつきます。'),
+      help: tx('Decides what you can observe and how long you can talk to the ground. Changing it later is expensive.', '観測できる量と、地上局と通信できる時間が決まります。後から変えると高くつきます。'),
       options: ['orbit-iss', 'orbit-sso-500', 'orbit-sso-600'],
     },
     {
@@ -162,7 +162,7 @@ export const wildfireCubesat: Mission = {
     {
       id: 'ground', default: 'gs-own', phase: 3, role: 'powerComms', changeKind: 'plan',
       label: tx('Ground stations', '地上局'),
-      help: tx('More stations mean more contact time: data gets down faster. An inadequate ground station is a mission killer.', '局が多いほど通信時間が増え、データを早く降ろせます。地上局の不備はミッションを失う原因になります。'),
+      help: tx('More stations mean more contact time, so more of your data gets down.', '局が多いほど通信時間が増え、より多くのデータを降ろせます。'),
       options: ['gs-own', 'gs-highlat', 'gs-network'],
     },
     // Phase 4: test and launch
@@ -197,7 +197,7 @@ export const wildfireCubesat: Mission = {
     { kind: 'choice', id: 'sec-none', name: tx('None', 'なし'), description: tx('Focus on the primary objective.', '主目的に集中する。'), cost: rule(0) },
     { kind: 'choice', id: 'sec-night', name: tx('Night-time fires', '夜間の火災'), description: tx('Needs a thermal infrared camera.', '熱赤外カメラが必要。'), cost: rule(0), tags: ['goal:night'] },
     { kind: 'choice', id: 'sec-fast', name: tx('Fast alert', '速報'), description: tx('Needs frequent ground contact.', '地上局との頻繁な通信が必要。'), cost: rule(0), tags: ['goal:fast'] },
-    { kind: 'choice', id: 'sec-life', name: tx('Long life', '長寿命'), description: tx('Needs a higher orbit or protection.', '高めの軌道か、対策が必要。'), cost: rule(0), tags: ['goal:life'] },
+    { kind: 'choice', id: 'sec-life', name: tx('Long life', '長寿命'), description: tx('Keep working to the end of the mission; protection against failures helps.', 'ミッションの最後まで動き続ける必要がある。故障への備えが効く。'), cost: rule(0), tags: ['goal:life'] },
 
     {
       kind: 'orbit', id: 'orbit-iss', name: tx('ISS orbit (about 410 km, 51.6°)', 'ISS軌道（約410 km、51.6°）'),
@@ -223,7 +223,7 @@ export const wildfireCubesat: Mission = {
     },
     {
       kind: 'orbit', id: 'orbit-sso-600', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
-      description: tx('Higher: longer passes and a longer life, but needs a way to leave orbit at the end.', '高い分、通信時間も寿命も長いが、最後に軌道から降ろす手段が要る。'),
+      description: tx('Higher: longer passes over each ground station.', '高い分、地上局の上を通る時間が長い。'),
       cost: rule(0),
       altitudeKm: rule(600, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
@@ -298,7 +298,7 @@ export const wildfireCubesat: Mission = {
     },
     {
       kind: 'part', id: 'radio-xband', subsystem: 'comms', name: tx('X-band transmitter (50 Mbps)', 'Xバンド送信機（50 Mbps）'),
-      description: tx('Fast, needs more power and a licence.', '速いが、電力と免許が要る。'),
+      description: tx('Fast, but the licence takes extra time.', '速いが、免許の手続きに時間がかかる。'),
       cost: rule(150),
       massKg: nasa(0.13, ['nasa-soa-comms']),
       powerW: est(6, ['nasa-soa-comms'], tx('2 W radio output (Table 9-3) × 3 for amplifier losses (game assumption).', '送信出力2 W（表9-3）× 3（増幅の損失。ゲームの仮定）。')),
@@ -331,12 +331,11 @@ export const wildfireCubesat: Mission = {
       capacityKg: { 'orbit-iss': est(8, ['nasa-cubesat101'], MASS_NOTE) },
       reliability: rule(0.97),
       windowsDay: rule([300, 420]),
-      leadDays: est(60, ['nasa-soa-launch'], tx('Deployed 1–3 months after the cargo craft berths; about 2 months.', '補給船の係留から1〜3か月後に放出。約2か月とした。')),
     },
     {
       kind: 'launch', id: 'lv-rideshare', name: tx('Rideshare to sun-synchronous orbit', '太陽同期軌道への相乗り'),
       description: tx('Shares a large rocket going to sun-synchronous orbit.', '太陽同期軌道へ行く大型ロケットに相乗りする。'),
-      cost: nasa(350, ['nasa-soa-launch'], tx('Rideshare starting at $350k for about 50 kg.', '約50 kgで35万ドルから。')),
+      cost: est(350, ['nasa-soa-launch'], tx('Rideshare prices start at $350k for about 50 kg; the game uses this starting price for the 6U, as a minimum.', '相乗りは約50 kgで35万ドルから。ゲームではこの最低料金を6Uにそのまま使う。')),
       capacityKg: {
         'orbit-sso-500': est(8, ['nasa-cubesat101'], MASS_NOTE),
         'orbit-sso-600': est(8, ['nasa-cubesat101'], MASS_NOTE),
@@ -438,7 +437,7 @@ export const wildfireCubesat: Mission = {
     },
     {
       id: 'long-wait', phase: 3, name: tx('Long wait in the rocket', '打ち上げ待ちで電池が減る'),
-      story: tx('The main payload slips. Your CubeSat waits for months inside the rocket and cannot be charged.', '主衛星の都合で打ち上げが延びた。キューブサットはロケットの中で何か月も待ち、充電できない。'),
+      story: tx('Your CubeSat is loaded into the rocket months before launch and waits there without charging.', 'キューブサットは打ち上げの何か月も前にロケットに積まれ、充電できないまま待つ。'),
       probability: rule(0.3),
       protectedIf: { kind: 'margin', resource: 'power', atLeast: 0.2 },
       unprotected: [{ kind: 'failChance', subsystem: 'power', add: 0.1 }],
@@ -503,7 +502,7 @@ export const wildfireCubesat: Mission = {
     },
     {
       id: 'station-cut', phase: 5, name: tx('Ground station time cut', '地上局の割り当て減'),
-      story: tx('Your ground station time is halved for a month.', '地上局の使用時間が1か月半分になった。'),
+      story: tx('Other users need the ground stations, and your contact time is cut.', 'ほかの利用者が地上局を必要とし、通信時間が削られた。'),
       probability: rule(0.25),
       protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],

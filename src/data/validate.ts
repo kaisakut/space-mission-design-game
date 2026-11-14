@@ -2,7 +2,7 @@ import { SOURCE_BY_ID } from './sources';
 import type { Condition, Effect, Mission, Sourced } from './types';
 
 export interface DataIssue {
-  level: 'error' | 'placeholder';
+  level: 'error' | 'warning' | 'placeholder';
   where: string;
   message: string;
 }
@@ -22,6 +22,7 @@ const isSourced = (v: unknown): v is Sourced<unknown> =>
 export function validateMission(m: Mission): DataIssue[] {
   const issues: DataIssue[] = [];
   const err = (where: string, message: string) => issues.push({ level: 'error', where, message });
+  const warn = (where: string, message: string) => issues.push({ level: 'warning', where, message });
 
   const walk = (v: unknown, where: string): void => {
     if (Array.isArray(v)) { v.forEach((x, i) => walk(x, `${where}[${i}]`)); return; }
@@ -76,7 +77,12 @@ export function validateMission(m: Mission): DataIssue[] {
     if (c.kind === 'all' || c.kind === 'any') c.of.forEach((x) => checkCond(x, where));
   };
   const checkEffects = (es: Effect[] | undefined, where: string) => {
-    for (const e of es ?? []) if ((e.kind === 'scienceFactor' || e.kind === 'durationFactor') && e.factor < 0) err(where, 'negative factor');
+    for (const e of es ?? []) {
+      if ((e.kind === 'scienceFactor' || e.kind === 'durationFactor') && e.factor < 0) err(where, 'negative factor');
+      // The engine ignores these silently, so a card using them would not do what it says.
+      if (e.kind === 'bonus') err(where, "effect 'bonus' has no effect in the engine; use scienceFactor");
+      if (e.kind === 'resource' && e.resource !== 'budget') err(where, `effect 'resource' only works on budget, not '${e.resource}'`);
+    }
   };
   for (const e of m.events) {
     const w = `${m.id}.events.${e.id}`;
@@ -90,6 +96,16 @@ export function validateMission(m: Mission): DataIssue[] {
       if (!e.realCase.sources.length) err(w, 'realCase needs at least one source');
       for (const s of e.realCase.sources) if (!SOURCE_BY_ID.has(s)) err(w, `unknown source id '${s}' in realCase`);
     }
+  }
+
+  for (const o of m.options) if (o.kind === 'launch' && o.leadDays) warn(`${m.id}.options.${o.id}`, 'leadDays on a launch is not used by the engine');
+  {
+    const read = new Set<string>();
+    const walkCond = (c: Condition | undefined): void => { if (!c) return; if (c.kind === 'hasTag') read.add(c.tag); if (c.kind === 'all' || c.kind === 'any') c.of.forEach(walkCond); };
+    for (const e of m.events) { walkCond(e.protectedIf); walkCond(e.partialIf); walkCond(e.readyIf); }
+    const walkRule = (r: import('./types').ObjectiveRule): void => { if (r.kind === 'hasTag') read.add(r.tag); if (r.kind === 'all') r.of.forEach(walkRule); };
+    for (const o of [m.primary, ...m.secondary]) { walkRule(o.rule); if (o.chosenBy) read.add(o.chosenBy); }
+    for (const tag of tags) if (!read.has(tag)) warn(`${m.id}.tags`, `tag '${tag}' is given by an option but no card or objective reads it`);
   }
 
   const orbitList = m.options.filter((o) => o.kind === 'orbit');

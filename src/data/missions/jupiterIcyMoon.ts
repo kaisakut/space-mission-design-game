@@ -26,10 +26,10 @@ export const jupiterIcyMoon: Mission = {
   ),
   difficulty: 'advanced',
   playable: true,
-  budgetKUSD: rule(4500000, tx('Game value for a flagship planetary mission.', '大型の惑星探査ミッションを想定したゲームの値。')),
-  opsDays: nasa(1095, ['nasa-clipper-spacecraft'], tx('About three years of flybys after arriving at Jupiter.', '木星到着後、約3年間の接近観測。')),
+  budgetKUSD: rule(4500000, tx('Game value for designing, building and launching. For comparison, NASA expects to invest about $5.2 billion over Europa Clipper’s full life, operations included.', '設計・製作・打ち上げの分のゲームの値。比較のため：NASAはエウロパ・クリッパーの全期間（運用を含む）に約52億ドルを投じる見込み。')),
+  opsDays: nasa(1250, ['jpl-clipper-quickfacts'], tx('Europa flybys begin in early 2031 and the prime mission ends in June 2034: about 3.4 years.', 'エウロパへの接近は2031年初めに始まり、本来の任務は2034年6月に終わる：約3.4年。')),
   bus: {
-    massKg: est(5713, ['wikipedia-europa-clipper'], tx('Europa Clipper’s launch mass of 6,065 kg (with 2,750 kg of propellant) minus its 352 kg of instruments; the game’s vault and arrays are counted inside it.', 'エウロパ・クリッパーの打ち上げ質量6,065 kg（推進剤2,750 kgを含む）から観測機器352 kgを除いた値。ゲームでは放射線の保護容器と太陽電池もこの中に含める。')),
+    massKg: est(5448, ['jpl-clipper-quickfacts', 'wikipedia-europa-clipper'], tx('Europa Clipper’s launch mass of about 5,800 kg (with about 2,750 kg of propellant, JPL) minus its 352 kg of instruments; the game’s vault and arrays are counted inside it.', 'エウロパ・クリッパーの打ち上げ質量約5,800 kg（推進剤約2,750 kgを含む、JPL）から観測機器352 kgを除いた値。ゲームでは放射線の保護容器と太陽電池もこの中に含める。')),
     powerW: rule(450, tx('Game value for the bus on average, including heaters.', 'ヒーターを含む本体の平均のゲームの値。')),
     cost: rule(2200000, tx('Game value; the sources list no breakdown.', 'ゲームの値（資料に内訳の記載なし）。')),
     devDays: rule(1500, tx('Game value: about four years from concept to launch readiness.', 'ゲームの値：構想から打ち上げ準備完了まで約4年。')),
@@ -65,7 +65,7 @@ export const jupiterIcyMoon: Mission = {
     },
     {
       id: 'full-tour', name: tx('Complete the tour', '観測期間を完走'),
-      description: tx('Keep working for all three years.', '3年間、最後まで観測を続ける。'),
+      description: tx('Keep working to the end of the prime mission.', '本来の任務の最後まで観測を続ける。'),
       points: rule(5), rule: { kind: 'survive' }, chosenBy: 'goal:full',
     },
   ],
@@ -162,7 +162,7 @@ export const jupiterIcyMoon: Mission = {
     { kind: 'choice', id: 'jsec-none', name: tx('None', 'なし'), description: tx('Focus on the primary objective.', '主目的に集中する。'), cost: rule(0) },
     { kind: 'choice', id: 'jsec-plumes', name: tx('Sample plumes', '噴出物を調べる'), description: tx('Needs MASPEX or SUDA.', 'MASPEXかSUDAが必要。'), cost: rule(0), tags: ['goal:plumes'] },
     { kind: 'choice', id: 'jsec-shell', name: tx('Sound the ice shell', '氷の殻を透かす'), description: tx('Needs the REASON radar.', 'REASONレーダーが必要。'), cost: rule(0), tags: ['goal:shell'] },
-    { kind: 'choice', id: 'jsec-full', name: tx('Complete the tour', '観測期間を完走'), description: tx('Needs to survive three years of radiation.', '3年間の放射線に耐える必要がある。'), cost: rule(0), tags: ['goal:full'] },
+    { kind: 'choice', id: 'jsec-full', name: tx('Complete the tour', '観測期間を完走'), description: tx('Needs to survive years of radiation.', '何年もの放射線に耐える必要がある。'), cost: rule(0), tags: ['goal:full'] },
 
     {
       kind: 'orbit', id: 'tour-flybys', name: tx('Many Europa flybys from Jupiter orbit', '木星を回りながらエウロパに何度も接近'),
@@ -249,7 +249,7 @@ export const jupiterIcyMoon: Mission = {
     },
 
     { kind: 'part', id: 'jcomm-x', subsystem: 'comms', name: tx('X-band high-gain antenna (3 m)', 'Xバンドの高利得アンテナ（3 m）'), description: tx('The proven choice.', '実績のある選択。'), cost: rule(30000), massKg: rule(0, tx('Counted in the bus mass.', '本体の質量に含む。')), powerW: rule(100), downlinkMBPerMin: rule(5, tx('Game value for the data rate from Jupiter.', '木星からのデータ速度のゲームの値。')) },
-    { kind: 'part', id: 'jcomm-ka', subsystem: 'comms', name: tx('Add Ka-band', 'Kaバンドを追加'), description: tx('Several times the data rate, but rain on Earth can interrupt it.', 'データ速度は数倍になるが、地上の雨で途切れることがある。'), cost: rule(60000), massKg: rule(20), powerW: rule(130), downlinkMBPerMin: rule(12, tx('Game value: about three times X-band.', 'ゲームの値：Xバンドの約3倍。')) },
+    { kind: 'part', id: 'jcomm-ka', subsystem: 'comms', name: tx('Add Ka-band', 'Kaバンドを追加'), description: tx('Several times the data rate, at a cost in mass and power.', 'データ速度は数倍になるが、質量と電力が増える。'), cost: rule(60000), massKg: rule(20), powerW: rule(130), downlinkMBPerMin: rule(12, tx('Game value: about three times X-band.', 'ゲームの値：Xバンドの約3倍。')) },
 
     {
       kind: 'launch', id: 'jlv-heavy', name: tx('Heavy rocket with Mars and Earth swing-bys', '大型ロケット＋火星・地球スイングバイ'),
@@ -282,7 +282,7 @@ export const jupiterIcyMoon: Mission = {
     { kind: 'part', id: 'jem-build', subsystem: 'structure', name: tx('Spare parts for radiation tests', '放射線試験用の予備部品'), description: tx('Find weak transistors before launch, not at Jupiter.', '弱いトランジスタを、木星ではなく打ち上げ前に見つける。'), cost: rule(40000), leadDays: rule(90), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')), tags: ['engineeringModel'] },
 
     { kind: 'choice', id: 'jops-steady', name: tx('Steady', '標準'), description: tx('Observe on most flybys.', 'ほとんどの接近で観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
-    { kind: 'choice', id: 'jops-aggressive', name: tx('Aggressive', '積極的'), description: tx('Observe on every flyby with everything; strains power and downlink.', '全部の接近で全機器を使う。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'jops-aggressive', name: tx('Aggressive', '積極的'), description: tx('Observe on nearly every flyby; strains power and downlink.', 'ほとんどの接近で観測する。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
     { kind: 'choice', id: 'jops-careful', name: tx('Careful', '慎重'), description: tx('Observe on selected flybys only.', '選んだ接近だけで観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
   ],
 
@@ -307,8 +307,8 @@ export const jupiterIcyMoon: Mission = {
       realCase: {
         who: tx('Europa Clipper', 'Europa Clipper'),
         year: '2024',
-        text: tx('Europa Clipper (2024): the warning came in May; months of testing showed the parts would hold up, and the spacecraft launched in its October window.', 'Europa Clipper（2024年）：5月に警報が届き、何か月もの試験で部品が持つことを確かめて、10月の打ち上げ期間に間に合わせた。'),
-        sources: ['nasa-clipper-switches'],
+        text: tx('Europa Clipper (2024): the problem was reported in May. After about four months of round-the-clock testing, the team concluded the parts would degrade near Europa but recover between flybys, and on 9 September NASA approved the October launch.', 'Europa Clipper（2024年）：5月に問題が報告された。約4か月の昼夜を問わない試験で、部品はエウロパの近くで劣化しても接近の間に回復すると結論し、9月9日にNASAが10月の打ち上げを承認した。'),
+        sources: ['nasa-clipper-switches', 'ap-clipper-cleared'],
       },
     },
     {
@@ -337,12 +337,13 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} lost the spacecraft at launch.', '{agency}は、打ち上げで探査機を失った。'),
     },
     {
-      id: 'jcruise', phase: 5, name: tx('Trouble on the long cruise', '長い航行中の不具合'),
-      story: tx('A thruster misbehaves during the years-long cruise.', '何年もの航行中に、スラスターが不調になった。'),
+      id: 'jcruise', phase: 5, name: tx('Engine trouble after arrival', '到着後のエンジンの不調'),
+      story: tx('Before a planned engine burn at Jupiter, valves behave oddly. Skipping the burn keeps the spacecraft safe, but in a longer orbit with fewer close passes.', '木星での噴射の前に、弁の動きがおかしい。噴射を見送れば安全だが、周回が長くなり接近の回数が減る。'),
       probability: rule(0.3),
-      protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'direct' }, { kind: 'hasTag', tag: 'opsRehearsed' }] },
-      unprotected: [{ kind: 'durationFactor', factor: 0.8 }],
-      lesson: tx('{agency} took the long route without rehearsing recovery, and lost tour time.', '{agency}は長い経路をとり、復帰の練習もしていなかったため、観測期間を失った。'),
+      partialIf: { kind: 'hasTag', tag: 'opsRehearsed' },
+      partial: [{ kind: 'scienceFactor', factor: 0.9 }],
+      unprotected: [{ kind: 'scienceFactor', factor: 0.75 }],
+      lesson: tx('{agency} had not rehearsed a change of plan, and lost more close passes.', '{agency}は計画の変更を練習しておらず、接近の回数を多く失った。'),
       realCase: {
         who: tx('Juno', 'Juno'),
         year: '2016',
@@ -405,13 +406,12 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jcamera-heal', phase: 5, name: tx('Healing a camera from afar', '遠くのカメラを温めて直す'),
-      story: tx('Radiation has damaged a camera. Heating it for a while might repair the damage, if the team knows how to try it safely.', '放射線でカメラが傷んだ。しばらく温めれば直るかもしれない。チームが安全な試し方を知っていれば。'),
+      id: 'jcamera-heal', phase: 5, name: tx('Camera damaged by radiation', '放射線でカメラが傷む'),
+      story: tx('Radiation damages a camera and its images start to break up. Heating it for a while might repair it, if the team knows how to try it safely.', '放射線でカメラが傷み、画像が乱れ始めた。しばらく温めれば直るかもしれない。チームが安全な試し方を知っていれば。'),
       probability: rule(0.3),
-      unprotected: [],
-      readyIf: { kind: 'hasTag', tag: 'opsRehearsed' },
-      benefit: [{ kind: 'scienceFactor', factor: 1.1 }],
-      lesson: tx('{agency}’s rehearsed team safely heated a damaged camera back to health.', '{agency}は練習を積んだチームが、傷んだカメラを安全に温めて直した。'),
+      protectedIf: { kind: 'hasTag', tag: 'opsRehearsed' },
+      unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
+      lesson: tx('{agency}’s team had not practised recoveries and lost images to a damaged camera.', '{agency}のチームは復旧の練習をしておらず、傷んだカメラで画像を失った。'),
       realCase: {
         who: tx('Juno (JunoCam)', 'Juno（JunoCam）'),
         year: '2023',
