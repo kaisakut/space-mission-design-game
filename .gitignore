@@ -1,0 +1,21 @@
+# dependencies and build output
+node_modules/
+dist/
+
+# secrets: API keys (e.g. FIRMS MAP_KEY) live only in .env, never in git
+.env
+.env.*
+!.env.example
+
+# private planning notes (Japanese concept docs, internal references)
+notes/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# TypeScript build info
+*.tsbuildinfo
