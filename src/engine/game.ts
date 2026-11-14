@@ -41,13 +41,16 @@ export interface Game {
   /** Forecasts used in the current phase. */
   forecastsUsed: number;
   practice: boolean;
+  /** Whether the hint button is offered (chosen before the game; never changes the draws). */
+  hints: boolean;
+  hintsUsed: number;
   final: Record<AgencyKind, RunResult> | null;
 }
 
 /** Turns of each agency that confirmed slots: what the player does and what the AI does go through the same rules. */
-export function newGame(m: Mission, seed: number, practice = false): Game {
+export function newGame(m: Mission, seed: number, practice = false, hints = true): Game {
   const agency = (id: AgencyKind): Agency => ({ id, picks: {}, decidedIn: {}, changeKUSD: 0, changeDays: 0, results: new Map() });
-  return { mission: m, seed, phase: 1, agencies: AGENCIES.map(agency), drawn: new Map(), reports: [], forecastsUsed: 0, practice, final: null };
+  return { mission: m, seed, phase: 1, agencies: AGENCIES.map(agency), drawn: new Map(), reports: [], forecastsUsed: 0, practice, hints, hintsUsed: 0, final: null };
 }
 
 /** Cards for a phase, drawn once from the game's own stream so every agency faces the same ones. */

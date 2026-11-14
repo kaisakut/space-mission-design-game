@@ -11,6 +11,7 @@ const STEPS: Step[] = [
   { target: 'forecast', key: 'tourBaseline' },
   { target: 'weak', key: 'tourWeak', act: '.link-btn', needs: '[data-tour="weak"] .link-btn' },
   { target: 'options', key: 'tourPick', act: '.opt input' },
+  { target: 'nextItem', key: 'tourNextItem', act: 'button', needs: '[data-tour="nextItem"]' },
   { target: 'forecastBtn', key: 'tourRun', act: 'button' },
   { target: 'confirm', key: 'tourConfirm' },
 ];

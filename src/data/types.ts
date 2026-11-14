@@ -153,6 +153,8 @@ export interface DecisionSlot {
   phase: 1 | 2 | 3 | 4 | 5;
   role: Role;
   label: Text;
+  /** The decision as a plain question, shown as the heading of the open item ("Which radio will it carry?"). */
+  ask?: Text;
   help: Text;
   /** Option ids, in the order shown. */
   options: string[];

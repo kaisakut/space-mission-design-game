@@ -50,13 +50,23 @@ function MissionCard({ m, onStart }: { m: Mission; onStart: () => void }) {
   );
 }
 
+/** How the game is played, chosen before it starts (and not changed during it). */
+export interface PlaySettings { tutorial: boolean; hints: boolean; practice: boolean }
+
+const loadFlag = (key: string, def: boolean) => { try { const v = localStorage.getItem(key); return v === null ? def : v === 'on'; } catch { return def; } };
+const saveFlag = (key: string, on: boolean) => { try { localStorage.setItem(key, on ? 'on' : 'off'); } catch { /* storage unavailable */ } };
+
 /** First screen: what the game is, how a turn works, and the missions to choose from. */
-export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, tutorial: boolean) => void; onLibrary: () => void }) {
+export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, s: PlaySettings) => void; onLibrary: () => void }) {
   const { t, L } = useLang();
-  // Remembered between visits: coming back to this screen used to tick the box again, so a guide appeared
-  // although the player had turned it off earlier.
+  // Remembered between visits, like the text size and sound.
   const [guide, setGuideState] = useState(() => { try { return localStorage.getItem('showGuide') !== 'off'; } catch { return true; } });
   const setGuide = (on: boolean) => { setGuideState(on); try { localStorage.setItem('showGuide', on ? 'on' : 'off'); } catch { /* storage unavailable */ } };
+  const [hints, setHintsState] = useState(() => loadFlag('allowHints', true));
+  const [practice, setPracticeState] = useState(() => loadFlag('practiceMode', false));
+  const setHints = (on: boolean) => { setHintsState(on); saveFlag('allowHints', on); };
+  const setPractice = (on: boolean) => { setPracticeState(on); saveFlag('practiceMode', on); };
+  const settingLine = practice ? t.settingPractice : !hints ? t.settingNoHints : t.settingStandard;
   return (
     <section className="title">
       <div className="title-hero">
@@ -72,13 +82,19 @@ export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, tuto
       <div className="title-row">
         <h2>{t.chooseMission}</h2>
         <span className="title-tools">
-          <label className="practice"><input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />{t.showGuide}</label>
+          <span className="play-settings" role="group" aria-label={t.playSettings}>
+            <span className="ps-label">{t.playSettings}</span>
+            <label className="practice" title={t.showGuideHelp}><input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />{t.showGuide}</label>
+            <label className="practice" title={t.allowHintsHelp}><input type="checkbox" checked={hints} onChange={(e) => setHints(e.target.checked)} />{t.allowHints}</label>
+            <label className="practice" title={t.settingPractice}><input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} />{t.practiceMode}</label>
+          </span>
           <button type="button" className="secondary" onClick={onLibrary}>{t.libraryOpen}</button>
         </span>
       </div>
+      <p className="note small setting-line" aria-live="polite">{settingLine}</p>
       <p className="note small">{t.autoPlanNote}</p>
       <div className="missions">
-        {MISSIONS.map((m) => <MissionCard key={m.id} m={m} onStart={() => onStart(m, guide)} />)}
+        {MISSIONS.map((m) => <MissionCard key={m.id} m={m} onStart={() => onStart(m, { tutorial: guide, hints, practice })} />)}
         {UPCOMING.map((m) => (
           <div key={m.id} className="mission soon">
             <span className={`diff diff-${m.difficulty}`}>{tk(t, `diff_${m.difficulty}`)}</span>

@@ -700,3 +700,48 @@ button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
 /* The front face is a 3D plane of its own, so its text never shows through while the card turns. */
 .res-flipcard .front { transform: rotateY(0deg) translateZ(1px); }
 .res-flipcard .back { transform: rotateY(180deg) translateZ(1px); }
+/* Step 16: play settings chosen on the title screen. */
+.play-settings { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.3em 1em; }
+.play-settings .practice { white-space: nowrap; }
+.ps-label { font-size: 0.85em; color: var(--muted); }
+.setting-line { margin: 0.1em 0 0.3em; }
+.tag-practice, .tag-setting { display: inline-block; font-size: 0.75em; padding: 0.05em 0.5em; border-radius: 999px; border: 1px solid #e8b84a; color: #f3d68a; margin-left: 0.4em; white-space: nowrap; vertical-align: middle; }
+.tag-setting { border-color: var(--line); color: var(--muted); }
+.final-tags { margin-right: auto; margin-left: 0.6em; }
+.final-hints { margin: 0.2em 0 0.4em; }
+.brief-settings { margin: 0.6em 0 0; }
+/* Step 15: the middle column opens one item at a time; the others fold to one line. No text shrinking. */
+.col-center.accordion { display: flex; flex-direction: column; gap: 0.4em; overflow-y: auto; }
+.item-row { flex: none; display: flex; align-items: center; gap: 0.55em; width: 100%; min-height: 2.4em; padding: 0.3em 0.75em; text-align: left;
+  background: #0c1324; border: 1px solid var(--line); border-radius: 8px; color: inherit; font: inherit; font-size: 1em; cursor: pointer; }
+.item-row:hover { border-color: #4a5d86; }
+.item-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.item-row.blocked { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+.item-row.flash { animation: flash-slot 1.2s ease-out; }
+.ir-mark { flex: none; width: 1em; text-align: center; color: var(--good); }
+.item-row:has(.ir-weak) .ir-mark { color: var(--warn); }
+.ir-ico { flex: none; color: #fff; }
+.ir-label { flex: none; font-weight: 600; }
+.ir-pick { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.ir-weak { flex: none; font-size: 0.8em; color: var(--warn); white-space: nowrap; }
+.ir-tag { flex: none; font-size: 0.8em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 0.55em; white-space: nowrap; }
+.ir-tag.changed { background: var(--accent); border-color: var(--accent); color: #fff; }
+.slot.open { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; margin: 0.3em 0; animation: item-open 0.2s ease-out; }
+.slot.open > .note { font-size: 0.95em; }
+.slot.open .opts { flex: 0 1 auto; min-height: 0; overflow-y: auto; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 0.5em; align-content: start; }
+.slot.open .opt { font-size: 1em; padding: 0.55em 0.75em; }
+.slot.open .opt-name { font-size: 1.1em; }
+.slot.open .opt-line { -webkit-line-clamp: 2; font-size: 0.92em; }
+.slot.open .std-mark, .slot.open .opt-row .info-btn { font-size: 0.9em; }
+.item-of { flex: none; margin-left: 0.5em; font-size: 0.75em; font-weight: 400; white-space: nowrap; }
+.item-next { flex: none; display: flex; justify-content: flex-end; margin-top: 0.55em; }
+@keyframes item-open { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .slot.open, .item-row.flash { animation: none; } }
+.slot.open .opt-eff { font-size: 0.9em; }
+.slot.open .opt-bars { font-size: 0.9em; }
+.slot.open .opt-bars .field, .slot.open .bar-val { font-size: 1em; }
+.slot.open .opt-level, .slot.open .opt-why, .slot.open .opt-hint, .slot.open .opt-block { font-size: 0.9em; }
+.slot.open.tight .bar-row:nth-child(n+3) { display: none; }
+.slot.open.tight .opt-line { -webkit-line-clamp: 1; }
+.slot.open.tight { margin: 0.1em 0; }
+.tag-practice { align-self: flex-start; width: max-content; }

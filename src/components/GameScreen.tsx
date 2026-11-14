@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Mission, Resource } from '../data/types';
 import { RESOURCES } from '../data/types';
 import { aiPicks } from '../engine/ai';
@@ -19,8 +19,8 @@ import { Briefing } from './Briefing';
 import { Icon } from './icons';
 import { FinalScreen, TurnReports } from './Reports';
 import { AgencyLabel, Resolution } from './Resolution';
-import { SlotColumns } from './SlotColumns';
 import { Tutorial } from './Tutorial';
+import type { PlaySettings } from './TitleScreen';
 
 const PHASES = [1, 2, 3, 4, 5] as const;
 const newSeed = () => Math.floor(Math.random() * 1e9);
@@ -30,9 +30,10 @@ const fmtDelta = (x: number) => (Math.abs(x) >= 100 ? Math.round(x).toLocaleStri
  * The game: one turn per phase. Choose, forecast (once, or freely in practice mode), confirm, then see
  * what happened to all four agencies. The page never scrolls: a bar on top, three columns, a rival strip.
  */
-export function GameScreen({ mission, tutorial = false }: { mission: Mission; tutorial?: boolean }) {
+export function GameScreen({ mission, settings }: { mission: Mission; settings: PlaySettings }) {
+  const tutorial = settings.tutorial;
   const { t, L } = useLang();
-  const [game, setGame] = useState<Game>(() => newGame(mission, newSeed()));
+  const [game, setGame] = useState<Game>(() => newGame(mission, newSeed(), settings.practice, settings.hints));
   const [tab, setTab] = useState(1);
   const [draft, setDraft] = useState<Picks>({});
   const [guide, setGuide] = useState(tutorial);
@@ -43,7 +44,12 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const [askConfirm, setAskConfirm] = useState(false);
   const [allTurns, setAllTurns] = useState(false);
   const [flashSlot, setFlashSlot] = useState<string | null>(null);
-  const [slotHelp, setSlotHelp] = useState<string | null>(null);
+  // The open item of the middle column, the items the player has opened, and closed lines to flash briefly.
+  const firstSlot = (p: number) => mission.slots.find((x) => x.phase === p)?.id ?? null;
+  const [openSlot, setOpenSlot] = useState<string | null>(() => firstSlot(1));
+  const [seen, setSeen] = useState<Set<string>>(() => new Set([firstSlot(1) ?? '']));
+  const [rowFlash, setRowFlash] = useState<Set<string>>(new Set());
+  const openNext = useRef<string | null>(null);
   const [hover, setHover] = useState<{ slot: string; id: string } | null>(null);
   // The hint button: the single change in this phase expected to help most, lit until the design changes.
   const [hinted, setHinted] = useState<{ slot: string; id: string; text: string; key: string } | { none: true; key: string } | null>(null);
@@ -72,6 +78,41 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const prevBase = useRef<number | null>(null);
   const prevPicks = useRef<Picks | null>(null);
   const designKey = JSON.stringify([working, game.phase]);
+  // A new phase opens its first item; a past phase shows every item closed, as a list of what was picked.
+  useEffect(() => {
+    const want = openNext.current; openNext.current = null;
+    if (want) return;
+    if (tab === game.phase) { const f = firstSlot(tab); setOpenSlot(f); if (f) setSeen((x) => new Set(x).add(f)); }
+    else setOpenSlot(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, game.phase]);
+  // If the open item does not fit, its cards first show only two comparison bars (the rest are under "i");
+  // only then does the item scroll. Text is never shrunk.
+  const [tight, setTight] = useState(false);
+  useLayoutEffect(() => {
+    const el = document.querySelector<HTMLElement>('.slot.open .opts');
+    if (!el) return;
+    if (!tight && el.scrollHeight > el.clientHeight + 2) setTight(true);
+  });
+  useEffect(() => { setTight(false); }, [openSlot, tab]);
+  useEffect(() => {
+    const again = () => setTight(false);
+    window.addEventListener('resize', again);
+    return () => window.removeEventListener('resize', again);
+  }, []);
+  // When a pick changes another item (or what blocks the launch), its closed line flashes briefly.
+  const lastPicks = useRef<{ picks: Picks; open: string | null } | null>(null);
+  useEffect(() => {
+    const prev = lastPicks.current;
+    lastPicks.current = { picks: state.picks, open: openSlot };
+    if (!prev) return;
+    const moved = mission.slots.filter((sl) => sl.phase === tab && sl.id !== openSlot && (prev.picks[sl.id] ?? []).join('|') !== (state.picks[sl.id] ?? []).join('|')).map((sl) => sl.id);
+    if (!moved.length) return;
+    setRowFlash(new Set(moved));
+    const id = window.setTimeout(() => setRowFlash(new Set()), 1200);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [designKey]);
   const myForecast = mine && mine.phase === game.phase ? mine : null;
   const stale = !!myForecast && myForecast.key !== designKey;
   const forecastsLeft = game.practice ? null : Math.max(0, 1 - game.forecastsUsed);
@@ -158,6 +199,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   // most for the expected score (success counts too). Runs in the next tick so the button can show it is working.
   const showHint = () => {
     setHintBusy(true);
+    setGame((g) => ({ ...g, hintsUsed: g.hintsUsed + 1 }));
     setTimeout(() => {
       const runs = 60;
       const value = (f: Forecast) => f.score.p50 + 20 * f.successShare;
@@ -178,7 +220,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       if (best && value(best.f) > value(now) + 0.5) {
         const pct = (x: number) => Math.round(x * 100);
         setHinted({ slot: best.slot, id: best.id, key: designKey, text: fmt(t.hintText, { a: pct(now.successShare), b: pct(best.f.successShare), s: now.score.p50, s2: best.f.score.p50 }) });
-        setTab(game.phase);
+        openItem(best.slot, game.phase);
         setFlashSlot(best.slot);
         setTimeout(() => setFlashSlot(null), 1200);
       } else setHinted({ none: true, key: designKey });
@@ -186,8 +228,10 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       play('select');
     }, 30);
   };
-  const confirm = () => (game.forecastsUsed === 0 && !myForecast ? setAskConfirm(true) : doConfirm());
-  const restart = (seed = newSeed()) => { setGame(newGame(mission, seed, game.practice)); setDraft({}); setMine(null); setTab(1); };
+  // Items of this phase never opened: named before confirming (it does not stop the player).
+  const unseen = mission.slots.filter((sl) => sl.phase === game.phase && !seen.has(sl.id) && mission.slots.filter((x) => x.phase === game.phase).length > 1);
+  const confirm = () => ((game.forecastsUsed === 0 && !myForecast) || unseen.length ? setAskConfirm(true) : doConfirm());
+  const restart = (seed = newSeed()) => { setGame(newGame(mission, seed, game.practice, game.hints)); setDraft({}); setMine(null); setTab(1); };
 
   const issueText = (i: Issue) => {
     const values: Record<string, string | number> = { ...i.values, res: i.resource ? tk(t, `res_${i.resource}`) : '' };
@@ -211,11 +255,22 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       return o.tags?.some((x) => tags.includes(x)) || (o.kind === 'choice' && Object.keys(o.settings ?? {}).some((k) => keys.includes(k)));
     })) ?? null;
   };
+  // Open one item (and close the others). From another phase, it opens once that phase is shown.
+  const openItem = (slotId: string, phase = tab) => {
+    if (phase !== tab) { openNext.current = slotId; setTab(phase); }
+    setOpenSlot(slotId);
+    setSeen((x) => (x.has(slotId) ? x : new Set(x).add(slotId)));
+    play('ui');
+  };
   const jump = (slotId: string, phase: number) => {
-    setTab(phase);
+    openItem(slotId, phase);
     setFlashSlot(slotId);
     setTimeout(() => setFlashSlot(null), 1200);
   };
+  // Items that guard against a weak point shown on the left, and items behind a launch blocker.
+  const weakSlots = new Set(shown.topCauses.map(([c]) => fixSlot(c)?.id).filter((x): x is string => !!x));
+  const blockSlots = new Set(blockers.flatMap((i) => ['launch', 'orbit'].map((k) => String(i.values[k] ?? '')))
+    .flatMap((id) => mission.slots.filter((sl) => sl.options.includes(id)).map((sl) => sl.id)));
 
   // What changes if this option is picked instead: gauge differences and anything that would stop the launch.
   const preview = (slotId: string, optionId: string, multi?: { min: number; max: number; noneFirst?: boolean }): { diffs: Diff[]; blocks?: string } => {
@@ -281,6 +336,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       <div className="turnbar">
         <div className="turn-title" title={L(mission.summary)}>
           <button type="button" className="link-btn turn-name" title={t.briefOpen} onClick={() => setBrief(true)}><b>{L(mission.name)}</b> <span className="info-btn" aria-hidden>i</span></button>
+          {game.practice && <span className="tag-practice">{t.tagPractice}</span>}
           <span className="note">{fmt(t.turnTitle, { n: game.phase, total: PHASE_COUNT, name: tk(t, `phase${game.phase}`) })}</span>
         </div>
         <ol className="progress" role="tablist">
@@ -296,12 +352,8 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
         <ol className="steps" aria-label={t.turnHelp}>
           {[t.stepChoose, t.stepForecast, t.stepConfirm].map((x, i) => <li key={x} className={i + 1 === step ? 'now' : i + 1 < step ? 'done' : ''}>{['①', '②', '③'][i]} {x}</li>)}
         </ol>
-        <label className="practice" title={t.practiceMode}>
-          <input type="checkbox" checked={game.practice} onChange={(e) => setGame({ ...game, practice: e.target.checked })} />
-          {t.practiceShort}
-        </label>
         <div className="turn-actions" data-tour="confirm">
-          {!over && <button type="button" className="secondary hint-btn" onClick={showHint} disabled={hintBusy} title={t.hintHelp}>💡 {hintBusy ? t.hintBusy : t.hintButton}</button>}
+          {!over && game.hints && <button type="button" className="secondary hint-btn" onClick={showHint} disabled={hintBusy} title={t.hintHelp}>💡 {hintBusy ? t.hintBusy : t.hintButton}</button>}
           {hinted && 'none' in hinted && hinted.key === designKey && <span className="hint-none">{t.hintNone}</span>}
           {forecastBtn}{confirmBtn}
         </div>
@@ -340,25 +392,50 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
           </div>
         </AutoFit>
         </div>
-        <AutoFit className="col col-center" data-tour="options" min={0.7}>
+        <div className="col col-center accordion" data-tour="options">
           {tab < game.phase && <p className="note">{t.pastPhaseNote}</p>}
           {(() => {
-            // Up to three boxes: two balanced columns. Four or more: boxes with many choices span the column first.
+            // One item open at a time, using the column; the others fold to one line each (no text shrinking).
             const here = mission.slots.filter((s) => s.phase === tab);
-            const isWide = (s: (typeof here)[number]) => s.options.length > 4 || (!!s.multi && s.options.length > 2);
-            const mode = here.length <= 3 ? 'roomy' : 'dense';
-            const wide = mode === 'dense' ? here.filter(isWide) : [];
-            const rest = here.filter((s) => !wide.includes(s));
-            const box = (s: (typeof here)[number]) => {
+            const single = here.length === 1;
+            return here.map((s, idx) => {
               const locked = changeCost(mission, player, s.id, ['__probe__'], game.phase).locked;
+              const picks = state.picks[s.id] ?? [];
+              const changed = picks.join('|') !== (standard[s.id] ?? []).join('|');
+              const isOpen = single || openSlot === s.id;
+              const weakHere = weakSlots.has(s.id);
+              const blocked = blockSlots.has(s.id);
+              if (!isOpen) {
+                const names = picks.map((id) => L(optionById.get(id)!.name));
+                const shownNames = names.length > 2 ? `${names.slice(0, 2).join(t.commaSep)}${fmt(t.andMore, { n: names.length - 2 })}` : names.join(t.commaSep);
+                const looked = seen.has(s.id) || tab < game.phase;
+                return (
+                  <button key={s.id} type="button" aria-expanded={false}
+                    className={`item-row ${blocked ? 'blocked' : ''} ${rowFlash.has(s.id) || flashSlot === s.id ? 'flash' : ''}`}
+                    onClick={() => openItem(s.id)}>
+                    <span className="ir-mark" aria-hidden>{weakHere ? '⚠' : looked ? '✓' : ''}</span>
+                    {s.icon && <Icon name={s.icon} size="1.15em" className="ir-ico" />}
+                    <span className="ir-label">{L(s.label)}</span>
+                    <span className="ir-pick">{shownNames}</span>
+                    {weakHere && <span className="ir-weak">{t.itemHelpsWeak}</span>}
+                    <span className={`ir-tag ${changed ? 'changed' : ''}`}>{changed ? t.itemChanged : t.itemAuto}</span>
+                  </button>
+                );
+              }
+              const n = s.options.length;
+              const cols = n <= 3 ? n : n === 4 ? 2 : 3;
+              const next = here[idx + 1];
               return (
-                <fieldset key={s.id} className={`slot ${s.options.length > 4 ? 'wide' : s.multi && s.options.length > 2 ? 'multi' : ''} ${flashSlot === s.id ? 'flash' : ''}`}>
-                  <legend><span className="lg-row">{s.icon && <Icon name={s.icon} size="1.15em" className="lg-ico" />}<span className="lg-text">{L(s.label)}</span><span className="lg-line" aria-hidden="true" />
-                    {mode === 'dense' && <button type="button" className="info-btn" aria-expanded={slotHelp === s.id} aria-label={t.details} title={L(s.help)} onClick={() => setSlotHelp(slotHelp === s.id ? null : s.id)}>i</button>}</span></legend>
-                  {/* With four or more boxes the description waits behind "i"; how many may be picked stays visible. */}
-                  {mode === 'dense' && slotHelp !== s.id
-                    ? (s.multi ? <p className="note">{fmt(t.pickUpTo, { n: s.multi.max })}</p> : null)
-                    : <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>}
+                <fieldset key={s.id} className={`slot open ${tight ? 'tight' : ''} ${flashSlot === s.id ? 'flash' : ''}`} style={{ ['--cols' as string]: cols }}>
+                  <legend>
+                    <span className="lg-row">
+                      {s.icon && <Icon name={s.icon} size="1.15em" className="lg-ico" />}
+                      <span className="lg-text">{L(s.ask ?? s.label)}</span>
+                      <span className="lg-line" aria-hidden="true" />
+                      {!single && <span className="item-of note">{fmt(t.itemOf, { n: idx + 1, total: here.length })}</span>}
+                    </span>
+                  </legend>
+                  <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>
                   {locked && <p className="warn small">{t.lockedAfterLaunch}</p>}
                   <div className="opts">
                     {s.options.map((id) => {
@@ -374,7 +451,6 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                           type={s.multi ? 'checkbox' : 'radio'} name={s.id} orbitId={state.orbit?.id ?? null} solar={state.orbit?.solarFactor?.value}
                           standard={(standard[s.id] ?? []).includes(id)}
                           slot={s} peers={s.options.map((x) => optionById.get(x)!)} view={mission.view}
-                          compact={mission.slots.filter((x) => x.phase === tab).length >= 4}
                           diffs={pv?.diffs} blocks={pv?.blocks}
                           reason={wrongOrbit ? t.cannotReachOrbit : undefined}
                           hint={c && c.kUSD > 0 && !locked ? fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days }) : undefined}
@@ -388,17 +464,20 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                       );
                     })}
                   </div>
+                  {tab === game.phase && !over && (
+                    <div className="item-next">
+                      {next
+                        ? <button type="button" className="secondary" data-tour="nextItem" onClick={() => openItem(next.id)}>{t.nextItem} ▶</button>
+                        : canForecast
+                          ? <button type="button" className="primary" data-tour="nextItem" onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })} ▶</button>
+                          : <button type="button" className="primary" data-tour="nextItem" onClick={confirm}>{game.phase < PHASE_COUNT ? fmt(t.confirmPhaseN, { n: game.phase }) : t.confirmLast}</button>}
+                    </div>
+                  )}
                 </fieldset>
               );
-            };
-            return (
-              <div className={`slots ${mode} ${here.length === 1 ? 'single' : ''}`}>
-                {wide.map(box)}
-                {here.length === 1 ? box(here[0]!) : <SlotColumns items={rest.map((s) => ({ id: s.id, node: box(s) }))} />}
-              </div>
-            );
+            });
           })()}
-        </AutoFit>
+        </div>
         <AutoFit className="col col-right" data-tour="forecast" min={0.8}>
           <ForecastPanel mission={mission} baseline={baseline} mine={myForecast?.f ?? null} stale={stale} left={forecastsLeft} pastIds={pastIds}
             wasNote={wasNote} />
@@ -420,17 +499,18 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
         {game.reports.length > 0 && <span className="note small rival-more">⤢ {t.showAllReports}</span>}
       </button>
       {askConfirm && (
-        <Modal title={t.noForecastTitle} onClose={() => setAskConfirm(false)}>
-          <p>{t.noForecastBody}</p>
+        <Modal title={game.forecastsUsed === 0 && !myForecast ? t.noForecastTitle : t.confirmCheckTitle} onClose={() => setAskConfirm(false)}>
+          {game.forecastsUsed === 0 && !myForecast && <p>{t.noForecastBody}</p>}
+          {unseen.length > 0 && <p>{fmt(t.notSeenYet, { list: unseen.map((sl) => L(sl.label)).join(t.commaSep) })}</p>}
           <div className="mission-actions">
-            <button type="button" className="primary" disabled={!canForecast} onClick={() => { setAskConfirm(false); runForecast(); }}>{fmt(t.runForecast, { n: RUNS })}</button>
+            {canForecast && (!myForecast || stale) && <button type="button" className="primary" onClick={() => { setAskConfirm(false); runForecast(); }}>{fmt(t.runForecast, { n: RUNS })}</button>}
             <button type="button" className="secondary" onClick={doConfirm}>{t.confirmAnyway}</button>
           </div>
         </Modal>
       )}
       {resolved !== null && <Resolution game={game} phase={resolved} onClose={() => setResolved(null)} />}
       {allTurns && <Modal title={t.reportsTitle} wide onClose={() => setAllTurns(false)}><TurnReports game={game} heading={false} /></Modal>}
-      {brief && <Briefing mission={mission} onClose={() => setBrief(false)} />}
+      {brief && <Briefing mission={mission} game={game} onClose={() => setBrief(false)} />}
       {guide && !brief && <Tutorial onClose={() => setGuide(false)} />}
     </div>
   );

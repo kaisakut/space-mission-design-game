@@ -27,6 +27,7 @@ export function validateMission(m: Mission): DataIssue[] {
 
   // Every box and option carries a line icon that exists (src/components/icons.tsx).
   for (const sl of m.slots) if (!sl.icon || !isIconName(sl.icon)) err(`slot ${sl.id}`, `missing or unknown icon "${sl.icon ?? ''}"`);
+  for (const sl of m.slots) if (!sl.ask?.en.trim() || !sl.ask?.ja.trim()) err(`slot ${sl.id}`, 'missing the question heading (ask) in English or Japanese');
   for (const o of m.options) if (!o.icon || !isIconName(o.icon)) err(`option ${o.id}`, `missing or unknown icon "${o.icon ?? ''}"`);
   for (const sl of m.slots) if (sl.level && !sl.options.some((id) => m.options.find((o) => o.id === id))) err(`slot ${sl.id}`, 'level has no options');
 

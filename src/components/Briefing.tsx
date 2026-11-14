@@ -1,5 +1,6 @@
 import type { Mission } from '../data/types';
-import { fmt, useLang } from '../i18n';
+import type { Game } from '../engine/game';
+import { fmt, useLang, type Messages } from '../i18n';
 import { Icon } from './icons';
 import { Modal } from './Modal';
 
@@ -7,7 +8,7 @@ import { Modal } from './Modal';
  * Before the first phase: what this mission is for, how the score is made, and the three things on screen
  * worth watching. One page, plain words; it can be opened again from the mission name.
  */
-export function Briefing({ mission, onClose }: { mission: Mission; onClose: () => void }) {
+export function Briefing({ mission, game, onClose }: { mission: Mission; game: Game; onClose: () => void }) {
   const { t, L } = useLang();
   const r = mission.rubric;
   const parts: { key: 'primary' | 'secondary' | 'science' | 'budget' | 'schedule'; text: string }[] = [
@@ -45,13 +46,19 @@ export function Briefing({ mission, onClose }: { mission: Mission; onClose: () =
           <ol className="brief-watch">
             <li><b>{t.briefWatch1}</b> {t.briefWatch1Text}</li>
             <li><b>{t.briefWatch2}</b> {t.briefWatch2Text}</li>
-            <li><b>{t.briefWatch3}</b> {t.briefWatch3Text}</li>
+            <li><b>{t.briefWatch3}</b> {game.hints ? t.briefWatch3Text : t.briefWatch3TextNoHint}</li>
           </ol>
         </section>
+        <p className="note brief-settings">{fmt(t.briefSettings, { s: settingsText(t, game) })}</p>
         <div className="mission-actions">
           <button type="button" className="primary" onClick={onClose}>{t.briefStart} ▶</button>
         </div>
       </div>
     </Modal>
   );
+}
+
+/** The play settings in one line, e.g. "hints on, one forecast per phase". */
+export function settingsText(t: Messages, g: Pick<Game, 'hints' | 'practice'>): string {
+  return [g.practice ? t.setPracticeOn : t.setForecastOnce, g.hints ? t.setHintsOn : t.setHintsOff].join(t.commaSep);
 }

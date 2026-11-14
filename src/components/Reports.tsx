@@ -194,8 +194,13 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
     <section className="panel final">
       <div className="card-head">
         <h2>{t.finalTitle}</h2>
+        <span className="final-tags">
+          {game.practice && <span className="tag-practice">{t.tagPractice}</span>}
+          <span className="tag-setting">{game.hints ? t.tagHintsOn : t.tagHintsOff}</span>
+        </span>
         <b className="final-rank appear" style={d(rankAt)}>{fmt(t.resultsRank, { n: ord(rank) })}</b>
       </div>
+      {game.hintsUsed > 0 && <p className="note small final-hints">{fmt(t.hintsUsed, { n: game.hintsUsed })}</p>}
       <div className="final-bars">
         {order.map((a, i) => {
           const r = final[a.id];

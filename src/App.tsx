@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { GameScreen } from './components/GameScreen';
 import { EventLibrary } from './components/EventLibrary';
 import { Glossary } from './components/Glossary';
-import { TitleScreen } from './components/TitleScreen';
+import { TitleScreen, type PlaySettings } from './components/TitleScreen';
 import type { Mission } from './data/types';
 import { useLang } from './i18n';
 import { play as playSfx, setSoundEnabled, soundEnabled } from './audio/sfx';
@@ -16,7 +16,7 @@ const loadSize = () => {
 
 export function App() {
   const { lang, t, toggle } = useLang();
-  const [play, setPlay] = useState<{ mission: Mission; tutorial: boolean; key: number } | null>(null);
+  const [play, setPlay] = useState<{ mission: Mission; settings: PlaySettings; key: number } | null>(null);
   const [glossary, setGlossary] = useState(false);
   const [library, setLibrary] = useState(false);
   const [size, setSize] = useState(loadSize);
@@ -44,10 +44,10 @@ export function App() {
       </header>
       <main className="app-main">
         {play
-          ? <GameScreen key={play.key} mission={play.mission} tutorial={play.tutorial} />
+          ? <GameScreen key={play.key} mission={play.mission} settings={play.settings} />
           : library
             ? <EventLibrary />
-            : <TitleScreen onStart={(mission, tutorial) => setPlay({ mission, tutorial, key: Date.now() })} onLibrary={() => setLibrary(true)} />}
+            : <TitleScreen onStart={(mission, settings) => setPlay({ mission, settings, key: Date.now() })} onLibrary={() => setLibrary(true)} />}
       </main>
       {glossary && <Glossary onClose={() => setGlossary(false)} />}
     </div>
