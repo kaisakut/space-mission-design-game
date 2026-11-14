@@ -58,6 +58,15 @@ import { completePicks } from '../src/engine/design';
 import { meets } from '../src/engine/events';
 const showTable = process.argv.includes('--table');
 const SEEDS = 8, N = 100;
+/**
+ * Safer choices that cost score on purpose: the price is named in the option's own text, so the player
+ * weighs safety against points. Reported as notes, not warnings (see notes/設計_データ整合性の修正.md, C1).
+ */
+const INTENDED_TRADEOFFS: Record<string, string> = {
+  'lunar-ice-rover:lthermal-rhu': 'the safety review adds 120 days and 20,000 k$, which can cost the first window',
+  'jupiter-icy-moon:jwindow-second': 'the later window halves the schedule points in exchange for time to absorb delays',
+};
+
 const measure = (m: (typeof MISSIONS)[number], picks: Picks) => {
   let s = 0, sc = 0;
   for (let seed = 1; seed <= SEEDS; seed++) { const f = runForecast(m, picks, seed, 1, N); s += f.successShare; sc += f.runs.reduce((a, r) => a + r.score.total, 0) / N; }
@@ -76,7 +85,11 @@ for (const m of MISSIONS) {
       const ds = r.s - base.s, dsc = r.sc - base.sc;
       if (showTable) console.log(`     ${m.id} ${slot.id}=${id}: success ${ds >= 0 ? '+' : ''}${ds.toFixed(1)}, score ${dsc >= 0 ? '+' : ''}${dsc.toFixed(1)}`);
       if (slot.id !== 'secondary' && Math.abs(dsc) < 0.1) warn.push(`${slot.id}=${id} hardly changes the score (${dsc.toFixed(2)})`);
-      if (ds >= 2 && dsc < 0) warn.push(`${slot.id}=${id} raises success by ${ds.toFixed(1)} but lowers the score by ${(-dsc).toFixed(1)}`);
+      if (ds >= 2 && dsc < 0) {
+        const why = INTENDED_TRADEOFFS[`${m.id}:${id}`];
+        if (why) console.log(`note ${m.id}: ${slot.id}=${id} raises success by ${ds.toFixed(1)} and lowers the score by ${(-dsc).toFixed(1)} (intended: ${why})`);
+        else warn.push(`${slot.id}=${id} raises success by ${ds.toFixed(1)} but lowers the score by ${(-dsc).toFixed(1)}`);
+      }
     }
   }
   // Cards that leave almost every launchable design unharmed teach nothing.

@@ -277,7 +277,7 @@ export const lunarIceRover: Mission = {
     },
     {
       kind: 'part', id: 'lthermal-rhu', subsystem: 'thermal', name: tx('Add radioisotope heater units', '放射性同位体ヒーターを足す'),
-      description: tx('Keeps the electronics warm through a long night; needs extra safety approval.', '長い夜でも電子機器を温める。安全審査が追加で必要。'),
+      description: tx('Keeps the electronics warm through a long night. The extra safety review adds about 120 days, which can cost the first launch window.', '長い夜でも電子機器を温める。安全審査が増えて約120日かかり、最初の打ち上げ窓を逃すことがある。'),
       cost: rule(20000), leadDays: rule(120, tx('Game value for the extra launch safety review.', '打ち上げの安全審査が増える分のゲームの値。')),
       massKg: rule(5),
       tags: ['nightSurvival'],
