@@ -203,6 +203,8 @@ export interface EventCard {
   id: string;
   /** Line icon on the card (src/components/icons.tsx): what the event is about. */
   icon?: IconName;
+  /** Where in operations it happens: 'start' for landing, arrival and the cruise (shown first on the timeline). */
+  opsAt?: 'start';
   phase: 1 | 2 | 3 | 4 | 5;
   name: Text;
   /** Shown when the card is drawn. */
@@ -323,6 +325,8 @@ export interface Mission {
   outcomeLabels?: Partial<Record<Outcome, Text>>;
   /** What the player sends (satellite, rover, spacecraft), for sentences such as "lost the rover on day 51". */
   craftName?: Text;
+  /** The guide's first line about the mission view, when "your spacecraft and its orbit" does not fit. */
+  viewIntro?: Text;
 }
 
 /**

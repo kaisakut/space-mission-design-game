@@ -6,7 +6,7 @@ import { play, stopAll } from '../audio/sfx';
 import { resolveEvent } from '../engine/events';
 import { agencyDesign, type AgencyKind, type Game } from '../engine/game';
 import { Rng } from '../engine/rng';
-import { firstFailure, simulate } from '../engine/simulate';
+import { firstFailure, outcomeCause, simulate } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { OUTCOME_COLOR, RESULT_MARK, useAgencyName, useCardText, useCauseName, useOutcomeName } from './labels';
@@ -229,7 +229,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
               <b className="fb-total">{r.score.total}</b>
               <span className="fb-outcome">
                 <span className="swatch" style={{ background: OUTCOME_COLOR[r.outcome] }} />{outcomeName(r.outcome)}
-                {r.outcome !== 'fullSuccess' && r.causes[0] && causeName(r.causes[0]) !== outcomeName(r.outcome) && <span className="note small"> · {causeName(r.causes[0])}</span>}
+                {(() => { const c = outcomeCause(m, r); return c && causeName(c) !== outcomeName(r.outcome) ? <span className="note small"> · {causeName(c)}</span> : null; })()}
                 {(() => { const ff = firstFailure(r, m.opsDays.value); return ff?.goalMet && ff.fatal ? <span className="note small"> · {fmt(t.lostOnDay, { n: ff.day })}</span> : null; })()}
                 <span className="note small"> · {r.delivered.toLocaleString()} {L(m.rules.scienceUnit)}</span>
               </span>
@@ -249,7 +249,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
       <div className="why-row appear" style={d(rankAt + 0.4)}>
         <div className="why-box">
           <h3>{multi ? tidy(rank === 1 && !tied ? fmt(t.whyWonOf, { name: nameIn(sel) }) : fmt(tied ? t.whyRankTiedOf : t.whyRankOf, { name: nameIn(sel), n: ord(rank) })) : rank === 1 && !tied ? t.whyWon : fmt(tied ? t.whyRankTied : t.whyRank, { n: ord(rank) })}</h3>
-          {!['fullSuccess', 'partialSuccess'].includes(me.outcome) && me.causes[0] && <p className="why-cause">✕ {outcomeName(me.outcome)}: {causeName(me.causes[0])}</p>}
+          {(() => { const c = outcomeCause(m, me); return ['fullSuccess', 'partialSuccess'].includes(me.outcome) ? null : <p className="why-cause">✕ {outcomeName(me.outcome)}{c && causeName(c) !== outcomeName(me.outcome) ? `${t.colonSep}${causeName(c)}` : ''}</p>; })()}
           <p><b>{fmt(rank === 1 ? t.leadOverSecond : t.gapToFirst, { x: sign(me.score.total - final[leader].score.total) })}</b> <span className="note small">({multi ? agencyName.inText(leader) : name(leader)})</span></p>
           <table className="why-table"><tbody>
             {why.map((g) => (

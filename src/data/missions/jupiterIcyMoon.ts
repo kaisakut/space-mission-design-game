@@ -50,6 +50,7 @@ export const jupiterIcyMoon: Mission = {
     changeDelayDaysPerPhase: rule(45),
   },
   craftName: tx('the spacecraft', '探査機'),
+  viewIntro: tx('Your spacecraft and its path around Jupiter.', '探査機と、木星を回る経路です。'),
   outcomeLabels: {
     orbitFailure: tx('Lost during cruise', '航行中に喪失'),
   },
@@ -82,8 +83,8 @@ export const jupiterIcyMoon: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      // The numbers are written out: if the points or the limit change, change this text too (check:data does not read it).
-      help: tx('Up to two; each is worth 7.5 points and adds requirements.', '2つまで選べます。1つ7.5点ですが、要求も増えます。'),
+      // The points are written out: if they change, change this text too (check:data does not read it). The limit is added by the screen.
+      help: tx('Each is worth 7.5 points and adds requirements.', '1つ7.5点ですが、要求も増えます。'),
       options: ['jsec-none', 'jsec-plumes', 'jsec-shell', 'jsec-full'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
@@ -372,7 +373,7 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} lost the spacecraft at launch.', '{agency}は、打ち上げで探査機を失った。'),
     },
     {
-      id: 'jcruise', icon: 'orbit', phase: 5, name: tx('Engine trouble after arrival', '到着後のエンジンの不調'),
+      id: 'jcruise', icon: 'orbit', phase: 5, opsAt: 'start', name: tx('Engine trouble after arrival', '到着後のエンジンの不調'),
       story: tx('Before a planned engine burn at Jupiter, valves behave oddly. Skipping the burn keeps the spacecraft safe, but in a longer orbit with fewer close passes.', '木星での噴射の前に、弁の動きがおかしい。噴射を見送れば安全だが、周回が長くなり接近の回数が減る。'),
       probability: rule(0.3),
       partialIf: { kind: 'hasTag', tag: 'opsRehearsed' },
@@ -387,7 +388,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jlong-cruise', icon: 'route', phase: 5, name: tx('Wear from a long cruise', '長い航行での消耗'),
+      id: 'jlong-cruise', icon: 'route', phase: 5, opsAt: 'start', name: tx('Wear from a long cruise', '長い航行での消耗'),
       story: tx('After years of swing-bys on the way, parts have worn and the team must nurse the spacecraft through the tour.', '途中のスイングバイで何年も飛ぶうちに部品が消耗し、チームは探査機をいたわりながら観測を続ける。'),
       probability: rule(0.25),
       protectedIf: { kind: 'hasTag', tag: 'direct' },
@@ -448,7 +449,7 @@ export const jupiterIcyMoon: Mission = {
       },
     },
     {
-      id: 'jantenna', icon: 'antenna', phase: 5, name: tx('Antenna fails to open', 'アンテナが開かない'),
+      id: 'jantenna', icon: 'antenna', phase: 5, opsAt: 'start', name: tx('Antenna fails to open', 'アンテナが開かない'),
       story: tx('The high-gain antenna does not unfold fully. Data must trickle home through a small antenna.', '高利得アンテナが開ききらなかった。小さなアンテナで少しずつデータを送るしかない。'),
       probability: rule(0.12),
       partialIf: { kind: 'margin', resource: 'downlink', atLeast: 0.4 },

@@ -153,7 +153,8 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
       if (optionId === none) ids = [none];
       else {
         const without = cur.filter((x) => x !== none);
-        const next = without.includes(optionId) ? without.filter((x) => x !== optionId) : [...without, optionId].slice(-multi.max);
+        // At the limit, another pick does nothing (the card is shown as unavailable); one has to be cleared first.
+        const next = without.includes(optionId) ? without.filter((x) => x !== optionId) : without.length >= multi.max ? without : [...without, optionId];
         ids = next.length >= Math.max(multi.min, 1) ? next : none ? [none] : cur;
       }
     }
@@ -378,19 +379,16 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
     if (was === null || !lastReport || Math.round(was * 100) === Math.round(baseline.successShare * 100)) return null;
     const up = baseline.successShare > was;
     const why: string[] = [];
-    const prevP = prevPicks.current[player.id];
-    if (prevP) {
-      const before = agencyForecast(game, player, prevP, RUNS, 'baseline', undefined, FORECAST_SEED).successShare;
-      const mine = baseline.successShare - before;
-      const changed = mission.slots.filter((s) => s.phase === lastReport.phase)
-        .flatMap((s) => (player.picks[s.id] ?? []).filter((id) => !(standard[s.id] ?? []).includes(id)))
-        .map((id) => L(optionById.get(id)!.name));
-      if (changed.length && Math.abs(mine) >= 0.01 && (mine > 0) === up) why.push(fmt(t.wasYouChose, { list: changed.join(t.listSep) }));
-    }
+    // What the player changed from the auto-plan in the last phase always comes first; then the events.
+    const changed = mission.slots.filter((s) => s.phase === lastReport.phase)
+      .flatMap((s) => (player.picks[s.id] ?? []).filter((id) => !(standard[s.id] ?? []).includes(id)))
+      .map((id) => L(optionById.get(id)!.name));
+    if (changed.length) why.push(fmt(t.wasYouChose, { list: changed.join(t.listSep) }));
     const res = lastReport.cards.map((id) => ({ id, r: lastReport.results.player[id]! }));
     const fit = res.filter(({ r }) => (up ? r === 'protected' || r === 'ready' : r === 'hit' || r === 'partial' || r === 'missed'));
     why.push(...fit.map(({ id, r }) => fmt(tk(t, `was_${r}`), { name: L(mission.events.find((e) => e.id === id)!.name) })));
-    if (up && !res.some(({ r }) => r === 'hit' || r === 'partial') ) { if (!why.length) why.push(t.wasNoCards); }
+    // "Nothing happened" only when nothing was changed and no event came.
+    if (up && !res.some(({ r }) => r === 'hit' || r === 'partial') ) { if (!why.length && !res.length) why.push(t.wasNoCards); }
     else if (up && why.length === 0) why.push(t.wasAvoided);
     return why.length ? fmt(t.wasBaseline, { n: Math.round(was * 100), why: why.join(t.listSep) }) : fmt(t.wasOnly, { n: Math.round(was * 100) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -523,6 +521,9 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
               const wideCards = n <= 3;
               const cols = wideCards ? 1 : 2;
               const next = here[idx + 1];
+              // A multiple choice at its limit: the other cards are unavailable until one is cleared.
+              const chosen = (state.picks[s.id] ?? []).filter((x) => !(s.multi?.noneFirst && x === s.options[0]));
+              const full = !!s.multi && chosen.length >= s.multi.max;
               return (
                 <fieldset key={s.id} className={`slot open ${tight && n < 5 ? 'tight' : ''} ${n >= 5 ? 'many' : ''} ${flashSlot === s.id ? 'flash' : ''}`} style={{ ['--cols' as string]: cols }}>
                   <legend>
@@ -533,19 +534,20 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
                       {!single && <span className="item-of note">{fmt(t.itemOf, { n: idx + 1, total: here.length })}</span>}
                     </span>
                   </legend>
-                  <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>
+                  <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}{full && <span className="warn small pick-full"> {fmt(t.pickFull, { n: s.multi!.max })}</span>}</p>
                   {locked && <p className="warn small">{t.lockedAfterLaunch}</p>}
                   <div className="opts">
                     {s.options.map((id) => {
                       const o = optionById.get(id)!;
                       const selected = (state.picks[s.id] ?? []).includes(id);
+                      const isNone = !!s.multi?.noneFirst && id === s.options[0];
                       const wrongOrbit = o.kind === 'launch' && state.orbit !== null && !o.capacityKg[state.orbit.id];
                       const c = selected ? null : changeCost(mission, player, s.id, [id], game.phase);
                       const pv = selected || wrongOrbit || locked ? null : preview(s.id, id, s.multi);
                       return (
                         <OptionCard
                           key={id}
-                          option={o} selected={selected} disabled={wrongOrbit || locked}
+                          option={o} selected={selected} disabled={wrongOrbit || locked || (full && !selected && !isNone)}
                           type={s.multi ? 'checkbox' : 'radio'} name={s.id} orbitId={state.orbit?.id ?? null} solar={state.orbit?.solarFactor?.value}
                           standard={(standard[s.id] ?? []).includes(id)}
                           slot={s} peers={s.options.map((x) => optionById.get(x)!)} view={mission.view}
@@ -610,7 +612,7 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
       {resolved !== null && <Resolution game={game} phase={resolved} onClose={() => setResolved(null)} />}
       {allTurns && <Modal title={t.reportsTitle} wide onClose={() => setAllTurns(false)}><TurnReports game={game} heading={false} viewer={player.id} /></Modal>}
       {brief && <Briefing mission={mission} game={game} onClose={() => setBrief(false)} />}
-      {guide && !brief && !multi && <Tutorial onClose={() => setGuide(false)} />}
+      {guide && !brief && !multi && <Tutorial mission={mission} onClose={() => setGuide(false)} />}
     </div>
     </SeatContext.Provider>
   );

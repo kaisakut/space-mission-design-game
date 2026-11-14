@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import type { EventCard, Option } from '../data/types';
+import type { EventCard, Mission, Option } from '../data/types';
 import { agencyDesign, type Agency, type Game } from '../engine/game';
-import { firstFailure } from '../engine/simulate';
+import { firstFailure, outcomeCause } from '../engine/simulate';
 import { fmt, useLang } from '../i18n';
 import type { FlightScene } from '../view/flightCommon';
 import type { FlightModel } from '../view/flightScene';
@@ -18,10 +18,17 @@ const OPS = 5;
 export const FLIGHT_SECONDS = 1 + 4 * 0.5 + 1 + OPS + 0.5;
 
 /** A display month for a card, fixed by the game's seed (the engine does not give event times). */
-const displayAt = (seed: number, id: string) => {
+/**
+ * Where on the operations timeline (0–1) an event is shown. Cards that happen at the start of operations (landing,
+ * arrival, the cruise) sit at the very beginning, a little apart when there are several; the rest are spread by a
+ * fixed hash of the seed and the card, after that first stretch.
+ */
+const displayAt = (m: Mission, seed: number, id: string, cards: string[]) => {
+  const atStart = (c: string) => m.events.find((e) => e.id === c)?.opsAt === 'start';
+  if (atStart(id)) return 0.02 + cards.filter(atStart).indexOf(id) * 0.02;
   let h = seed >>> 0;
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 2654435761) >>> 0;
-  return 0.08 + ((h % 1000) / 1000) * 0.84;
+  return 0.15 + ((h % 1000) / 1000) * 0.77;
 };
 
 const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -79,7 +86,7 @@ function LaunchPads({ order, game, start }: { order: Agency[]; game: Game; start
               </div>
               {kind === 'fail' && <span className="pad-x appear" style={d(delay + 0.7)}>✕</span>}
               {kind === 'ok' && <span className={`pad-contact appear ${r.outcome === 'orbitFailure' ? 'dark' : ''}`} style={{ ...d(delay + 1.1), borderColor: AGENCY_COLOR[a.id] }} title={r.outcome === 'orbitFailure' ? t.flightNoSignal : t.flight_contact} />}
-              {kind === 'stay' && <span className="pad-sign appear" style={d(delay)}>{t.flightNotLaunched}{r.causes[0] ? `: ${causeName(r.causes[0])}` : ''}</span>}
+              {kind === 'stay' && <span className="pad-sign appear" style={d(delay)}>{t.flightNotLaunched}{outcomeCause(game.mission, r) ? `: ${causeName(outcomeCause(game.mission, r)!)}` : ''}</span>}
             </div>
             <AgencyLabel id={a.id} />
           </div>
@@ -125,7 +132,9 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
   const opsAt = start + 1 + order.length * 0.5 + 1;
   const report5 = game.reports.find((r) => r.phase === 5);
   // In the order they happen on the timeline.
-  const ops5 = [...(report5?.cards ?? [])].sort((x, y) => displayAt(game.seed, x) - displayAt(game.seed, y));
+  const cards5 = report5?.cards ?? [];
+  const at5 = (id: string) => displayAt(m, game.seed, id, cards5);
+  const ops5 = [...cards5].sort((x, y) => at5(x) - at5(y));
   const usesDonki = m.events.some((e) => e.probability.sources?.includes('nasa-donki'));
   const years = m.opsDays.value / 365;
   // Month names in the game's language, not the browser's.
@@ -148,8 +157,10 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
     if (best <= 0 || !flewOf(r.outcome)) return null;
     const top = game.agencies.find((x) => final[x.id].delivered === best)!;
     const hurt = (id: string, who: Agency) => { const x = game.reports.find((rep) => rep.cards.includes(id))?.results[who.id][id]; return x === 'hit' || x === 'partial'; };
-    const firstFail = [...r.failures].sort((x, y) => x.at - y.at)[0];
     if (stoppedEarly(a)) {
+      // The failure named on the row above (the same as the results screen), and the events that made it likelier.
+      const cause = outcomeCause(m, r);
+      const firstFail = cause?.startsWith('fail:') ? { sub: cause.slice(5) } : null;
       if (!firstFail) return null;
       const raised = game.reports.flatMap((rep) => rep.cards).filter((id) => hurt(id, a) && m.events.find((e) => e.id === id)!.unprotected.concat(m.events.find((e) => e.id === id)!.partial ?? []).some((e) => e.kind === 'failChance' && e.subsystem === firstFail.sub));
       return raised.length ? fmt(t.gap_raisedBy, { list: raised.map((id) => L(m.events.find((e) => e.id === id)!.name)).join(t.listSep) }) : null;
@@ -184,6 +195,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
     const base = (a: Agency, i: number) => {
       const r = final[a.id];
       return {
+        tag: names.multi ? (a.control === 'human' ? names.short(a.id) : undefined) : a.id === 'player' ? t.flightYou : undefined,
         color: AGENCY_COLOR[a.id], launchAt: start + 0.6 + i * 0.5, stopAt: r.opsFraction,
         kind: (r.outcome === 'noLaunch' ? 'stay' : r.outcome === 'launchFailure' ? 'fail' : r.outcome === 'orbitFailure' ? 'dark' : 'ok') as 'ok' | 'dark' | 'fail' | 'stay',
       };
@@ -205,7 +217,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
       opsAt, opsSeconds: OPS, fires: !!v.fires,
       sats: order.map((a, i) => {
         const e = earthModel(m, designs.get(a.id)!);
-        return { ...base(a, i), tag: names.multi ? (a.control === 'human' ? names.short(a.id) : undefined) : a.id === 'player' ? t.flightYou : undefined, altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [] };
+        return { ...base(a, i), altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [] };
       }),
     } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,14 +225,18 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
 
   const status = (a: Agency): { text: string; bad: boolean } | null => {
     const r = final[a.id];
-    if (r.outcome === 'noLaunch') return { text: `${t.flightNotLaunched}${r.causes[0] ? `${t.colonSep}${causeName(r.causes[0])}` : ''}`, bad: true };
+    // The reason is the same one the results screen gives (outcomeCause).
+    const cause = outcomeCause(m, r);
+    if (r.outcome === 'noLaunch') return { text: `${t.flightNotLaunched}${cause ? `${t.colonSep}${causeName(cause)}` : ''}`, bad: true };
     if (r.outcome === 'launchFailure') return { text: `✕ ${outcomeName(r.outcome)}`, bad: true };
     if (r.outcome === 'orbitFailure') return { text: `✕ ${m.outcomeLabels?.orbitFailure ? outcomeName(r.outcome) : t.flightNoSignal}`, bad: true };
     const firstFail = [...r.failures].sort((x, y) => x.at - y.at)[0];
     // Lost after the goal was already met: not a red cross, the result still stands.
     const ff = firstFailure(r, m.opsDays.value);
     if (ff?.goalMet) return { text: ff.fatal ? fmt(t.goalThenLost, { n: ff.day }) : fmt(t.goalThenFail, { n: ff.day, cause: causeName(`fail:${ff.sub}`) }), bad: false };
-    if (r.opsFraction < 0.999 && (firstFail || r.outcome === 'lostInOps')) return { text: `✕ ${firstFail ? causeName(`fail:${firstFail.sub}`) : causeName(r.causes[0] ?? '')}`, bad: true };
+    if (r.opsFraction < 0.999 && (firstFail || r.outcome === 'lostInOps') && cause) return { text: `✕ ${causeName(cause)}`, bad: true };
+    // A partial result names the same reason as the results screen (a warning or the event that cut it most).
+    if (r.outcome !== 'fullSuccess' && flewOf(r.outcome) && cause) return { text: causeName(cause), bad: false };
     return null;
   };
 
@@ -231,7 +247,8 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
         {(!flightModel || !webglOk()) && <LaunchPads order={order} game={game} start={start} />}
       </div>
 
-      <div className="flight-right">
+      {/* The count column fits the longest number (e.g. "128,012"); the bars give way, never the digits. */}
+      <div className="flight-right" style={{ ['--cnt' as string]: `${Math.max(2, ...game.agencies.map((x) => Math.round(final[x.id].delivered).toLocaleString().length))}ch` }}>
         {game.agencies.map((a) => {
           const r = final[a.id];
           const flew = flewOf(r.outcome);
@@ -261,7 +278,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
           <ul className="fl-events" ref={evList}>
             {ops5.map((id) => {
               const card = m.events.find((e) => e.id === id)!;
-              const at = displayAt(game.seed, id);
+              const at = at5(id);
               const month = years > 0.9 && years < 1.1 ? ticks[Math.min(11, Math.floor(at * 12))] : fmt(t.flightDay, { n: Math.round(at * m.opsDays.value) });
               return (
                 <li key={id} className="appear" style={d(opsAt + at * OPS)}>
@@ -282,7 +299,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
       <div className="flight-axis">
         <div className="fa-track" data-levels="1">
           <span className="fa-head" style={{ animationDelay: `${opsAt}s`, animationDuration: `${OPS}s` }} />
-          <TimelineMarks marks={[...ops5].map((id) => ({ id, at: displayAt(game.seed, id), card: m.events.find((e) => e.id === id)! })).sort((x, y) => x.at - y.at)}
+          <TimelineMarks marks={[...ops5].map((id) => ({ id, at: at5(id), card: m.events.find((e) => e.id === id)! })).sort((x, y) => x.at - y.at)}
             delay={(at) => d(opsAt + at * OPS)} name={(c) => L(c.name)} />
         </div>
         <div className="fa-ticks">{ticks.map((x, i) => <span key={i}>{x}</span>)}</div>

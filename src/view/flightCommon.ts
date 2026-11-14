@@ -11,6 +11,8 @@ export interface FlightCraft {
   stopAt: number;
   /** Share of the time spent observing (driving, observing passes). */
   duty: number;
+  /** A small name tag over the craft: "You" alone, each player's mark together. */
+  tag?: string;
 }
 
 /** The common shape of the three flight scenes. */
@@ -60,3 +62,24 @@ export function travel(c: FlightCraft, clock: number, from: THREE.Vector3, to: T
 /** How far into the operating time the scene is (0–1), held where a craft stopped. */
 export const opsProgress = (clock: number, opsAt: number, opsSeconds: number, c: FlightCraft) =>
   Math.max(0, Math.min(c.stopAt < 0.999 ? c.stopAt : 1, (clock - opsAt) / opsSeconds));
+
+/** A small text tag drawn on a canvas, always facing the viewer. */
+export function labelSprite(text: string, color: string, size = 0.13): THREE.Sprite {
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d')!;
+  const font = '600 40px system-ui, sans-serif';
+  ctx.font = font;
+  const w = Math.ceil(ctx.measureText(text).width) + 28;
+  c.width = w; c.height = 60;
+  ctx.font = font;
+  ctx.fillStyle = 'rgba(8, 12, 24, 0.8)';
+  ctx.strokeStyle = color; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.roundRect(2, 2, w - 4, 56, 12); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(text, 14, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  sp.scale.set((size * w) / 60, size, 1);
+  sp.renderOrder = 5;
+  return sp;
+}

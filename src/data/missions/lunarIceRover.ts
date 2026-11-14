@@ -65,6 +65,7 @@ export const lunarIceRover: Mission = {
     changeDelayDaysPerPhase: rule(30),
   },
   craftName: tx('the rover', 'ローバー'),
+  viewIntro: tx('The landing site and where your rover drives.', '着陸地点と、ローバーが走る範囲です。'),
   outcomeLabels: {
     launchFailure: tx('Landing failure', '着陸失敗'),
     orbitFailure: tx('Stuck on the lander', '着陸機から降りられず'),
@@ -100,8 +101,8 @@ export const lunarIceRover: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      // The numbers are written out: if the points or the limit change, change this text too (check:data does not read it).
-      help: tx('Up to two; each is worth 7.5 points and adds requirements.', '2つまで選べます。1つ7.5点ですが、要求も増えます。'),
+      // The points are written out: if they change, change this text too (check:data does not read it). The limit is added by the screen.
+      help: tx('Each is worth 7.5 points and adds requirements.', '1つ7.5点ですが、要求も増えます。'),
       options: ['lsec-none', 'lsec-isotopes', 'lsec-coldtrap', 'lsec-full'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
@@ -496,7 +497,7 @@ export const lunarIceRover: Mission = {
       },
     },
     {
-      id: 'tip-over', icon: 'lander', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
+      id: 'tip-over', icon: 'lander', phase: 5, opsAt: 'start', name: tx('Landed on its side', '横倒しで着陸'),
       story: tx('The lander touches down but tips over. The rover may not be able to drive off cleanly, and the solar arrays face the wrong way.', '着陸はできたが横倒しになった。ローバーがうまく降りられず、太陽電池も違う方向を向いている。'),
       probability: est(0.5, ['nasa-clps-agu-2025', 'nasa-clps-timeline', 'nasa-im2-end', 'sfn-im2', 'upi-im1'], tx('Of the three CLPS landings that reached the surface (IM-1, Blue Ghost 1, IM-2), two ended on their side. With only three, the game uses 0.5 rather than two thirds.', 'CLPSで月面に着陸できた3回（IM-1、Blue Ghost 1、IM-2）のうち2回が横倒しだった。3回しかないので、3分の2ではなく0.5とした。')),
       partialIf: { kind: 'hasTag', tag: 'lander:large' },
@@ -545,7 +546,7 @@ export const lunarIceRover: Mission = {
     },
     {
       id: 'first-flight-wait', icon: 'hourglass', phase: 3, name: tx('Waiting on the first flight', '初飛行の結果待ち'),
-      story: tx('Your lander has never landed. Nothing moves until its first flight is in.', '選んだ着陸機はまだ月に降りたことがない。初飛行の結果が出るまで、次へ進めない。'),
+      story: tx('A lander that has not flown yet must wait for its first flight.', '初飛行がまだの着陸機は、結果が出るまで次へ進めない。'),
       probability: rule(0.5),
       protectedIf: { kind: 'hasTag', tag: 'lander:committed' },
       unprotected: [{ kind: 'delayDays', days: 200 }],

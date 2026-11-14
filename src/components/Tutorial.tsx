@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type CSSProperties } from 'react';
-import { tk, useLang } from '../i18n';
+import type { Mission } from '../data/types';
+import { fmt, tk, useLang } from '../i18n';
 
 /**
  * Steps of the first-time guide. Each points at a part of the screen marked with data-tour; the rest is dimmed.
@@ -21,8 +22,8 @@ const STEPS: Step[] = [
 const targets = (target: string | null) => (target ? target.split(' ').flatMap((x) => [...document.querySelectorAll(`[data-tour="${x}"]`)]) : []);
 
 /** A short hands-on walk through one turn, after the mission briefing dialog. "Skip guide" works at any time. */
-export function Tutorial({ onClose }: { onClose: () => void }) {
-  const { t } = useLang();
+export function Tutorial({ mission, onClose }: { mission: Mission; onClose: () => void }) {
+  const { t, L } = useLang();
   const steps = STEPS;
   const [i, setI] = useState(0);
   // The "Next item" step on the last open item asks for nothing: it only points at the folded rows.
@@ -93,7 +94,7 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
       ) : <div className="tour-block" style={{ inset: 0 }} />}
       <div className="tour" role="dialog" aria-label={t.tourTitle} style={spot}>
         <div className="tour-head"><b>{t.tourTitle}</b><span className="note">{pos} / {total}</span></div>
-        <p>{tk(t, step.key)}</p>
+        <p>{step.key === 'tourView' && mission.viewIntro ? fmt(t.tourViewOwn, { intro: L(mission.viewIntro) }) : tk(t, step.key)}</p>
         {step.act && <p className="note small">{t.tourDoIt}</p>}
         <div className="tour-actions">
           <button type="button" className="link-btn tour-close" onClick={onClose}>{t.tourSkip}</button>

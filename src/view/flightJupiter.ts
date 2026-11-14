@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GREY, movingLine, opsProgress, travel, type FlightCraft, type FlightScene } from './flightCommon';
+import { GREY, movingLine, opsProgress, travel, type FlightCraft, type FlightScene, labelSprite } from './flightCommon';
 import { ellipsePoints, flybyPos, jupiterTexture, JUPITER_R, radiationGlow } from './jupiterScene';
 import { createStage, disposeGeometry, seeded } from './stage';
 
@@ -88,6 +88,8 @@ export function createJupiterFlight(host: HTMLElement, opts: { reduceMotion: boo
       for (const s of [-1, 1]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.14), bodyMat); w.position.x = s * 0.36; w.rotation.x = Math.PI / 2; body.add(w); }
       // The vault, as in the mission view: a larger, denser shell when thicker.
       body.add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.24 + 0.06 * c.shield, c.shield + 1), shellMat));
+      // The player's name tag over the spacecraft, as at Earth.
+      if (c.tag) { const sp = labelSprite(c.tag, c.color, 0.45); sp.position.y = 0.75; mats.push(sp.material); body.add(sp); }
       body.visible = false;
       pivot.add(body); parts.push(body);
       const pts = c.path === 'flybys' ? ellipsePoints(2.85, 7.6).map((p) => p.applyAxisAngle(new THREE.Vector3(0, 1, 0), nth * 0.35)) : [];

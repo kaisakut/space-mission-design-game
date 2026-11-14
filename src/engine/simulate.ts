@@ -53,6 +53,39 @@ export interface SimulateOptions {
 const FATAL: Subsystem[] = ['cdh', 'power', 'comms'];
 
 /**
+ * For display: the one reason shown for how an agency's mission ended, the same in the results row, the
+ * "why" box and the flight scene. Lost before operations: what ended it (a blocker, the launch, an early fault or
+ * the event card that ended it). Lost in operations: the first fatal failure. Partial success or a missed goal:
+ * a part failure that stopped observing early, else a design warning, else the operations event that cut the results
+ * most. Otherwise nothing (no unrelated event).
+ */
+export function outcomeCause(m: Mission, r: RunResult): string | null {
+  if (r.outcome === 'fullSuccess') return null;
+  const card = (id: string) => m.events.find((e) => e.id === id);
+  const effectsOf = (e: RunEvent) => { const c = card(e.id); return !c ? [] : e.result === 'partial' ? c.partial ?? [] : e.result === 'hit' ? c.unprotected : []; };
+  if (r.outcome === 'noLaunch' || r.outcome === 'launchFailure' || r.outcome === 'orbitFailure') {
+    const own = r.causes.find((c) => c.startsWith('blocked:') || c === 'launchFailure' || c === 'earlyFailure');
+    const ender = r.events.find((e) => effectsOf(e).some((x) => x.kind === 'missionLost'));
+    return ender ? ender.id : own ?? null;
+  }
+  if (r.outcome === 'lostInOps') {
+    const f = [...r.failures].sort((a, b) => a.at - b.at).find((x) => FATAL.includes(x.sub));
+    return f ? `fail:${f.sub}` : r.causes.find((c) => c.startsWith('fail:')) ?? null;
+  }
+  const stopped = r.opsFraction < 0.999 ? [...r.failures].sort((a, b) => a.at - b.at)[0] : undefined;
+  if (stopped) return `fail:${stopped.sub}`;
+  const warn = r.causes.find((c) => c.startsWith('warn:'));
+  if (warn) return warn;
+  // The operations event that cut the results most (science and time are both multiplied in).
+  let best: { id: string; k: number } | null = null;
+  for (const e of r.events.filter((x) => x.phase === 5)) {
+    const k = effectsOf(e).reduce((a, x) => a * (x.kind === 'scienceFactor' || x.kind === 'durationFactor' ? Math.min(1, x.factor) : 1), 1);
+    if (k < 1 && (!best || k < best.k)) best = { id: e.id, k };
+  }
+  return best?.id ?? null;
+}
+
+/**
  * For display: the first part failure in operations, the day it happened, whether it ended the mission,
  * and whether the main goal was still met (a mission can reach full success, then be lost).
  */

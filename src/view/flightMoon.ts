@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GREY, movingLine, opsProgress, travel, type FlightCraft, type FlightScene } from './flightCommon';
+import { GREY, labelSprite, movingLine, opsProgress, travel, type FlightCraft, type FlightScene } from './flightCommon';
 import { poleTexture } from './lunarScene';
 import { createStage, disposeGeometry, seeded } from './stage';
 
@@ -96,6 +96,8 @@ export function createMoonFlight(host: HTMLElement, opts: { reduceMotion: boolea
       const tag = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.025, 6, 24), tagMat);
       tag.rotation.x = Math.PI / 2; tag.position.y = 0.34;
       lander.add(tag);
+      // The player's name tag over the lander, as at Earth.
+      if (c.tag) { const sp = labelSprite(c.tag, c.color, 0.32); sp.position.y = 0.75; mats.push(sp.material); lander.add(sp); }
       lander.position.copy(site);
       lander.visible = false;
       pivot.add(lander); parts.push(lander);

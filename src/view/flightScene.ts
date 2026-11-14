@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import firesDoc from '../../data/firms-cells-2024.json';
 import { angleBetween, footprintAngle, latLonToVec, orbitPos, RE_KM, type Vec3 } from './orbit';
+import { labelSprite } from './flightCommon';
 import { createStage, disposeGeometry } from './stage';
 
 /**
@@ -285,23 +286,3 @@ export function createFlightScene(host: HTMLElement, opts: { reduceMotion: boole
   };
 }
 
-/** A small text tag drawn on a canvas, always facing the viewer. */
-function labelSprite(text: string, color: string): THREE.Sprite {
-  const c = document.createElement('canvas');
-  const ctx = c.getContext('2d')!;
-  const font = '600 40px system-ui, sans-serif';
-  ctx.font = font;
-  const w = Math.ceil(ctx.measureText(text).width) + 28;
-  c.width = w; c.height = 60;
-  ctx.font = font;
-  ctx.fillStyle = 'rgba(8, 12, 24, 0.8)';
-  ctx.strokeStyle = color; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.roundRect(2, 2, w - 4, 56, 12); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(text, 14, 32);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-  sp.scale.set((0.13 * w) / 60, 0.13, 1);
-  sp.renderOrder = 5;
-  return sp;
-}

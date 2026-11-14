@@ -122,8 +122,8 @@ export const wildfireCubesat: Mission = {
       id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       ask: tx("Aim for anything extra?", "ほかにも狙う目標はある？"),
-      // The numbers are written out: if the points or the limit change, change this text too (check:data does not read it).
-      help: tx('Up to two; each is worth 7.5 points and adds requirements.', '2つまで選べます。1つ7.5点ですが、要求も増えます。'),
+      // The points are written out: if they change, change this text too (check:data does not read it). The limit is added by the screen.
+      help: tx('Each is worth 7.5 points and adds requirements.', '1つ7.5点ですが、要求も増えます。'),
       options: ['sec-none', 'sec-night', 'sec-fast', 'sec-life'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {

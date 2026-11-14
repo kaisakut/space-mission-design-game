@@ -89,11 +89,11 @@ export function useCardText(mission: Mission) {
 /** The seats of a game played together; null when playing solo (names then come from the dictionary). */
 export const SeatContext = createContext<Agency[] | null>(null);
 
-/** Short mark from a name: the first character of a Japanese name, the first two letters otherwise. */
+/** Short mark from a name: its first character, upper case for letters (two letters could read as the AI tag, e.g. "Al"). */
 const markOf = (name: string) => {
   const c = [...name.trim()];
   if (!c.length) return '?';
-  return /[\u3000-\u9fff\uff00-\uffef]/.test(c[0]!) ? c[0]! : c.slice(0, 2).join('').replace(/^./, (x) => x.toUpperCase());
+  return c[0]!.toUpperCase();
 };
 
 /** Marks for the human seats; a mark that would repeat gets the seat number added. */
