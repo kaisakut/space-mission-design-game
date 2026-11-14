@@ -93,12 +93,12 @@ export function earthModel(m: Mission, d: DesignState): EarthModel | null {
 }
 
 /** three.js and each scene load only when the view is shown, so the first screen stays light. */
-const loadScene = (model: ViewModel, host: HTMLElement): Promise<MissionScene<ViewModel>> =>
+const loadScene = (model: ViewModel, host: HTMLElement, dist?: number): Promise<MissionScene<ViewModel>> =>
   model.kind === 'jupiter' ? import('../view/jupiterScene').then((x) => x.createJupiterScene(host, { reduceMotion: reduceMotion() }) as MissionScene<ViewModel>)
   : model.kind === 'moon' ? import('../view/lunarScene').then((x) => x.createLunarScene(host, { reduceMotion: reduceMotion() }) as MissionScene<ViewModel>)
-  : import('../view/earthScene').then((x) => x.createEarthScene(host, { reduceMotion: reduceMotion(), textureUrl: EARTH_TEXTURE }) as unknown as MissionScene<ViewModel>);
+  : import('../view/earthScene').then((x) => x.createEarthScene(host, { reduceMotion: reduceMotion(), textureUrl: EARTH_TEXTURE, dist }) as unknown as MissionScene<ViewModel>);
 
-function Scene({ model, ghost, fast, onMeter }: { model: ViewModel; ghost: ViewModel | null; fast: boolean; onMeter: (l: number, o: boolean) => void }) {
+function Scene({ model, ghost, fast, onMeter, dist }: { model: ViewModel; ghost: ViewModel | null; fast: boolean; onMeter: (l: number, o: boolean) => void; dist?: number }) {
   const host = useRef<HTMLDivElement>(null);
   const scene = useRef<MissionScene<ViewModel> | null>(null);
   const [failed, setFailed] = useState(() => !webglOk());
@@ -107,7 +107,7 @@ function Scene({ model, ghost, fast, onMeter }: { model: ViewModel; ghost: ViewM
   useEffect(() => {
     if (failed || !host.current) return;
     let alive = true;
-    loadScene(latest.current.model, host.current).then((sc) => {
+    loadScene(latest.current.model, host.current, dist).then((sc) => {
       if (!alive) { sc.dispose(); return; }
       scene.current = sc;
       sc.onMeter(onMeter);
@@ -164,7 +164,7 @@ function StaticView({ model }: { model: ViewModel }) {
 export function TitleGlobe({ mission }: { mission: Mission }) {
   const model = useMemo(() => earthModel(mission, evaluate(mission, defaultPicks(mission))), [mission]);
   if (!model) return null;
-  return <div className="title-globe" aria-hidden="true"><Scene model={model} ghost={null} fast={false} onMeter={() => {}} /></div>;
+  return <div className="title-globe" aria-hidden="true"><Scene model={model} ghost={null} fast={false} onMeter={() => {}} dist={3.9} /></div>;
 }
 
 /** The mission view: the destination and the spacecraft, redrawn as the design changes. */

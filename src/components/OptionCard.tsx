@@ -113,6 +113,7 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
           <span className="opt-name">{L(option.name)}</span>
         </label>
         {standard && <span className="std-mark" title={t.standardMark}>{t.standardMark}</span>}
+        {selected && !standard && <span className="chg-mark" title={t.changedMark}>{t.changedMark}</span>}
         <button type="button" className="info-btn" aria-label={t.details} title={t.details} onClick={() => setOpen(true)}>i</button>
       </div>
       {(lv && lv.max > 0 && slot?.level) && (

@@ -14,8 +14,8 @@ export const RUNS = 100;
 
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-/** A number that counts up to its value (0.6 s), or appears at once when the player prefers less motion. */
-export function CountUp({ value, suffix = '', ms = 600, delayMs = 0, instant = false }: { value: number; suffix?: string; ms?: number; delayMs?: number; instant?: boolean }) {
+/** A number that counts up to its value (0.4 s by default), or appears at once when the player prefers less motion. */
+export function CountUp({ value, suffix = '', ms = 400, delayMs = 0, instant = false }: { value: number; suffix?: string; ms?: number; delayMs?: number; instant?: boolean }) {
   const [shown, setShown] = useState(instant ? value : 0);
   useEffect(() => {
     if (instant || reduceMotion()) { setShown(value); return; }
@@ -133,8 +133,9 @@ export function ForecastPanel({ mission, baseline, mine, stale, left, pastIds, w
         <Ring share={baseline.successShare} label={t.baselineLabel} faint={!!mine} />
         {mine && <><span className="ring-arrow">→</span><Ring share={mine.successShare} label={t.yourDesign} delayMs={flowing && !reduceMotion() ? 1000 : 0} />
           <div className="ring-deltas">
-            <div><span className="note small">{t.deltaSuccess}</span> {Math.round(baseline.successShare * 100)}% → {Math.round(mine.successShare * 100)}% <b className={tone(delta)}>({signed(delta)})</b></div>
-            <div><span className="note small">{t.deltaScore}</span> {baseline.score.p50} → {mine.score.p50} <b className={tone(scoreDelta)}>({signed(scoreDelta)})</b></div>
+            {/* The change is what the player came for: as large as the ring's number. */}
+            <div><b className={`rd-big ${tone(delta)}`}>{signed(delta)}</b><span className="note small">{t.deltaSuccess} {Math.round(baseline.successShare * 100)}% → {Math.round(mine.successShare * 100)}%</span></div>
+            <div><b className={`rd-big ${tone(scoreDelta)}`}>{signed(scoreDelta)}</b><span className="note small">{t.deltaScore} {baseline.score.p50} → {mine.score.p50}</span></div>
           </div></>}
       </div>
       {wasNote && <p className="note small was-note">{wasNote}</p>}

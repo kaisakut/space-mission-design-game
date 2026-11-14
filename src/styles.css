@@ -22,7 +22,7 @@ h1, h2, h3 { line-height: 1.25; }
 .size-ctl { display: flex; gap: 2px; }
 .lang-toggle { background: transparent; color: inherit; border: 1px solid #3a4a6e; border-radius: 6px; padding: 0.2em 0.7em; cursor: pointer; font-size: 0.85rem; }
 .lang-toggle:hover { border-color: #6f86b8; }
-.app-main { padding: 1.5rem; max-width: 1280px; width: 100%; }
+.app-main { padding: 1.5rem; max-width: 1280px; width: 100%; margin-inline: auto; box-sizing: border-box; }
 .in-game .app-main { flex: 1; min-height: 0; max-width: none; padding: 0.6rem; }
 
 .note { color: var(--muted); margin: 0; }
@@ -197,7 +197,7 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .tagline { font-size: 1.25rem; margin: 0.5em 0 0.75em; }
 .title h2 { font-size: 1.15rem; margin: 1.5em 0 0.6em; }
 .title .title-row h2 { margin: 1.2em 0 0.6em; }
-.missions { display: grid; grid-template-columns: repeat(auto-fill, minmax(20em, 1fr)); gap: 0.9em; }
+.missions { display: grid; grid-template-columns: repeat(auto-fit, minmax(18em, 1fr)); gap: 0.9em; }
 .mission { border: 1px solid var(--line); border-radius: 10px; padding: 0.9em 1em; background: var(--panel); display: flex; flex-direction: column; gap: 0.4em; }
 .mission h3 { margin: 0; font-size: 1.1em; }
 .mission p { margin: 0; color: #b8c3da; flex: 1; }
@@ -269,7 +269,9 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .opt-diff { display: flex; flex-wrap: wrap; gap: 0 0.8em; font-size: 0.8em; margin: 0.15em 0 0 1.5em; font-variant-numeric: tabular-nums; }
 .opt-why { font-size: 0.8em; color: var(--muted); margin: 0.15em 0 0 1.5em; }
 .opt-block { font-size: 0.8em; color: var(--bad); margin: 0.15em 0 0 1.5em; }
-.std-mark { flex: none; font-size: 0.7em; border: 1px solid #3a4a6e; color: #8c9ab8; border-radius: 3px; padding: 0 0.35em; margin-top: 0.25em; }
+.std-mark { flex: none; font-size: 0.72em; border: 1px solid #4a5a80; color: #a9b6d2; border-radius: 3px; padding: 0 0.35em; margin-top: 0.25em; }
+/* An item the player moved away from the auto-plan */
+.chg-mark { flex: none; font-size: 0.72em; font-weight: 600; background: var(--accent); color: #fff; border-radius: 3px; padding: 0 0.4em; margin-top: 0.25em; }
 .opt { transition: border-color 0.2s, background 0.2s; }
 .slot.flash { animation: flash-slot 1.2s ease-out; border-radius: 8px; }
 @keyframes flash-slot { 0%, 40% { box-shadow: 0 0 0 3px rgba(255, 183, 77, 0.7); } 100% { box-shadow: 0 0 0 3px rgba(255, 183, 77, 0); } }
@@ -385,14 +387,14 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 
 /* Resolution scene, full screen (step 3). */
 .modal.resolution { align-items: stretch; justify-content: stretch; padding: 0.6rem; top: 2.6rem; background: rgba(5, 8, 18, 0.94); }
-.res-body { max-width: none !important; width: 100%; max-height: none !important; height: 100%; font-size: 1.1rem; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6em; }
+.res-body { max-width: none !important; width: 100%; max-height: none !important; height: 100%; font-size: 1.4rem; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6em; }
 .res-body .modal-head h2 { font-size: 1.3em; }
 .res-col.me { background: #13203f; }
 .res-col.roomy { font-size: 1.1em; padding: 0.8em 0.9em; }
 .res-picks li:not(.changed) { opacity: 0.6; }
 .res-card { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
 .res-card > .res-grid { width: 100%; }
-.res-flipcard { position: relative; width: 17em; min-height: 11em; transform-style: preserve-3d; animation: card-flip 0.6s ease-out both; }
+.res-flipcard { position: relative; width: min(20em, 92%); min-height: 11em; transform-style: preserve-3d; animation: card-flip 0.6s ease-out both; }
 .res-flipcard .face { backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 10px; }
 .res-flipcard .front { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.25em; padding: 0.7em 0.9em; border: 2px solid; background: #101c38; min-height: 11em; }
 .res-flipcard.bad .front { border-color: #b8494a; color: #f0b3b3; }
@@ -479,7 +481,9 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 @media (prefers-reduced-motion: reduce) { .fb-bar.grow { animation: none; } }
 
 /* Step 6: forecast deltas, option cards, dialogs, the guided tour. */
-.ring-deltas { display: flex; flex-direction: column; gap: 0.15em; font-size: 0.95em; font-variant-numeric: tabular-nums; }
+.ring-deltas { display: flex; flex-direction: column; gap: 0.25em; font-variant-numeric: tabular-nums; min-width: 0; }
+.ring-deltas > div { display: flex; align-items: baseline; gap: 0.45em; flex-wrap: wrap; line-height: 1.1; }
+.rd-big { font-size: 1.5em; font-weight: 700; min-width: 2.4em; }
 .ring-deltas .same { color: var(--muted); }
 .opt-stats { margin-bottom: 0.15em; }
 .opt-diff { font-size: 0.9em !important; margin-top: 0.2em !important; }
@@ -528,3 +532,30 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .slots.dense .opt-bars { font-size: 0.76em; line-height: 1.15; margin-top: 0.1em; }
 .slots.dense .opt-level { font-size: 0.72em; margin-top: 0; }
 .slots.dense .opt-ico:not(.diag) { width: 1.35em; height: 1.35em; }
+
+/* Step 12: one line when every agency met a card the same way; a split stands out */
+.res-same { margin: 0.1em 0 0; padding: 0.35em 0.9em; border-radius: 8px; border: 1px solid var(--line); background: #0c1324; text-align: center; max-width: 40em; }
+.res-same.good b { color: var(--good); } .res-same.warn b { color: var(--warn); } .res-same.bad b { color: var(--bad); }
+.res-split-note { margin: 0; font-weight: 600; color: #ffd27a; }
+.res-card.split .res-mark { font-size: 1em; padding: 0.5em 0.7em; border-width: 2px; }
+.res-mark .agency-label { font-size: 0.8em; color: var(--muted); }
+.res-col { font-size: 0.85em; }
+/* Step 12: the results screen uses its space: larger text, thicker bars, bigger scores */
+.final-screen .panel.final { font-size: 1.3em; }
+.final-screen .fb-bar { height: 1.6em; border-radius: 6px; }
+.final-screen .fb-total { font-size: 1.7em; font-weight: 700; margin-right: 0.2em; }
+.final-screen .fb-row { grid-template-columns: 1.5em 11em minmax(0, 1fr) 4.4em minmax(0, 16em); padding: 0.4em 0.5em; }
+.final-screen .final-rank { font-size: 1.5em; }
+.res-body > * { flex-shrink: 0; }
+
+/* Step 12: the title. The Earth view fills the top half, the globe to the right; the name, the one-line
+   pitch and the four steps lie over its left side. Missions take the lower half. */
+.title-hero { position: relative; display: block; height: clamp(18rem, 48vh, 34rem); border-radius: 12px; overflow: hidden; background: radial-gradient(ellipse at 70% 50%, #0d1830, #050811 70%); }
+.title-hero .title-globe { position: absolute; top: 0; bottom: 0; right: 0; width: 64%; height: auto; background: none; border-radius: 0; }
+.hero-text { position: relative; z-index: 1; max-width: min(50%, 38rem); height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 1.5em 2em; background: linear-gradient(90deg, rgba(5, 8, 17, 0.85) 60%, rgba(5, 8, 17, 0)); box-sizing: border-box; }
+.hero-name { font-size: clamp(1.5rem, 2.6vw, 2.3rem); font-weight: 700; margin: 0 0 0.3em; line-height: 1.15; }
+.title-hero .tagline { font-size: clamp(1.05rem, 1.5vw, 1.35rem); }
+.title-hero .flow { flex-direction: column; align-items: flex-start; }
+.title-hero .flow li + li::before { content: none; }
+.mission-art { height: 8rem; }
+@media (max-width: 800px) { .title-hero .title-globe { width: 100%; opacity: 0.45; } .hero-text { max-width: none; } }

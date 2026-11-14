@@ -165,7 +165,7 @@ function satellite(m: EarthModel, ghost: EarthModel | null, mats: Mats): THREE.G
   return g;
 }
 
-export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolean; textureUrl?: string }): EarthScene {
+export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolean; textureUrl?: string; dist?: number }): EarthScene {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   // Capped at 1.5: a small view does not need a full Retina buffer, and the GPU work drops by almost half.
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -176,7 +176,8 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
   scene.add(pivot);
   // Seen from about 25° above the equator; only Earth turns on its own, the view moves only when dragged.
   pivot.rotation.set(0.44, 0, 0);
-  let dist = 5.2;
+  // Camera distance; the title screen comes closer so the globe fills its half of the hero.
+  let dist = opts.dist ?? 5.2;
 
   // A brighter ambient light keeps the night side's land faintly visible instead of black.
   scene.add(new THREE.AmbientLight(0x8090b8, 0.85));

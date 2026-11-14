@@ -104,7 +104,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   // Phases 1–3: concept, spacecraft, launch preparations.
   for (const phase of [1, 2, 3]) { playEvents(phase); states.push(status()); }
 
-  // Phase 4: test and launch.
+  // Phase 4: test and readiness (the launch itself is flown after phase 5).
   playEvents(4);
   const target = d.settings.targetWindow ?? 0;
   const allWindows = d.launch ? [...d.launch.windowsDay.value].sort((a, b) => a - b) : [];
@@ -126,7 +126,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   }
   states.push(status());
 
-  // Phase 5: operations.
+  // Phase 5: launch and operations.
   let opsFraction = 0;
   let failList: { sub: Subsystem; at: number }[] = [];
   let fatalAt = 1;

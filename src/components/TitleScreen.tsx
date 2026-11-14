@@ -53,12 +53,16 @@ function MissionCard({ m, onStart }: { m: Mission; onStart: () => void }) {
 /** First screen: what the game is, how a turn works, and the missions to choose from. */
 export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, tutorial: boolean) => void; onLibrary: () => void }) {
   const { t, L } = useLang();
-  const [guide, setGuide] = useState(true);
+  // Remembered between visits: coming back to this screen used to tick the box again, so a guide appeared
+  // although the player had turned it off earlier.
+  const [guide, setGuideState] = useState(() => { try { return localStorage.getItem('showGuide') !== 'off'; } catch { return true; } });
+  const setGuide = (on: boolean) => { setGuideState(on); try { localStorage.setItem('showGuide', on ? 'on' : 'off'); } catch { /* storage unavailable */ } };
   return (
     <section className="title">
       <div className="title-hero">
         <TitleGlobe mission={MISSIONS[0]!} />
-        <div>
+        <div className="hero-text">
+          <p className="hero-name">{t.appTitle}</p>
           <p className="tagline">{t.tagline}</p>
           <ol className="flow" aria-label={t.flowLabel}>
             {[t.flow1, t.flow2, t.flow3, t.flow4].map((x, i) => <li key={x}><span className="flow-n">{i + 1}</span>{x}</li>)}

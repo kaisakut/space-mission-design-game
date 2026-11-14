@@ -51,7 +51,18 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const text = useCardText(m);
   const slots = m.slots.filter((s) => s.phase === phase);
   const cards = report?.cards ?? [];
-  const eventsEnd = cards.length ? 1.2 + cards.length * 1.4 : 1.8;
+  // A card every agency met the same way is shown as one line and takes less time; a split result gets
+  // its four boxes, one after another, and more time.
+  const sameResult = (id: string) => {
+    const rs = report ? game.agencies.map((a) => report.results[a.id][id]) : [];
+    return rs.length > 0 && rs.every((x) => x && x === rs[0]) ? rs[0]! : null;
+  };
+  const timing = cards.reduce<{ starts: number[]; end: number }>((acc, id) => {
+    acc.starts.push(acc.end);
+    acc.end += sameResult(id) ? 1.1 : 0.9 + game.agencies.length * 0.4;
+    return acc;
+  }, { starts: [], end: 1.2 });
+  const eventsEnd = cards.length ? timing.end : 1.8;
   const [done, setDone] = useState(false);
   // After the last phase the cards give way to the flight scene (its own page, so nothing scrolls).
   const [flightOn, setFlightOn] = useState(false);
@@ -61,12 +72,15 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
 
   useEffect(() => {
     if (!report) return;
+    const sound = (r: string) => (r === 'protected' || r === 'ready' ? 'markGood' : r === 'partial' ? 'markPartial' : 'markBad');
     cards.forEach((id, k) => {
-      const start = 1.2 + k * 1.4;
+      const start = timing.starts[k]!;
       play(/storm|flare/.test(id) ? 'storm' : 'cardFlip', start);
+      const same = sameResult(id);
+      if (same) { play(sound(same), start + 0.7); return; }
       game.agencies.forEach((a, i) => {
         const r = report.results[a.id][id];
-        if (r) play(r === 'protected' || r === 'ready' ? 'markGood' : r === 'partial' ? 'markPartial' : 'markBad', start + 0.7 + i * 0.3);
+        if (r) play(sound(r), start + 0.8 + i * 0.4);
       });
     });
     const id = window.setTimeout(() => (game.final ? setFlightOn(true) : setDone(true)), eventsEnd * 1000 + 400);
@@ -143,9 +157,10 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
           </div>
         ) : cards.map((id, k) => {
           const card = m.events.find((e) => e.id === id)!;
-          const start = 1.2 + k * 1.4;
+          const start = timing.starts[k]!;
+          const same = sameResult(id);
           return (
-            <div key={id} className="res-card">
+            <div key={id} className={`res-card ${same ? 'same' : 'split'}`}>
               <div className={`res-flipcard ${card.readyIf ? 'good' : 'bad'}`} style={{ animationDelay: `${start}s` }}>
                 <div className="face front">
                   <CardIcon card={card} />
@@ -156,16 +171,24 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
                 </div>
                 <div className="face back" />
               </div>
+              {same ? (
+                <p className={`res-same stamp ${RESULT_CLASS[same]}`} style={{ animationDelay: `${start + 0.7}s` }}>
+                  <b>{RESULT_MARK[same]} {fmt(tk(t, `allSame_${same}`), { n: game.agencies.length })}</b>{t.colonSep}{text.resultLine(card, same)}
+                </p>
+              ) : <>
+              <p className="res-split-note stamp" style={{ animationDelay: `${start + 0.6}s` }}>{t.resultsSplit}</p>
               <div className="res-grid">
                 {game.agencies.map((a, i) => {
                   const r = report.results[a.id][id];
                   return (
-                    <div key={a.id} className={`res-mark stamp ${r ? RESULT_CLASS[r] : ''}`} style={{ animationDelay: `${start + 0.7 + i * 0.3}s` }}>
+                    <div key={a.id} className={`res-mark stamp ${r ? RESULT_CLASS[r] : ''}`} style={{ animationDelay: `${start + 0.8 + i * 0.4}s` }}>
+                      <AgencyLabel id={a.id} />
                       {r ? <><b>{RESULT_MARK[r]} {tk(t, `result_${r}`)}</b><span className="small">{text.resultLine(card, r)}</span></> : '—'}
                     </div>
                   );
                 })}
               </div>
+              </>}
             </div>
           );
         })}

@@ -179,7 +179,7 @@ export const wildfireCubesat: Mission = {
       help: tx('More stations mean more contact time, so more of your data gets down.', '局が多いほど通信時間が増え、より多くのデータを降ろせます。'),
       options: ['gs-own', 'gs-highlat', 'gs-network'],
     },
-    // Phase 4: test and launch
+    // Phase 4: test and readiness
     {
       id: 'testing', icon: 'clipboard', level: { by: 'settings.testDepth', label: tx('Depth', '深さ') }, default: 'test-basic', phase: 4, role: 'spacecraft', changeKind: 'plan',
       label: tx('Test campaign', '試験の深さ'),
@@ -198,7 +198,7 @@ export const wildfireCubesat: Mission = {
       help: tx('A second unit for testing lets you find and fix faults without risking the flight unit.', '試験専用の2台目があれば、本番の機体を傷めずに不具合を探して直せます。'),
       options: ['em-none', 'em-build'],
     },
-    // Phase 5: operations
+    // Phase 5: launch and operations
     {
       id: 'ops-plan', icon: 'eye', level: { by: 'settings.dutyCycle', label: tx('Observing', '観測'), style: 'arc' }, default: 'ops-conservative', phase: 5, role: 'science', changeKind: 'plan',
       label: tx('Observation plan', '観測計画'),
