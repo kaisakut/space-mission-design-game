@@ -423,7 +423,9 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
                 );
               }
               const n = s.options.length;
-              const cols = n <= 3 ? n : n === 4 ? 2 : 3;
+              // Up to three options: one full-width card each (two columns inside). More: cards side by side.
+              const wideCards = n <= 3;
+              const cols = wideCards ? 1 : n === 4 ? 2 : 3;
               const next = here[idx + 1];
               return (
                 <fieldset key={s.id} className={`slot open ${tight ? 'tight' : ''} ${flashSlot === s.id ? 'flash' : ''}`} style={{ ['--cols' as string]: cols }}>
@@ -456,6 +458,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
                           hint={c && c.kUSD > 0 && !locked ? fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days }) : undefined}
                           events={mission.events}
                           weak={weakCards}
+                          wide={wideCards}
                           hinted={!!hinted && 'slot' in hinted && hinted.key === designKey && hinted.slot === s.id && hinted.id === id}
                           hintText={hinted && 'slot' in hinted ? hinted.text : undefined}
                           onPick={() => pick(s.id, id, s.multi)}

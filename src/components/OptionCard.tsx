@@ -83,7 +83,7 @@ function Arc({ share, label }: { share: number; label: string }) {
   );
 }
 
-export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick, onHover, slot, peers, view, compact, events, hinted, hintText, weak }: {
+export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick, onHover, slot, peers, view, compact, events, hinted, hintText, weak, wide }: {
   option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number;
   hint?: string; standard?: boolean; diffs?: Diff[]; reason?: string; blocks?: string; onPick: () => void; onHover?: (on: boolean) => void;
   /** The slot and its options, for the level marks and the comparison bars. */
@@ -92,6 +92,8 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
   compact?: boolean;
   /** Cards among the design's weak points: a guard against one of them is shown a little brighter. */
   weak?: Set<string>;
+  /** Full-width card: name and plain-words line on the left, description and numbers on the right. */
+  wide?: boolean;
   /** The mission's event cards, for "protects against" in plain words. */
   events?: EventCard[];
   /** Lit by the hint button: the change expected to help most, with what it is expected to do. */
@@ -119,8 +121,70 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
   const guards = (eff?.guards ?? []).filter((g) => !(g.full && peerGuards.every((set) => set.has(g.id)))).slice(0, 2);
   const cardName = (id: string) => { const e = events?.find((x) => x.id === id); return e ? L(e.name) : id; };
   return (
-    <div ref={box} className={`opt ${selected ? 'on' : ''} ${disabled ? 'off' : ''} ${hinted ? 'hinted' : ''}`}
+    <div ref={box} className={`opt ${wide ? 'wide' : ''} ${selected ? 'on' : ''} ${disabled ? 'off' : ''} ${hinted ? 'hinted' : ''}`}
       onMouseEnter={() => onHover?.(true)} onMouseLeave={() => onHover?.(false)} onFocus={() => onHover?.(true)} onBlur={() => onHover?.(false)}>
+      {wide ? (
+        <div className="opt-cols">
+          <div className="opt-a">
+      <div className="opt-row">
+        <label className="opt-main">
+          <input type={type} name={name} checked={selected} disabled={disabled} onChange={onPick} />
+          {hasDiagram(option, view) ? <span className="opt-ico diag"><MiniDiagram option={option} view={view} size={40} /></span>
+            : <Icon name={optionIcon(option)} size="1.6em" className="opt-ico" />}
+          <span className="opt-name">{L(option.name)}</span>
+        </label>
+        {standard && <span className="std-mark" title={t.standardMark}>{t.standardMark}</span>}
+        {selected && !standard && <span className="chg-mark" title={t.changedMark}>{t.changedMark}</span>}
+        <button type="button" className="info-btn" aria-label={t.details} title={t.details} onClick={() => setOpen(true)}>i</button>
+      </div>
+      {(lv && lv.max > 0 && slot?.level) && (
+        <div className="opt-level">
+          {slot.level.style === 'arc' ? <Arc share={lv.share} label={levelLabel} /> : <Dots n={lv.n} max={lv.max} label={levelLabel} />}
+          <span aria-hidden>{L(slot.level.label)}</span>
+        </div>
+      )}
+      {cam && (
+        <div className="opt-level">
+          <span className="lv-time" role="img" aria-label={cam.observes === 'dayNight' ? t.observesDayNight : t.observesDay}>
+            <Icon name="sun" size="1.15em" />{cam.observes === 'dayNight' && <Icon name="moon" size="1.15em" />}
+          </span>
+          <span aria-hidden>{cam.observes === 'dayNight' ? t.observesDayNight : t.observesDay}</span>
+          {detect !== undefined && detect < 1 && <Dots n={Math.max(1, Math.round(detect * 3))} max={3} label={fmt(t.detectOf, { n: Math.max(1, Math.round(detect * 3)), max: 3 })} />}
+        </div>
+      )}
+      {hinted && hintText && <div className="opt-hint"><b>{t.hintLabel}</b> {hintText}</div>}
+      {eff && (eff.strengths.length > 0 || eff.costs.length > 0 || guards.length > 0) && (
+        <div className="opt-eff">
+          {eff.strengths.length > 0 && <span className="eff-good">◎ {eff.strengths.slice(0, 2).map((k) => tk(t, `eff_${k}`)).join(t.listSep)}</span>}
+          {guards.map((g) => <span key={g.id} className={`eff-guard ${weak?.has(g.id) ? 'hot' : ''}`}><Icon name="shield" size="1em" /> {g.full ? t.effGuard : t.effGuardPart}{t.colonSep}{cardName(g.id)}</span>)}
+          {eff.costs.length > 0 && <span className="eff-cost">△ {t.effCost}{t.colonSep}{eff.costs.slice(0, 2).map((k) => tk(t, `eff_${k}`)).join(t.listSep)}</span>}
+        </div>
+      )}
+          </div>
+          <div className="opt-b">
+      {!compact && <div className="opt-line">{L(option.description)}</div>}
+      {rows.length > 0 && (
+        <div className="opt-bars">
+          {rows.map((s) => {
+            const max = peerMax.get(s.key) ?? 0;
+            const zero = s.num !== undefined && s.num === 0;
+            return (
+              <div key={s.key} className="bar-row">
+                <span className="field">{tk(t, s.key)}</span>
+                {s.num !== undefined ? <span className="bar" aria-hidden>{s.num > 0 && <i style={{ width: `${Math.max(4, (s.num / max) * 100)}%` }} />}</span> : <span />}
+                <span className="bar-val">{zero ? '—' : s.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {diffs && diffs.length > 0 && <div className="opt-diff">{diffs.map((d, i) => <span key={i} className={d.good ? 'ok' : 'warn'}>{d.text}</span>)}</div>}
+      {reason && <div className="opt-why">{reason}</div>}
+      {blocks && <div className="opt-block">{blocks}</div>}
+      {hint && <div className="change-cost">{hint}</div>}
+          </div>
+        </div>
+      ) : <>
       <div className="opt-row">
         <label className="opt-main">
           <input type={type} name={name} checked={selected} disabled={disabled} onChange={onPick} />
@@ -175,6 +239,7 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
       {reason && <div className="opt-why">{reason}</div>}
       {blocks && <div className="opt-block">{blocks}</div>}
       {hint && <div className="change-cost">{hint}</div>}
+      </>}
       {open && (
         <Modal title={L(option.name)} onClose={() => setOpen(false)}>
           <p className="opt-desc">{L(option.description)}</p>
