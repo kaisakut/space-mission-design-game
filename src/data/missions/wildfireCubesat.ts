@@ -168,8 +168,8 @@ export const wildfireCubesat: Mission = {
     },
     {
       id: 'window', default: 'window-first', phase: 3, role: 'lead', changeKind: 'plan',
-      label: tx('Launch window', '打ち上げ窓'),
-      help: tx('Aim at the first window for the best schedule score, or plan for the next one to keep time in hand.', '最初の窓を狙えば日程の点が高く、次の窓を狙えば時間に余裕ができます。'),
+      label: tx('Rideshare flight', '打ち上げの便'),
+      help: tx('CubeSats ride along on scheduled rideshare flights (day 300 and day 420 here). Take the first for the best schedule score, or book the next one to keep time in hand.', 'キューブサットは、決まった日に飛ぶ相乗りロケットの便に乗ります（ここでは300日目と420日目）。最初の便なら日程の点が高く、次の便を予約すれば時間に余裕ができます。'),
       options: ['window-first', 'window-second'],
     },
     {
@@ -349,13 +349,13 @@ export const wildfireCubesat: Mission = {
     },
 
     {
-      kind: 'choice', id: 'window-first', name: tx('First window', '最初の窓'),
-      description: tx('Full schedule score, but a delay can leave you with no launch at all.', '日程の点は満点。ただし遅れると打ち上げられなくなるおそれ。'),
+      kind: 'choice', id: 'window-first', name: tx('Take the first flight', '最初の便に乗る'),
+      description: tx('Full schedule score. If the satellite is late, it waits for the next flight 120 days later; after that there is none.', '日程の点は満点。完成が遅れると120日後の次の便を待つ。その次はない。'),
       cost: rule(0), settings: { targetWindow: rule(0) },
     },
     {
-      kind: 'choice', id: 'window-second', name: tx('Next window', '次の窓'),
-      description: tx('Half the schedule score, plenty of time for surprises.', '日程の点は半分。想定外に備える時間ができる。'),
+      kind: 'choice', id: 'window-second', name: tx('Book the next flight', '次の便を予約する'),
+      description: tx('Plan for the flight 120 days later: half the schedule score, but 120 more days for surprises.', '120日後の便に合わせて計画する。日程の点は半分だが、想定外に備える時間が120日増える。'),
       cost: rule(0), settings: { targetWindow: rule(1) },
     },
     {

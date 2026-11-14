@@ -145,8 +145,8 @@ export const lunarIceRover: Mission = {
     },
     {
       id: 'window', default: 'lwindow-first', phase: 3, role: 'lead', changeKind: 'plan',
-      label: tx('Launch window', '打ち上げ窓'),
-      help: tx('Aim at the first window for the best schedule score, or plan for the next one to keep time in hand.', '最初の窓を狙えば日程の点が高く、次の窓を狙えば時間に余裕ができます。'),
+      label: tx('Lander flight', '着陸機の便'),
+      help: tx('Commercial landers fly on planned dates (day 1000, 1200 and 1400 here). Take the first for the best schedule score, or book the next one to keep time in hand.', '民間の着陸機は予定日に飛びます（ここでは1000日目、1200日目、1400日目）。最初の便なら日程の点が高く、次の便を予約すれば時間に余裕ができます。'),
       options: ['lwindow-first', 'lwindow-second'],
     },
     {
@@ -287,7 +287,7 @@ export const lunarIceRover: Mission = {
     },
     {
       kind: 'part', id: 'lthermal-rhu', subsystem: 'thermal', name: tx('Add radioisotope heater units', '放射性同位体ヒーターを足す'),
-      description: tx('Keeps the electronics warm through a long night. The extra safety review adds about 120 days, which can cost the first launch window.', '長い夜でも電子機器を温める。安全審査が増えて約120日かかり、最初の打ち上げ窓を逃すことがある。'),
+      description: tx('Keeps the electronics warm through a long night. The extra safety review adds about 120 days, which can cost the first lander flight.', '長い夜でも電子機器を温める。安全審査が増えて約120日かかり、最初の着陸機の便を逃すことがある。'),
       cost: rule(20000), leadDays: rule(120, tx('Game value for the extra launch safety review.', '打ち上げの安全審査が増える分のゲームの値。')),
       massKg: rule(5),
       tags: ['nightSurvival'],
@@ -318,8 +318,8 @@ export const lunarIceRover: Mission = {
       tags: ['lander:large'],
     },
 
-    { kind: 'choice', id: 'lwindow-first', name: tx('First window', '最初の窓'), description: tx('Full schedule score, but a delay can leave you with no launch at all.', '日程の点は満点。ただし遅れると打ち上げられなくなるおそれ。'), cost: rule(0), settings: { targetWindow: rule(0) } },
-    { kind: 'choice', id: 'lwindow-second', name: tx('Next window', '次の窓'), description: tx('Half the schedule score, plenty of time for surprises.', '日程の点は半分。想定外に備える時間ができる。'), cost: rule(0), settings: { targetWindow: rule(1) } },
+    { kind: 'choice', id: 'lwindow-first', name: tx('Take the first flight', '最初の便に乗る'), description: tx('Full schedule score. A late lander or rover waits 200 days for the next flight.', '日程の点は満点。着陸機かローバーが遅れると、200日後の次の便を待つ。'), cost: rule(0), settings: { targetWindow: rule(0) } },
+    { kind: 'choice', id: 'lwindow-second', name: tx('Book the next flight', '次の便を予約する'), description: tx('Plan for the flight 200 days later: half the schedule score, but 200 more days for surprises.', '200日後の便に合わせて計画する。日程の点は半分だが、想定外に備える時間が200日増える。'), cost: rule(0), settings: { targetWindow: rule(1) } },
 
     { kind: 'choice', id: 'dsn-standard', name: tx('Standard booking', '標準の割り当て'), description: tx('Contact whenever Earth is up and an antenna is free.', '地球が見えていてアンテナが空いているときに通信する。'), cost: rule(5000), settings: { networkFactor: rule(1) } },
     { kind: 'choice', id: 'dsn-priority', name: tx('Priority booking', '優先の割り当て'), description: tx('More antenna time while Earth is up.', '地球が見えているあいだ、アンテナの時間を多く確保する。'), cost: rule(20000), settings: { networkFactor: rule(1.5) }, tags: ['dsn:priority'] },
@@ -386,7 +386,7 @@ export const lunarIceRover: Mission = {
       probability: rule(0.4),
       protectedIf: { kind: 'setting', key: 'targetWindow', atLeast: 1 },
       unprotected: [{ kind: 'delayDays', days: 150 }],
-      lesson: tx('{agency} aimed at the first window and the lander was late.', '{agency}は最初の窓を狙っていて、着陸機が遅れた。'),
+      lesson: tx('{agency} booked the first lander flight and the lander was late.', '{agency}は最初の便を予約していて、着陸機が遅れた。'),
       realCase: {
         who: tx('VIPER and Griffin', 'VIPER と Griffin'),
         year: '2023–2024',

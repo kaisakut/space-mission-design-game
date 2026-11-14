@@ -63,7 +63,7 @@ const SEEDS = 8, N = 100;
  * weighs safety against points. Reported as notes, not warnings (see notes/設計_データ整合性の修正.md, C1).
  */
 const INTENDED_TRADEOFFS: Record<string, string> = {
-  'lunar-ice-rover:lthermal-rhu': 'the safety review adds 120 days and 20,000 k$, which can cost the first window',
+  'lunar-ice-rover:lthermal-rhu': 'the safety review adds 120 days and 20,000 k$, which can cost the first lander flight',
   'jupiter-icy-moon:jwindow-second': 'the later window halves the schedule points in exchange for time to absorb delays',
 };
 

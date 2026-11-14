@@ -128,7 +128,7 @@ export const jupiterIcyMoon: Mission = {
     {
       id: 'window', default: 'jwindow-first', phase: 3, role: 'lead', changeKind: 'plan',
       label: tx('Launch window', '打ち上げ窓'),
-      help: tx('Windows to Jupiter come about once a year. Missing one costs a long wait.', '木星への打ち上げ窓は約1年に1回。逃すと長く待つことになります。'),
+      help: tx('Earth and Jupiter line up for the trip about every 13 months (about 400 days). Missing a window costs a long wait.', '地球と木星が行きやすい並びになるのは約13か月（約400日）ごと。窓を逃すと長く待つことになります。'),
       options: ['jwindow-first', 'jwindow-second'],
     },
     {
@@ -270,8 +270,8 @@ export const jupiterIcyMoon: Mission = {
       reliability: rule(0.95), windowsDay: rule([1700, 2100, 2500]), tags: ['direct'],
     },
 
-    { kind: 'choice', id: 'jwindow-first', name: tx('First window', '最初の窓'), description: tx('Full schedule score, but a delay can mean a year’s wait.', '日程の点は満点。ただし遅れると1年待つおそれ。'), cost: rule(0), settings: { targetWindow: rule(0) } },
-    { kind: 'choice', id: 'jwindow-second', name: tx('Next window', '次の窓'), description: tx('Half the schedule score, plenty of time for surprises.', '日程の点は半分。想定外に備える時間ができる。'), cost: rule(0), settings: { targetWindow: rule(1) } },
+    { kind: 'choice', id: 'jwindow-first', name: tx('First window', '最初の窓'), description: tx('Full schedule score. A delay means waiting about 400 days for the planets to line up again.', '日程の点は満点。遅れると、惑星の並びがまた合うまで約400日待つ。'), cost: rule(0), settings: { targetWindow: rule(0) } },
+    { kind: 'choice', id: 'jwindow-second', name: tx('Next window (about 400 days later)', '次の窓（約400日後）'), description: tx('Plan for the next window: half the schedule score, but about 400 more days for surprises.', '次の窓に合わせて計画する。日程の点は半分だが、想定外に備える時間が約400日増える。'), cost: rule(0), settings: { targetWindow: rule(1) } },
 
     { kind: 'choice', id: 'jdsn-standard', name: tx('Standard booking', '標準の割り当て'), description: tx('Share the antennas with other missions.', 'ほかのミッションとアンテナを分け合う。'), cost: rule(20000), settings: { networkFactor: rule(1) } },
     { kind: 'choice', id: 'jdsn-priority', name: tx('Priority booking', '優先の割り当て'), description: tx('More 70 m antenna time around each flyby.', '接近のたびに70 mアンテナの時間を多く確保する。'), cost: rule(80000), settings: { networkFactor: rule(1.5) } },
