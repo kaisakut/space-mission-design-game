@@ -568,7 +568,7 @@ export const wildfireCubesat: Mission = {
       realCase: {
         who: tx('NASA projects', 'NASAの計画'),
         year: '2025',
-        text: tx('GAO: during the funding lapse, the start of the solar electric propulsion life test slipped, and NISAR postponed its review before operations.', 'GAO：予算の空白で、太陽電気推進（SEP）の寿命試験の開始が遅れ、NISARは運用開始前の審査を延ばした。'),
+        text: tx('GAO: the funding lapse, among other causes, delayed the start of the solar electric propulsion life test, and NISAR extended its commissioning after the lapse to finish a post-launch review.', 'GAO：予算の空白なども重なり、太陽電気推進（SEP）の寿命試験の開始が遅れた。NISARは予算の空白のあと、打ち上げ後の審査を終えるために試運転の期間を延ばした。'),
         sources: ['gao-26-108556'],
       },
     },
@@ -592,7 +592,7 @@ export const wildfireCubesat: Mission = {
       realCase: {
         who: tx('NISAR', 'NISAR'),
         year: '2025',
-        text: tx('Another mission’s launch failure and its investigation delayed NISAR, which was to fly on the same family of rockets.', '別のミッションの打ち上げ失敗とその調査で、同じ系統のロケットに載るNISARの打ち上げが遅れた。'),
+        text: tx('A launch failure on a separate ISRO mission, and the investigation to make sure it would not affect NISAR’s rocket, delayed NISAR’s launch.', '別のISROのミッションの打ち上げ失敗と、その原因がNISARのロケットに影響しないことを確かめる調査で、NISARの打ち上げが遅れた。'),
         sources: ['gao-26-108556'],
       },
     },

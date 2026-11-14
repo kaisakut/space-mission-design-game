@@ -479,7 +479,7 @@ export const jupiterIcyMoon: Mission = {
       realCase: {
         who: tx('NASA projects', 'NASAの計画'),
         year: '2025',
-        text: tx('GAO: during the funding lapse, the start of the solar electric propulsion life test slipped, and NISAR postponed its review before operations.', 'GAO：予算の空白で、太陽電気推進（SEP）の寿命試験の開始が遅れ、NISARは運用開始前の審査を延ばした。'),
+        text: tx('GAO: the funding lapse, among other causes, delayed the start of the solar electric propulsion life test, and NISAR extended its commissioning after the lapse to finish a post-launch review.', 'GAO：予算の空白なども重なり、太陽電気推進（SEP）の寿命試験の開始が遅れた。NISARは予算の空白のあと、打ち上げ後の審査を終えるために試運転の期間を延ばした。'),
         sources: ['gao-26-108556'],
       },
     },

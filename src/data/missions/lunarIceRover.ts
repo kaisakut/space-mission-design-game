@@ -383,7 +383,7 @@ export const lunarIceRover: Mission = {
       lesson: tx('{agency} had no schedule margin when an instrument arrived late.', '{agency}は、機器が遅れたときに日程の余裕がなかった。'),
       realCase: {
         who: tx('VIPER', 'VIPER'), year: '2024',
-        text: tx('VIPER: delivery of the integrated electronics unit slipped by more than 16 months.', 'VIPER：統合電子機器ユニットの納入が16か月以上遅れた。'),
+        text: tx('VIPER: the Integrated Avionics Unit arrived more than 16 months late, which held up parts of the rover build.', 'VIPER：統合アビオニクスユニット（IAU）の納入が16か月以上遅れ、組み立ての一部が後回しになった。'),
         sources: ['nasa-viper-build'],
       },
     },
@@ -482,7 +482,7 @@ export const lunarIceRover: Mission = {
     {
       id: 'tip-over', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
       story: tx('The lander touches down but tips over. The rover may not be able to drive off cleanly, and the solar arrays face the wrong way.', '着陸はできたが横倒しになった。ローバーがうまく降りられず、太陽電池も違う方向を向いている。'),
-      probability: est(0.5, ['nasa-clps-timeline', 'nasa-im2-end', 'sfn-im2'], tx('Of the three CLPS landings that reached the surface (IM-1, Blue Ghost 1, IM-2), two ended on their side. With only three, the game uses 0.5 rather than two thirds.', 'CLPSで月面に着陸できた3回（IM-1、Blue Ghost 1、IM-2）のうち2回が横倒しだった。3回しかないので、3分の2ではなく0.5とした。')),
+      probability: est(0.5, ['nasa-clps-agu-2025', 'nasa-clps-timeline', 'nasa-im2-end', 'sfn-im2'], tx('Of the three CLPS landings that reached the surface (IM-1, Blue Ghost 1, IM-2), two ended on their side. With only three, the game uses 0.5 rather than two thirds.', 'CLPSで月面に着陸できた3回（IM-1、Blue Ghost 1、IM-2）のうち2回が横倒しだった。3回しかないので、3分の2ではなく0.5とした。')),
       partialIf: { kind: 'hasTag', tag: 'lander:large' },
       partial: [{ kind: 'scienceFactor', factor: 0.8 }],
       unprotected: [{ kind: 'scienceFactor', factor: 0.5 }, { kind: 'durationFactor', factor: 0.6 }],
@@ -513,7 +513,7 @@ export const lunarIceRover: Mission = {
       realCase: {
         who: tx('NASA projects', 'NASAの計画'),
         year: '2025',
-        text: tx('GAO: during the funding lapse, the start of the solar electric propulsion life test slipped, and NISAR postponed its review before operations.', 'GAO：予算の空白で、太陽電気推進（SEP）の寿命試験の開始が遅れ、NISARは運用開始前の審査を延ばした。'),
+        text: tx('GAO: the funding lapse, among other causes, delayed the start of the solar electric propulsion life test, and NISAR extended its commissioning after the lapse to finish a post-launch review.', 'GAO：予算の空白なども重なり、太陽電気推進（SEP）の寿命試験の開始が遅れた。NISARは予算の空白のあと、打ち上げ後の審査を終えるために試運転の期間を延ばした。'),
         sources: ['gao-26-108556'],
       },
     },
