@@ -81,8 +81,14 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
   const total = tree.runs.length || 1;
   // The compact map is drawn on a narrower canvas so its text stays readable in a side column.
   const W = compact ? 480 : 1200, LEFT = compact ? 44 : 74, FINAL = compact ? 190 : 200, TOP = compact ? 26 : 46, LANE = compact ? 56 : 84;
-  const colW = (W - LEFT - FINAL - 16) / T;
-  const xc = (p: number) => (p > T ? W - FINAL - 26 : LEFT + (p - 0.5) * colW);
+  // A split on the outcome alone sits between the last phase and the outcome boxes: keep room for it, or
+  // on the narrow map its curve starts left of where the last phase's branch ends and the line folds back.
+  const splitsOnOutcome = (n: BranchNode): boolean => (n.children.length > 0 && n.split > T) || n.children.some(splitsOnOutcome);
+  const cols = T + (splitsOnOutcome(tree) ? 1 : 0);
+  const colW = (W - LEFT - FINAL - 16) / cols;
+  const xc = (p: number) => LEFT + (Math.min(p, T + 1) - 0.5) * colW;
+  // Half the gap a split's curve spans; never more than a column allows, so lines never run backwards.
+  const G = Math.min(26, colW * 0.4);
   const leaves = leavesOf(tree);
   const ys = new Map<BranchNode, number>();
   const place = (n: BranchNode): number => {
@@ -123,9 +129,9 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
       let n = tree;
       while (n.children.length) {
         const y = ys.get(n)!;
-        pts.push([xc(n.split) - 26, y + jitter * 0.6]);
+        pts.push([xc(n.split) - G, y + jitter * 0.6]);
         const ch = n.children.find((c) => c.runs.includes(id))!;
-        pts.push([xc(n.split) + 26, ys.get(ch)! + jitter * 0.6]);
+        pts.push([xc(n.split) + G, ys.get(ch)! + jitter * 0.6]);
         n = ch;
       }
       const k = stack.get(n) ?? 0;
@@ -149,8 +155,8 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
       {nodes.map((n, i) => {
         const y = ys.get(n)!;
         const c = colorOf(main(n));
-        const x0 = n === tree ? LEFT - 8 : xc(n.from) + 26;
-        const x1 = n.children.length ? xc(n.split) - 26 : W - FINAL;
+        const x0 = n === tree ? LEFT - 8 : xc(n.from) + G;
+        const x1 = n.children.length ? xc(n.split) - G : W - FINAL;
         return (
           <g key={i}>
             <line x1={x0} x2={x1} y1={y} y2={y} stroke={c} strokeWidth={sw(n)} strokeLinecap="round" strokeOpacity={n.children.length ? 0.55 : 0.9}>
@@ -158,10 +164,10 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
             </line>
             {n.children.map((ch, j) => {
               const cy = ys.get(ch)!;
-              const a = xc(n.split) - 26, b = xc(n.split) + 26;
+              const a = xc(n.split) - G, b = xc(n.split) + G;
               return <path key={j} d={`M${a},${y} C${(a + b) / 2},${y} ${(a + b) / 2},${cy} ${b},${cy}`} fill="none" stroke={colorOf(main(ch))} strokeWidth={sw(ch)} strokeOpacity={0.75} />;
             })}
-            {n.children.length > 0 && <circle cx={xc(n.split) - 26} cy={y} r={7} fill="#0b1020" stroke={SPLIT} strokeWidth={3} />}
+            {n.children.length > 0 && <circle cx={xc(n.split) - G} cy={y} r={7} fill="#0b1020" stroke={SPLIT} strokeWidth={3} />}
             {n !== tree && n.from <= T && !compact && (() => {
               const r = reasonOf?.(n);
               const base = `${nameOf(n.label)} · ${fmt(t.branchRuns, { n: n.runs.length })}`;

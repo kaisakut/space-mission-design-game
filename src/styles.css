@@ -595,3 +595,19 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .fa-ticks { display: flex; justify-content: space-between; font-size: 0.8em; color: var(--muted); margin-top: 0.2em; }
 .flight.instant .fl-bar, .flight.instant .fa-head { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .fl-bar, .fa-head { animation: none !important; } }
+/* The title fits one screen: the hero takes what the missions leave, down to a floor. */
+.title-hero { height: clamp(10rem, calc(100vh - 32.5rem), 34rem); }
+.mission p { font-size: 0.92em; }
+.mission-stat svg { width: 2.4em; height: 2.4em; }
+.app-main:has(> .title) { padding-top: 0.9rem; padding-bottom: 0.9rem; }
+.title .title-row h2 { margin: 0.6em 0 0.3em; }
+.title > .note.small { margin-top: 0.5em; }
+.mission-art { height: clamp(4rem, 12vh, 8rem); }
+.mission { padding: 0.7em 0.9em; gap: 0.3em; }
+.hero-text { padding: 1em 1.6em; }
+.title-hero .flow { margin: 0.2em 0 0; gap: 0.3em; }
+/* On a short window the four steps sit in one row so the hero text fits its band. */
+.title-hero .flow { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.title-hero .flow li + li::before { content: '→'; }
+.hero-name { font-size: clamp(1.4rem, 5vh, 2.3rem); }
+.hero-text { max-width: min(56%, 40rem); }
