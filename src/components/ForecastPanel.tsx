@@ -176,8 +176,10 @@ export function ForecastPanel({ mission, baseline, mine, stale, left, pastIds, w
       {full && (
         <Modal title={t.forecastTitle} wide onClose={() => setFull(false)}>
           {stale && <p className="warn">{t.forecastStale}</p>}
-          <div className="modal-summary">{summary}</div>
-          {map(false)}
+          <div className="fc-full">
+            <div className="modal-summary">{summary}</div>
+            <div className="fc-full-map">{map(false)}</div>
+          </div>
         </Modal>
       )}
     </section>

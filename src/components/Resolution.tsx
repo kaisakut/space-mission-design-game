@@ -4,6 +4,7 @@ import type { EventCard } from '../data/types';
 import { completePicks } from '../engine/design';
 import { agencyDesign, agencyForecast, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
+import { AutoFit } from './AutoFit';
 import { Flight, FLIGHT_SECONDS } from './Flight';
 import { AGENCY_COLOR, RESULT_MARK, useCardText } from './labels';
 
@@ -126,13 +127,14 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
           </button>
         </div>
 
-        {flightOn && game.final ? <Flight game={game} start={0} instant={done} /> : <>
+        {flightOn && game.final ? <Flight game={game} start={0} instant={done} /> : <AutoFit className="res-fit" min={0.72}>
         <div className="res-grid">
           {game.agencies.map((a, i) => {
             const d = agencyDesign(game, a);
             const used = Math.round((d.gauges.budget.used / Math.max(m.budgetKUSD.value, 1)) * 100);
             const picks = slots.flatMap((s) => (a.picks[s.id] ?? []).map((id) => ({ id, slot: s.id, changed: !(standard[s.id] ?? []).includes(id) })));
-            const changed = picks.filter((p) => p.changed), same = picks.filter((p) => !p.changed).slice(0, 3);
+            // With an event to show, unchanged picks give way to it (only enough to say what stayed).
+            const changed = picks.filter((p) => p.changed), same = picks.filter((p) => !p.changed).slice(0, cards.length ? Math.max(0, 2 - changed.length) : 3);
             return (
               <div key={a.id} className={`res-col appear ${a.id === 'player' ? 'me' : ''} ${cards.length === 0 ? 'roomy' : ''}`} style={{ animationDelay: `${i * 0.2}s`, borderTopColor: AGENCY_COLOR[a.id] }}>
                 <AgencyLabel id={a.id} />
@@ -176,6 +178,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
                   <b>{RESULT_MARK[same]} {fmt(tk(t, `allSame_${same}`), { n: game.agencies.length })}</b>{t.colonSep}{text.resultLine(card, same)}
                 </p>
               ) : <>
+              <div className="res-split">
               <p className="res-split-note stamp" style={{ animationDelay: `${start + 0.6}s` }}>{t.resultsSplit}</p>
               <div className="res-grid">
                 {game.agencies.map((a, i) => {
@@ -188,12 +191,11 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
                   );
                 })}
               </div>
+              </div>
               </>}
             </div>
           );
         })}
-
-        </>}
 
         {!game.final && (
           <div className="res-standing appear" style={{ animationDelay: `${eventsEnd}s` }}>
@@ -201,6 +203,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
             {standing.map((s, i) => <span key={s.id} className="res-rank"><b>{i + 1}</b> <AgencyLabel id={s.id} /> {Math.round(s.score * 10) / 10}</span>)}
           </div>
         )}
+        </AutoFit>}
       </div>
     </div>
   );

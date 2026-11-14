@@ -644,3 +644,20 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 /* With the hint button the bar is full: on narrower screens only the current phase keeps its name. */
 @media (max-width: 1400px) { .progress li:not(.now) .pg-name { display: none; } }
 .turn-title { min-width: 12em; }
+
+/* Enlarged views fit the screen when they can. */
+/* Forecast: summary on the left, the branch map beside it, scaled to the screen height; the reasons table follows below. */
+.fc-full { display: grid; grid-template-columns: minmax(15rem, 21rem) minmax(0, 1fr); gap: 0.6em 1.5em; align-items: start; }
+.fc-full .modal-summary { max-width: none; margin: 0; }
+.fc-full .summary { grid-template-columns: 1fr; }
+.fc-full .br-svg { max-height: calc(90vh - 6rem); }
+@media (max-width: 900px) { .fc-full { grid-template-columns: 1fr; } }
+/* Results: when agencies split, the card sits beside the four results. */
+.res-card.split { flex-direction: row; justify-content: center; align-items: center; gap: 1.2em; }
+.res-split { flex: 1 1 0; max-width: 46em; display: flex; flex-direction: column; gap: 0.5em; }
+.res-split .res-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.res-card.split .res-flipcard { flex: none; width: min(20em, 40%); }
+/* Results: the text shrinks (to 72%) before the view scrolls; only several events should need a scroll. */
+.res-body:has(> .res-fit) { overflow: hidden; }
+.res-body > .res-fit { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 0.6em; }
+.res-fit > * { flex-shrink: 0; }
