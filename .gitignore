@@ -19,3 +19,6 @@ Thumbs.db
 
 # TypeScript build info
 *.tsbuildinfo
+
+# raw downloads (e.g. NASA FIRMS archives); only processed files in data/ are committed
+data/raw/
