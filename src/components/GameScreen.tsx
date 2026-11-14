@@ -8,16 +8,19 @@ import { ForecastPanel } from './ForecastPanel';
 import { Gauges } from './Gauges';
 import { OptionCard } from './OptionCard';
 import { FinalResults, TurnReports } from './Reports';
+import { Tutorial } from './Tutorial';
 
 const PHASES = [1, 2, 3, 4, 5] as const;
 const newSeed = () => Math.floor(Math.random() * 1e9);
 
 /** The game: one turn per phase. Decide, forecast once (or freely in practice mode), confirm, see what happened. */
-export function GameScreen({ mission }: { mission: Mission }) {
+export function GameScreen({ mission, tutorial = false }: { mission: Mission; tutorial?: boolean }) {
   const { t, L } = useLang();
   const [game, setGame] = useState<Game>(() => newGame(mission, newSeed()));
   const [tab, setTab] = useState(1);
   const [draft, setDraft] = useState<Picks>({});
+  const [guide, setGuide] = useState(tutorial);
+  const [lower, setLower] = useState<'forecast' | 'reports'>('forecast');
   const player = game.agencies.find((a) => a.id === 'player')!;
   const working = { ...player.picks, ...draft };
   const pending = useMemo(() => pendingChanges(game, player, working), [game, player, working]);
@@ -61,6 +64,7 @@ export function GameScreen({ mission }: { mission: Mission }) {
     setGame(g);
     setDraft({});
     setTab(Math.min(g.phase, PHASE_COUNT));
+    setLower('reports');
   };
   const restart = () => { setGame(newGame(mission, newSeed(), game.practice)); setDraft({}); setTab(1); };
 
@@ -93,13 +97,13 @@ export function GameScreen({ mission }: { mission: Mission }) {
           <input type="checkbox" checked={game.practice} onChange={(e) => setGame({ ...game, practice: e.target.checked })} />
           {t.practiceMode}
         </label>
-        <button type="button" className="primary" onClick={confirm}>{game.phase < PHASE_COUNT ? t.confirmPhase : t.confirmLast}</button>
+        <button type="button" className="primary" data-tour="confirm" onClick={confirm}>{game.phase < PHASE_COUNT ? t.confirmPhase : t.confirmLast}</button>
       </div>
       <section className="design">
         <div className="design-side">
           <h2>{L(mission.name)}</h2>
           <p className="note">{L(mission.summary)}</p>
-          <Gauges gauges={state.gauges} />
+          <div data-tour="gauges"><Gauges gauges={state.gauges} /></div>
           {pending.kUSD > 0 && <p className="warn small">{fmt(t.pendingChange, { k: pending.kUSD, d: pending.days })}</p>}
           {player.changeKUSD > 0 && <p className="note small">{fmt(t.paidChanges, { k: player.changeKUSD })}</p>}
           <div className="issues">
@@ -108,7 +112,7 @@ export function GameScreen({ mission }: { mission: Mission }) {
             {warnings.length > 0 && <><h3 className="warn">{t.warnings}</h3><ul>{warnings.map((i, k) => <li key={k}>{issueText(i)}</li>)}</ul></>}
           </div>
         </div>
-        <div className="design-main">
+        <div className="design-main" data-tour="options">
           <div className="tabs" role="tablist">
             {PHASES.map((p) => (
               <button key={p} type="button" role="tab" aria-selected={tab === p} disabled={p > game.phase} className={tab === p ? 'on' : ''} onClick={() => setTab(p)}>
@@ -147,6 +151,11 @@ export function GameScreen({ mission }: { mission: Mission }) {
           })}
         </div>
       </section>
+      <div className="lower-tabs tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={lower === 'forecast'} className={lower === 'forecast' ? 'on' : ''} onClick={() => setLower('forecast')}>{t.tabForecast}</button>
+        <button type="button" role="tab" aria-selected={lower === 'reports'} className={lower === 'reports' ? 'on' : ''} disabled={!game.reports.length} onClick={() => setLower('reports')}>{t.tabReports}{game.reports.length ? ` (${game.reports.length})` : ''}</button>
+      </div>
+      <div data-tour="forecast" style={{ display: lower === 'forecast' ? 'block' : 'none' }}>
       <ForecastPanel
         mission={mission}
         designKey={JSON.stringify([working, game.phase])}
@@ -158,7 +167,9 @@ export function GameScreen({ mission }: { mission: Mission }) {
           return f;
         }}
       />
-      <TurnReports game={game} />
+      </div>
+      {lower === 'reports' && <TurnReports game={game} />}
+      {guide && <Tutorial onClose={() => setGuide(false)} />}
     </>
   );
 }

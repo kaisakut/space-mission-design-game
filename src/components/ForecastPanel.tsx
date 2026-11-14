@@ -5,6 +5,7 @@ import type { BranchNode } from '../engine/branchTree';
 import { OUTCOMES } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
 import { BranchMap } from './BranchMap';
+import { Term } from './Glossary';
 
 export const OUTCOME_COLOR: Record<Outcome, string> = {
   fullSuccess: '#4caf50',
@@ -65,7 +66,7 @@ export function ForecastPanel({ mission, designKey, run, left }: {
 
   return (
     <section className="panel forecast">
-      <h2>{t.forecastTitle}</h2>
+      <h2><Term k="forecast">{t.forecastTitle}</Term></h2>
       <p className="note">{t.forecastNote}</p>
       <div className="controls">
         <button type="button" className="primary" disabled={left === 0} onClick={() => { const f = run(RUNS); if (f) setResult({ f, picks: key }); }}>
@@ -78,7 +79,7 @@ export function ForecastPanel({ mission, designKey, run, left }: {
         <>
           <div className="summary">
             <div className="big"><span>{t.successChance}</span><b>{Math.round(result.f.successShare * 100)}%</b></div>
-            <div className="big"><span>{t.scoreRange}</span><b>{result.f.score.p50}</b><small>{fmt(t.scoreRangeNote, { lo: result.f.score.p10, hi: result.f.score.p90 })}</small></div>
+            <div className="big"><span><Term k="median">{t.scoreRange}</Term></span><b>{result.f.score.p50}</b><small><Term k="percentile">{fmt(t.scoreRangeNote, { lo: result.f.score.p10, hi: result.f.score.p90 })}</Term></small></div>
             <div className="causes">
               <span>{t.topCauses}</span>
               {result.f.topCauses.length === 0 ? <p className="ok">{t.noCauses}</p> : (

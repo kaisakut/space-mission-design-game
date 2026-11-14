@@ -19,6 +19,7 @@ const SSO_NOTE = tx(
   '地球の扁平（J2）による軌道面の回転が1年で1周になる傾斜角（太陽同期）を、標準のJ2の式で計算。',
 );
 const FIRMS_NOTE = tx('Real 2024 fire detections under the ground track (NASA FIRMS MODIS); day passes only for day cameras. See data/firms-coverage-2024.json.', '地上軌跡の下にあった2024年の実際の火災検知（NASA FIRMS MODIS）。昼だけのカメラは昼に通ったときだけ数える。data/firms-coverage-2024.json を参照。');
+const HIGHLAT_NOTE = tx('Minutes per day above 10° elevation from a second station at 65°N (scripts/orbit-contact.py).', '北緯65度の2つ目の地上局から仰角10度以上で見える時間の1日平均（scripts/orbit-contact.py）。');
 const MASS_NOTE = tx('6U × 1.33 kg per U (the CubeSat unit mass in CubeSat 101).', '6U × 1Uあたり1.33 kg（CubeSat 101のCubeSat 1単位の質量）。');
 
 /**
@@ -152,12 +153,36 @@ export const wildfireCubesat: Mission = {
       help: tx('The launch must reach the orbit you chose in phase 1.', 'フェーズ1で選んだ軌道に行ける打ち上げでなければなりません。'),
       options: ['lv-iss-deploy', 'lv-rideshare'],
     },
+    {
+      id: 'window', default: 'window-first', phase: 3, role: 'lead', changeKind: 'plan',
+      label: tx('Launch window', '打ち上げ窓'),
+      help: tx('Aim at the first window for the best schedule score, or plan for the next one to keep time in hand.', '最初の窓を狙えば日程の点が高く、次の窓を狙えば時間に余裕ができます。'),
+      options: ['window-first', 'window-second'],
+    },
+    {
+      id: 'ground', default: 'gs-own', phase: 3, role: 'powerComms', changeKind: 'plan',
+      label: tx('Ground stations', '地上局'),
+      help: tx('More stations mean more contact time: data gets down faster. An inadequate ground station is a mission killer.', '局が多いほど通信時間が増え、データを早く降ろせます。地上局の不備はミッションを失う原因になります。'),
+      options: ['gs-own', 'gs-highlat', 'gs-network'],
+    },
     // Phase 4: test and launch
     {
       id: 'testing', default: 'test-standard', phase: 4, role: 'spacecraft', changeKind: 'plan',
       label: tx('Test campaign', '試験の深さ'),
       help: tx('Deeper testing finds faults before launch but uses time and money.', '試験を厚くすると打ち上げ前に不具合を見つけられますが、時間と費用を使います。'),
       options: ['test-basic', 'test-standard', 'test-full'],
+    },
+    {
+      id: 'ops-prep', default: 'prep-minimal', phase: 4, role: 'lead', changeKind: 'plan',
+      label: tx('Operations readiness', '運用の準備'),
+      help: tx('Rehearse the first days in orbit with the ground station before launch.', '打ち上げ前に、地上局と一緒に軌道上の最初の数日を通しで練習します。'),
+      options: ['prep-minimal', 'prep-rehearsal'],
+    },
+    {
+      id: 'model', default: 'em-none', phase: 4, role: 'spacecraft', changeKind: 'hardware',
+      label: tx('Engineering model', '試験用の予備機'),
+      help: tx('A second unit for testing lets you find and fix faults without risking the flight unit.', '試験専用の2台目があれば、本番の機体を傷めずに不具合を探して直せます。'),
+      options: ['em-none', 'em-build'],
     },
     // Phase 5: operations
     {
@@ -182,6 +207,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: nasa(51.6, ['nasa-soa-launch']),
       deltaVms: rule(0),
       contactMinPerDay: est(21, ['nasa-orbits-catalog'], CONTACT_NOTE),
+      contactHighLatMinPerDay: est(0, ['nasa-orbits-catalog'], HIGHLAT_NOTE),
       science: { day: est(198436, ['nasa-firms'], FIRMS_NOTE), dayNight: est(387362, ['nasa-firms'], FIRMS_NOTE) },
     },
     {
@@ -192,6 +218,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: est(97.4, ['nasa-orbits-catalog'], SSO_NOTE),
       deltaVms: rule(0),
       contactMinPerDay: est(17, ['nasa-orbits-catalog'], CONTACT_NOTE),
+      contactHighLatMinPerDay: est(37, ['nasa-orbits-catalog'], HIGHLAT_NOTE),
       science: { day: est(158040, ['nasa-firms'], FIRMS_NOTE), dayNight: est(304111, ['nasa-firms'], FIRMS_NOTE) },
     },
     {
@@ -202,6 +229,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
       deltaVms: rule(0),
       contactMinPerDay: est(22, ['nasa-orbits-catalog'], CONTACT_NOTE),
+      contactHighLatMinPerDay: est(49, ['nasa-orbits-catalog'], HIGHLAT_NOTE),
       science: { day: est(157475, ['nasa-firms'], FIRMS_NOTE), dayNight: est(311631, ['nasa-firms'], FIRMS_NOTE) },
       tags: ['orbit:high'],
     },
@@ -317,6 +345,57 @@ export const wildfireCubesat: Mission = {
       windowsDay: rule([330, 480]),
     },
 
+    {
+      kind: 'choice', id: 'window-first', name: tx('First window', '最初の窓'),
+      description: tx('Full schedule score, but a delay can leave you with no launch at all.', '日程の点は満点。ただし遅れると打ち上げられなくなるおそれ。'),
+      cost: rule(0), settings: { targetWindow: rule(0) },
+    },
+    {
+      kind: 'choice', id: 'window-second', name: tx('Next window', '次の窓'),
+      description: tx('Half the schedule score, plenty of time for surprises.', '日程の点は半分。想定外に備える時間ができる。'),
+      cost: rule(0), settings: { targetWindow: rule(1) },
+    },
+    {
+      kind: 'choice', id: 'gs-own', name: tx('Own station (35°N)', '自前の地上局（北緯35度）'),
+      description: tx('A university-style station built from amateur radio parts.', 'アマチュア無線の部品で作る、大学によくある地上局。'),
+      cost: rule(20), settings: { highLatStation: rule(0), networkFactor: rule(1) },
+    },
+    {
+      kind: 'choice', id: 'gs-highlat', name: tx('Add a high-latitude station (65°N)', '高緯度の局を足す（北緯65度）'),
+      description: tx('Polar orbits pass over high latitudes often; useless for the ISS orbit.', '極に近い軌道はよく上空を通る。ISS軌道では見えない。'),
+      cost: rule(60), settings: { highLatStation: rule(1), networkFactor: rule(1) },
+    },
+    {
+      kind: 'choice', id: 'gs-network', name: tx('Commercial station network', '商用の地上局網'),
+      description: tx('Pay per pass to stations around the world.', '世界中の局を、1回ごとに料金を払って使う。'),
+      cost: rule(150),
+      settings: {
+        highLatStation: rule(1),
+        networkFactor: est(3, ['nasa-soa-comms'], tx('Pay-per-pass services are one of the ground options NASA lists for small missions; the game counts them as three times your own stations.', 'NASAは小型ミッションの地上局の選択肢として1回ごとの有料サービスを挙げている。ゲームでは自前の局の3倍の通信時間として扱う。')),
+      },
+    },
+    {
+      kind: 'choice', id: 'prep-minimal', name: tx('Minimal', '最小限'),
+      description: tx('Check the ground station once before launch.', '打ち上げ前に地上局を一度確認するだけ。'),
+      cost: rule(0), settings: { earlyFailureFactorOps: rule(1) },
+    },
+    {
+      kind: 'choice', id: 'prep-rehearsal', name: tx('Full rehearsal', '通しのリハーサル'),
+      description: tx('Test the ground station early and often, with the satellite in the loop.', '地上局を早くから何度も、衛星とつないで試す。'),
+      cost: rule(40), leadDays: rule(15),
+      settings: { earlyFailureFactorOps: est(0.6, ['nasa-cubesat101'], tx('CubeSat 101: test the ground station early and often; an inadequate one is a mission killer. Game effect: 40% fewer early failures.', 'CubeSat 101：地上局は早くから何度も試すこと、不備はミッションを失う原因。ゲームでは初期故障を4割減らす。')) },
+    },
+    {
+      kind: 'part', id: 'em-none', subsystem: 'structure', name: tx('No spare unit', '予備機なし'),
+      description: tx('Test the flight unit only.', '本番の機体だけで試験する。'),
+      cost: rule(0), massKg: rule(0),
+    },
+    {
+      kind: 'part', id: 'em-build', subsystem: 'structure', name: tx('Build an engineering model', '予備機を作る'),
+      description: tx('A ground copy for testing; it does not fly.', '試験用の地上の複製機。宇宙には行かない。'),
+      cost: rule(80), leadDays: rule(20), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')),
+      tags: ['engineeringModel'],
+    },
     { kind: 'choice', id: 'test-basic', name: tx('Basic', '最小限'), description: tx('Functional tests only.', '動作確認のみ。'), cost: rule(20), leadDays: rule(15), settings: { testDepth: rule(1) } },
     {
       kind: 'choice', id: 'test-standard', name: tx('Standard', '標準'),
@@ -356,6 +435,8 @@ export const wildfireCubesat: Mission = {
       story: tx('A hidden fault is lurking in the spacecraft.', '機体に隠れた不具合がある。'),
       probability: rule(0.4),
       protectedIf: { kind: 'setting', key: 'testDepth', atLeast: 2 },
+      partialIf: { kind: 'hasTag', tag: 'engineeringModel' },
+      partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.05 }],
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.2 }],
       lesson: tx('Light testing let a fault through to orbit for {agency}.', '{agency}は、試験が薄く不具合を軌道まで持ち込んだ。'),
     },

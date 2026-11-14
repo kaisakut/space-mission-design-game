@@ -40,6 +40,8 @@ export interface DesignState {
   missedWindows: number;
   /** Money kept aside for surprises, kUSD. */
   reserveKUSD: number;
+  /** Ground contact per day with the chosen stations, minutes. */
+  contactMin: number;
   issues: Issue[];
 }
 
@@ -116,9 +118,14 @@ export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): De
   const massAvail = Math.min(num(m.bus.maxMassKg), launchCap ?? num(m.bus.maxMassKg));
   if (launch && orbit && launchCap === undefined) issues.push({ level: 'blocker', code: 'launchWrongOrbit', values: { launch: launch.id, orbit: orbit.id } });
 
+  // Ground contact: the mission's own station, an optional high-latitude station, and a network factor.
+  const contactMin = orbit
+    ? (num(orbit.contactMinPerDay) + (settings.highLatStation ? num(orbit.contactHighLatMinPerDay) : 0)) * (settings.networkFactor ?? 1)
+    : 0;
+
   // Power (orbit average)
   const duty = settings.dutyCycle ?? 0.5;
-  const contactShare = orbit ? num(orbit.contactMinPerDay) / MIN_PER_DAY : 0;
+  const contactShare = contactMin / MIN_PER_DAY;
   let powerUsed = num(m.bus.powerW);
   let powerGen = 0;
   const solar = orbit?.solarFactor?.value ?? 1;
@@ -139,12 +146,14 @@ export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): De
   const instruments = parts.filter((p) => p.subsystem === 'payload');
   const radios = parts.filter((p) => p.subsystem === 'comms');
   const dataPerDay = instruments.reduce((a, p) => a + num(p.dataMBPerDay), 0) * (duty / 0.5);
-  const sendPerDay = orbit ? radios.reduce((a, p) => a + num(p.downlinkMBPerMin), 0) * num(orbit.contactMinPerDay) : 0;
+  const sendPerDay = radios.reduce((a, p) => a + num(p.downlinkMBPerMin), 0) * contactMin;
 
   // Schedule
   let readyDay = num(m.bus.devDays) + (adj.extraDays ?? 0);
   for (const o of options) if (o.kind !== 'launch') readyDay += num(o.leadDays);
-  const windows = launch ? [...launch.windowsDay.value].sort((a, b) => a - b) : [];
+  // The player may aim at a later window on purpose (settings.targetWindow = 0 for the first, 1 for the next).
+  const target = settings.targetWindow ?? 0;
+  const windows = launch ? [...launch.windowsDay.value].sort((a, b) => a - b).slice(target) : [];
   const launchDay = windows.find((w) => w >= readyDay) ?? null;
   const missedWindows = windows.filter((w) => w < readyDay).length;
   const firstWindow = windows[0] ?? readyDay;
@@ -175,7 +184,7 @@ export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): De
     if (x.margin >= 0 && x.margin < LOW_MARGIN) issues.push({ level: 'warning', code: 'lowMargin', resource: r, values: { margin: Math.round(x.margin * 100) } });
   }
 
-  return { picks, orbit, launch, options, settings, tags, gauges, readyDay, launchDay, missedWindows, reserveKUSD, issues };
+  return { picks, orbit, launch, options, settings, tags, gauges, readyDay, launchDay, missedWindows: missedWindows + target, reserveKUSD, contactMin, issues };
 }
 
 /** True when nothing stops the launch. */

@@ -102,7 +102,9 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
 
   // Phase 4: test and launch.
   playEvents(4);
-  const windows = d.launch ? [...d.launch.windowsDay.value].sort((a, b) => a - b) : [];
+  const target = d.settings.targetWindow ?? 0;
+  const allWindows = d.launch ? [...d.launch.windowsDay.value].sort((a, b) => a - b) : [];
+  const windows = allWindows.slice(target);
   const launchDay = windows.find((w) => w >= readyDay) ?? null;
   const spent = d.gauges.budget.used;
   if (!lost) {
@@ -115,7 +117,8 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   if (!lost && d.launch && !rng.chance(d.launch.reliability.value)) { lost = 'launchFailure'; causes.unshift('launchFailure'); phaseLog[3]!.push('launchFailure'); }
   if (!lost) {
     const depth = Math.max(1, Math.min(3, d.settings.testDepth ?? 1));
-    if (rng.chance(m.rules.earlyFailureByTestDepth.value[depth - 1] ?? 0)) { lost = 'orbitFailure'; causes.unshift('earlyFailure'); phaseLog[3]!.push('earlyFailure'); }
+    const early = (m.rules.earlyFailureByTestDepth.value[depth - 1] ?? 0) * Object.entries(d.settings).filter(([k]) => k.startsWith('earlyFailureFactor')).reduce((a, [, v]) => a * v, 1);
+    if (rng.chance(early)) { lost = 'orbitFailure'; causes.unshift('earlyFailure'); phaseLog[3]!.push('earlyFailure'); }
   }
   states.push(status());
 
@@ -182,7 +185,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   const rb = m.rubric;
   const secondary = Math.min(rb.secondary.value, m.secondary.reduce((a, o) => a + (o.chosenBy && d.tags.has(o.chosenBy) ? o.points.value * judge(o.rule) : 0), 0));
   const ratio = spent / Math.max(budgetAvail, 1);
-  const missed = launchDay === null ? Infinity : windows.indexOf(launchDay);
+  const missed = launchDay === null ? Infinity : allWindows.indexOf(launchDay);
   const score: Score = {
     primary: rb.primary.value * primaryMet,
     secondary,

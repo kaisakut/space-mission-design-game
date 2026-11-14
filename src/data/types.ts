@@ -102,8 +102,10 @@ export interface Orbit extends OptionBase {
   inclinationDeg: Sourced;
   /** Δv the spacecraft itself must supply after separation, m/s (station keeping, deorbit). */
   deltaVms: Sourced;
-  /** Average ground-station contact per day, minutes. */
+  /** Average contact per day with the mission's own mid-latitude ground station, minutes. */
   contactMinPerDay: Sourced;
+  /** Extra contact per day when a high-latitude station is added, minutes. */
+  contactHighLatMinPerDay?: Sourced;
   /** Sunlight compared with Earth orbit (1 near Earth, about 1/27 at Jupiter). Default 1. */
   solarFactor?: Sourced;
   /**

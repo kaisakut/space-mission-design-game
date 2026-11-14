@@ -143,3 +143,35 @@ button.primary:hover { background: #3d7ef0; }
 .final tr.me td { background: #13203f; }
 .final h3 { font-size: 15px; margin: 16px 0 6px; }
 .final ul { font-size: 14px; }
+
+/* Title */
+.title .tagline { font-size: 20px; margin: 8px 0 12px; }
+.howto { color: #c8d0e0; font-size: 15px; line-height: 1.7; padding-left: 22px; }
+.title h2 { font-size: 17px; margin: 24px 0 10px; }
+.missions { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.mission { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--panel); display: flex; flex-direction: column; gap: 6px; }
+.mission h3 { margin: 0; font-size: 16px; }
+.mission p { margin: 0; color: #b8c3da; font-size: 14px; flex: 1; }
+.mission.soon { opacity: 0.6; }
+.mission-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+button.secondary { background: transparent; color: inherit; border: 1px solid #3a4a6e; border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+.diff { align-self: flex-start; font-size: 11px; border-radius: 10px; padding: 1px 8px; border: 1px solid var(--muted); color: var(--muted); }
+.diff-beginner { color: var(--good); border-color: var(--good); }
+.diff-intermediate { color: var(--warn); border-color: var(--warn); }
+.diff-advanced { color: var(--bad); border-color: var(--bad); }
+.header-actions { display: flex; gap: 8px; }
+
+/* Tutorial and glossary */
+.tour { position: fixed; right: 20px; bottom: 20px; width: 360px; max-width: calc(100vw - 40px); z-index: 20; background: #13203f; border: 1px solid #2f6fde; border-radius: 10px; padding: 14px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); font-size: 14px; }
+.tour-head { display: flex; justify-content: space-between; }
+.tour-actions { display: flex; justify-content: space-between; gap: 8px; }
+.tour-actions span { display: flex; gap: 8px; }
+.tour-on { outline: 3px solid #ffb74d; outline-offset: 4px; border-radius: 8px; }
+.term { border-bottom: 1px dotted var(--muted); cursor: help; }
+.modal { position: fixed; inset: 0; background: rgba(5, 8, 18, 0.8); z-index: 30; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-body { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; max-width: 760px; width: 100%; max-height: 85vh; overflow: auto; padding: 16px 20px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; }
+.glossary div { margin: 10px 0; }
+.glossary dt { font-weight: 600; }
+.glossary dd { margin: 2px 0 0; color: #b8c3da; font-size: 14px; }
+.lower-tabs { margin-top: 24px; }

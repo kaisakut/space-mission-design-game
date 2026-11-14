@@ -34,4 +34,5 @@ def contact(h,inc,lat=35.0,lon=0.0,mask=10,days=10,dt=10):
 if __name__ == '__main__':
     for h, inc in [(410, 51.6), (500, None), (600, None)]:
         ii = inc or sso_inc(h)
-        print(f'{h} km  inclination {ii:.2f} deg  contact {contact(h, ii, lat=35, days=30, dt=5):.1f} min/day at 35N')
+        print(f'{h} km  inclination {ii:.2f} deg  contact {contact(h, ii, lat=35, days=30, dt=5):.1f} min/day at 35N, '
+              f'{contact(h, ii, lat=65, days=30, dt=5):.1f} min/day at 65N')
