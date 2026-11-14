@@ -54,15 +54,16 @@ export const JUPITER_R = 1.6;
 
 /**
  * The radiation belts as a soft, pale glow that wraps Jupiter and spreads above and below it (nested
- * flattened shells, brightest at their edges), not a flat ring: so it does not read as Saturn.
+ * flattened shells, filled and brightest at their edges), not a flat ring: so it does not read as Saturn, and the
+ * extent of the belts stays clear.
  */
 export function radiationGlow(keep: <T extends THREE.Material>(m: T) => T = (m) => m): THREE.Group {
   const g = new THREE.Group();
-  ([[3.3, 1.7, 0.5], [3.9, 2.2, 0.32], [4.6, 2.8, 0.18]] as const).forEach(([r, h, o]) => {
+  ([[3.2, 1.6, 0.5], [3.9, 2.1, 0.36], [4.6, 2.7, 0.24]] as const).forEach(([r, h, o]) => {
     const mat = keep(new THREE.ShaderMaterial({
-      uniforms: { color: { value: new THREE.Color(0xbfe4ff) }, opacity: { value: o } },
+      uniforms: { color: { value: new THREE.Color(0xa9c4ff) }, opacity: { value: o } },
       vertexShader: 'varying vec3 vN; varying vec3 vV; void main() { vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
-      fragmentShader: 'uniform vec3 color; uniform float opacity; varying vec3 vN; varying vec3 vV; void main() { float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); float a = pow(f, 1.6) * opacity; gl_FragColor = vec4(color * a, a); }',
+      fragmentShader: 'uniform vec3 color; uniform float opacity; varying vec3 vN; varying vec3 vV; void main() { float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); float a = (0.35 + 0.65 * pow(f, 1.4)) * opacity; gl_FragColor = vec4(color * a, a); }',
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     }));
     const m = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), mat);
