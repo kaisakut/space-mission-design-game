@@ -28,7 +28,7 @@ const EARTH_TEXTURE = `${import.meta.env.BASE_URL}textures/earth_day_2048.jpg`;
 type ViewModel = (EarthModel & { kind?: undefined }) | JupiterModel | LunarModel;
 
 /** The drawing model for any mission: read only from the design state and the mission's view settings. */
-export function viewModel(m: Mission, d: DesignState): ViewModel | null {
+export function viewModel(m: Mission, d: DesignState, name?: (o: { name: { en: string; ja: string } }) => string): ViewModel | null {
   const v = m.view;
   if (!v || !d.orbit) return null;
   const parts = d.options.filter((o) => o.kind === 'part');
@@ -52,6 +52,7 @@ export function viewModel(m: Mission, d: DesignState): ViewModel | null {
     return {
       kind: 'moon',
       site: v.sites[d.orbit.id] ?? { x: 0, y: 0, sun: 0.5, earth: 0.5 },
+      siteName: name?.(d.orbit),
       crater: v.crater,
       instruments: payload.length,
       drill: payload.some((o) => /drill/i.test(o.id) || o.id === 'inst-trident'),
@@ -168,9 +169,9 @@ export function TitleGlobe({ mission }: { mission: Mission }) {
 
 /** The mission view: the destination and the spacecraft, redrawn as the design changes. */
 export function MissionView({ mission, state, ghost }: { mission: Mission; state: DesignState; ghost: DesignState | null }) {
-  const { t } = useLang();
-  const model = useMemo(() => viewModel(mission, state), [mission, state]);
-  const ghostModel = useMemo(() => (ghost ? viewModel(mission, ghost) : null), [mission, ghost]);
+  const { t, L } = useLang();
+  const model = useMemo(() => viewModel(mission, state, (o) => L(o.name)), [mission, state, L]);
+  const ghostModel = useMemo(() => (ghost ? viewModel(mission, ghost, (o) => L(o.name)) : null), [mission, ghost, L]);
   const [fast, setFast] = useState(false);
   const [big, setBig] = useState(false);
   const [meter, setMeter] = useState<{ l: number; o: boolean }>({ l: 0, o: false });
@@ -201,6 +202,14 @@ export function MissionView({ mission, state, ghost }: { mission: Mission; state
         </>}
         {model.kind && <div className="mv-dim">{fmt(t.viewDataLine, { a: Math.round(state.gauges.downlink.used).toLocaleString(), b: Math.round(state.gauges.downlink.available).toLocaleString() })}</div>}
       </div>
+      {model.kind === 'moon' && <div className="mv-place">{t.viewPlaceMoon}</div>}
+      {model.kind === 'jupiter' && <div className="mv-place">{t.viewPlaceJupiter}</div>}
+      {!model.kind && model.fires && (
+        <div className="mv-legend" aria-hidden="true">
+          <span><i style={{ background: '#a8632d' }} />{t.viewLegendFire}</span>
+          <span><i style={{ background: '#ff9a2a' }} />{t.viewLegendSeen}</span>
+        </div>
+      )}
       <div className={`mv-meter ${meter.o ? 'over' : ''} ${model.kind ? `m-${model.kind}` : ''}`} title={model.kind === 'jupiter' ? t.viewDose : model.kind === 'moon' ? t.viewBattery : t.viewData}><span style={{ height: `${Math.round(meter.l * 100)}%` }} /></div>
       <div className="mv-buttons">
         <button type="button" className="secondary" aria-pressed={fast} onClick={() => setFast(!fast)}>{fast ? `❚❚ ${t.viewPause}` : `▶▶ ${t.viewPlay}`}</button>

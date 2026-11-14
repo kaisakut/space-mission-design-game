@@ -7,7 +7,7 @@ export interface EarthModel {
   altKm: number;
   incDeg: number;
   stations: { lat: number; lon: number }[];
-  /** Sum of radio rates (MB/min): the link line's thickness. */
+  /** Sum of radio rates (MB/min): the link line's thickness and the antenna's size. */
   linkMBPerMin: number;
   dataPerDay: number;
   sendPerDay: number;
@@ -32,18 +32,13 @@ export interface EarthScene {
   onMeter(cb: (level: number, overflow: boolean) => void): void;
 }
 
-const SUN = new THREE.Vector3(1, 0.25, 0.45).normalize();
-// Altitude is drawn larger than life (×3) so 410, 500 and 600 km look different.
-const radiusOf = (altKm: number) => 1 + (altKm / RE_KM) * 3;
-const NODE = 0.6;
+// The Sun lights the side facing the viewer and a little to the right, so the day side fills most of the view.
+const SUN = new THREE.Vector3(0.55, 0.3, 0.78).normalize();
+// Altitude is drawn larger than life (×2) so 410, 500 and 600 km look different without floating far off.
+const radiusOf = (altKm: number) => 1 + (altKm / RE_KM) * 2;
+// Line of nodes about 45° from the view, so a polar orbit shows as an ellipse and its tilt can be compared.
+const NODE = 0.8;
 const ORBIT_SECONDS = 8;
-
-/** Equirectangular canvas where the observed swath is painted during fast-forward. */
-function coverageCanvas() {
-  const c = document.createElement('canvas');
-  c.width = 512; c.height = 256;
-  return c;
-}
 
 function graticule(): THREE.LineSegments {
   const pts: number[] = [];
@@ -60,17 +55,26 @@ function graticule(): THREE.LineSegments {
  * programs on every design change made the view stall (and on weak GPUs, blank out).
  */
 function makeMaterials() {
+  const ghost = (color: number) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, depthWrite: false });
   return {
-    ring: new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 }),
-    ghostRing: new THREE.LineDashedMaterial({ vertexColors: true, transparent: true, opacity: 0.45, dashSize: 0.04, gapSize: 0.03 }),
+    ring: new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 }),
+    ghostRing: new THREE.LineDashedMaterial({ vertexColors: true, transparent: true, opacity: 0.5, dashSize: 0.04, gapSize: 0.03 }),
+    latLine: new THREE.LineBasicMaterial({ color: 0x7fd1ff, transparent: true, opacity: 0.55 }),
     station: new THREE.MeshBasicMaterial({ color: 0xffb74d }),
-    ghostStation: new THREE.MeshBasicMaterial({ color: 0xffb74d, transparent: true, opacity: 0.4 }),
-    footprint: new THREE.LineBasicMaterial({ color: 0xffb74d, transparent: true, opacity: 0.6 }),
-    ghostFootprint: new THREE.LineBasicMaterial({ color: 0xffb74d, transparent: true, opacity: 0.24 }),
+    ghostStation: ghost(0xffb74d),
+    footprint: new THREE.LineBasicMaterial({ color: 0xffc46b, transparent: true, opacity: 0.9 }),
+    ghostFootprint: new THREE.LineBasicMaterial({ color: 0xffb74d, transparent: true, opacity: 0.3 }),
     body: new THREE.MeshStandardMaterial({ color: 0xe8ecf4, metalness: 0.3, roughness: 0.5 }),
+    bodyPanels: new THREE.MeshStandardMaterial({ color: 0x3f6fd0, metalness: 0.4, roughness: 0.4 }),
     wing: new THREE.MeshStandardMaterial({ color: 0x2f6fde, side: THREE.DoubleSide, metalness: 0.4, roughness: 0.4 }),
+    ghostWing: ghost(0x7fb0ff),
+    dish: new THREE.MeshStandardMaterial({ color: 0xdfe6f3, side: THREE.DoubleSide, metalness: 0.2, roughness: 0.6 }),
     shield: new THREE.MeshBasicMaterial({ color: 0xffb74d }),
-    cone: new THREE.MeshBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.18, side: THREE.DoubleSide }),
+    ghostShield: ghost(0xffb74d),
+    cone: new THREE.MeshBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }),
+    link: new THREE.MeshBasicMaterial({ color: 0x7fd1ff, transparent: true, opacity: 0.85 }),
+    packets: new THREE.PointsMaterial({ color: 0xe8f6ff, size: 0.035, transparent: true, opacity: 0.95, depthWrite: false }),
+    atmosphere: new THREE.MeshBasicMaterial({ color: 0x4f8fe0, transparent: true, opacity: 0.16, side: THREE.BackSide, depthWrite: false }),
   };
 }
 type Mats = ReturnType<typeof makeMaterials>;
@@ -89,8 +93,34 @@ function circleOnSphere(center: Vec3, angle: number, radius: number, mat: THREE.
   return new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), mat);
 }
 
+/** A latitude circle on the globe (the edge of what the orbit can see). */
+function latitudeCircle(latDeg: number, mat: THREE.LineBasicMaterial): THREE.LineLoop {
+  const pts: THREE.Vector3[] = [];
+  for (let k = 0; k < 96; k++) pts.push(new THREE.Vector3(...latLonToVec(latDeg, -180 + (k / 96) * 360)).multiplyScalar(1.004));
+  return new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), mat);
+}
+
+/** A small text label that always faces the viewer. */
+function label(text: string, color = '#bfe6ff'): THREE.Sprite {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 40;
+  const ctx = c.getContext('2d')!;
+  ctx.font = '600 24px system-ui, sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText(text, 64, 20);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  s.scale.set(0.32, 0.1, 1);
+  return s;
+}
+
 function ringLine(m: EarthModel, mats: Mats, dashed: boolean): THREE.Line {
   const r = radiusOf(m.altKm), inc = (m.incDeg * Math.PI) / 180;
+  // Higher orbits are drawn a brighter blue, so the three altitudes also differ by colour.
+  const lit = new THREE.Color().setHSL(0.56, 0.9, 0.55 + Math.min(0.25, (m.altKm - 400) / 800));
   const pts: number[] = [], colors: number[] = [];
   for (let k = 0; k <= 180; k++) {
     const p = orbitPos(r, (k / 180) * Math.PI * 2, inc, NODE);
@@ -99,7 +129,7 @@ function ringLine(m: EarthModel, mats: Mats, dashed: boolean): THREE.Line {
     const v = new THREE.Vector3(...p);
     const along = v.dot(SUN);
     const shadow = along < 0 && v.clone().sub(SUN.clone().multiplyScalar(along)).length() < 1;
-    const c = shadow ? new THREE.Color(0x3b4660) : new THREE.Color(0x9fd8ff);
+    const c = shadow ? new THREE.Color(0x3b4660) : lit;
     colors.push(c.r, c.g, c.b);
   }
   const g = new THREE.BufferGeometry();
@@ -110,22 +140,28 @@ function ringLine(m: EarthModel, mats: Mats, dashed: boolean): THREE.Line {
   return line;
 }
 
-function satellite(m: EarthModel, mats: Mats): THREE.Group {
+/** The spacecraft, its shape showing the design: panels, antenna size and protection. Ghost parts show a hovered change. */
+function satellite(m: EarthModel, ghost: EarthModel | null, mats: Mats): THREE.Group {
   const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.055), mats.body));
-  if (m.wings) for (const s of [-1, 1]) {
-    const w = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.03), mats.wing);
-    w.position.x = s * 0.055;
-    g.add(w);
-  }
-  for (let k = 0; k < m.rings; k++) {
-    const t = new THREE.Mesh(new THREE.TorusGeometry(0.055 + k * 0.018, 0.004, 6, 32), mats.shield);
-    t.rotation.x = Math.PI / 2;
-    g.add(t);
-  }
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 16, 1, true), mats.cone);
-  cone.name = 'cone';
-  g.add(cone);
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.08), m.wings ? mats.body : mats.bodyPanels));
+  const wings = (mat: THREE.Material) => { for (const s of [-1, 1]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.045), mat); w.position.x = s * 0.085; g.add(w); } };
+  if (m.wings) wings(mats.wing);
+  else if (ghost?.wings) wings(mats.ghostWing);
+  // Antenna dish on the side facing away from Earth: larger with a faster radio.
+  const dishR = 0.014 + 0.008 * Math.log10(1 + m.linkMBPerMin);
+  const dish = new THREE.Mesh(new THREE.CircleGeometry(dishR, 16), mats.dish);
+  dish.position.set(0, 0.04, -0.03);
+  dish.rotation.x = -Math.PI / 3;
+  g.add(dish);
+  const rings = (n: number, from: number, mat: THREE.Material) => {
+    for (let k = from; k < n; k++) {
+      const t = new THREE.Mesh(new THREE.TorusGeometry(0.075 + k * 0.022, 0.005, 6, 32), mat);
+      t.rotation.x = Math.PI / 2;
+      g.add(t);
+    }
+  };
+  rings(m.rings, 0, mats.shield);
+  if (ghost && ghost.rings > m.rings) rings(ghost.rings, m.rings, mats.ghostShield);
   return g;
 }
 
@@ -138,79 +174,102 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
   const pivot = new THREE.Group();
   scene.add(pivot);
-  pivot.rotation.set(0.45, -0.7, 0);
-  let dist = 5.6;
+  // Seen from about 25° above the equator; only Earth turns on its own, the view moves only when dragged.
+  pivot.rotation.set(0.44, 0, 0);
+  let dist = 5.2;
 
-  scene.add(new THREE.AmbientLight(0x6070a0, 0.55));
-  const sunLight = new THREE.DirectionalLight(0xffffff, 1.6);
+  // A brighter ambient light keeps the night side's land faintly visible instead of black.
+  scene.add(new THREE.AmbientLight(0x8090b8, 0.85));
+  const sunLight = new THREE.DirectionalLight(0xffffff, 1.7);
   sunLight.position.copy(SUN).multiplyScalar(10);
   scene.add(sunLight);
+  const mats = makeMaterials();
 
-  // Faint fixed stars.
+  // Fixed stars.
   {
     const pts: number[] = [];
     let seed = 7;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    for (let k = 0; k < 400; k++) { const v = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).normalize().multiplyScalar(30); pts.push(v.x, v.y, v.z); }
+    for (let k = 0; k < 900; k++) { const v = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).normalize().multiplyScalar(30); pts.push(v.x, v.y, v.z); }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x8c9ab8, size: 0.06, transparent: true, opacity: 0.6 })));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9aa8c6, size: 0.05, transparent: true, opacity: 0.7 })));
   }
 
-  // Earth: NASA Blue Marble when the texture is available, otherwise a lit sphere with a graticule.
+  // Earth: NASA Blue Marble when the texture is available, otherwise a lit sphere with a graticule; a thin blue rim of air.
   const earth = new THREE.Group();
   pivot.add(earth);
   const earthMat = new THREE.MeshPhongMaterial({ color: 0x1d3f74, shininess: 8 });
   earth.add(new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), earthMat));
+  pivot.add(new THREE.Mesh(new THREE.SphereGeometry(1.035, 48, 32), mats.atmosphere));
   const grid = graticule();
   earth.add(grid);
   if (opts.textureUrl) {
     new THREE.TextureLoader().load(opts.textureUrl, (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       earthMat.map = tex; earthMat.color.set(0xffffff); earthMat.needsUpdate = true;
-      (grid.material as THREE.LineBasicMaterial).opacity = 0.18;
+      (grid.material as THREE.LineBasicMaterial).opacity = 0.15;
     }, undefined, () => { /* no texture: keep the graticule */ });
   }
-  const cov = coverageCanvas();
+  // The swath the camera has covered, painted in light blue while fast-forwarding.
+  const cov = document.createElement('canvas');
+  cov.width = 512; cov.height = 256;
   const covCtx = cov.getContext('2d')!;
   const covTex = new THREE.CanvasTexture(cov);
-  earth.add(new THREE.Mesh(new THREE.SphereGeometry(1.004, 48, 32), new THREE.MeshBasicMaterial({ map: covTex, transparent: true, depthWrite: false })));
+  earth.add(new THREE.Mesh(new THREE.SphereGeometry(1.003, 48, 32), new THREE.MeshBasicMaterial({ map: covTex, transparent: true, depthWrite: false })));
 
-  // Real 2024 fires (NASA FIRMS), one dot per 1-degree cell; dots light up when the camera passes over them.
+  // Real 2024 fires (NASA FIRMS), one dot per 1-degree cell: dull orange until seen, a yellow flash when the
+  // camera passes, then bright orange; on the night side a daytime camera cannot see them (dim blue).
   const cells = (firesDoc as unknown as { cells: [number, number, number, number][] }).cells;
   const fireDirs = cells.map(([lat, lon]) => latLonToVec(lat + 0.5, lon + 0.5));
   const lit = new Float32Array(cells.length);
+  const seen = new Uint8Array(cells.length);
   const fireColors = new Float32Array(cells.length * 3);
   const fireGeo = new THREE.BufferGeometry();
   fireGeo.setAttribute('position', new THREE.Float32BufferAttribute(fireDirs.flatMap((v) => v.map((x) => x * 1.008)), 3));
   fireGeo.setAttribute('color', new THREE.BufferAttribute(fireColors, 3));
-  const firePoints = new THREE.Points(fireGeo, new THREE.PointsMaterial({ size: 0.011, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false }));
+  const firePoints = new THREE.Points(fireGeo, new THREE.PointsMaterial({ size: 0.024, vertexColors: true, transparent: true, opacity: 0.95, depthWrite: false }));
   firePoints.visible = false;
   earth.add(firePoints);
-  const fireLevel = cells.map((c) => (Math.max(c[2], c[3]) / 9) ** 3);
+  const isDay = new Uint8Array(cells.length);
+  const UNSEEN: Vec3 = [0.42, 0.16, 0.04], DARK: Vec3 = [0.03, 0.05, 0.13], SEEN: Vec3 = [1, 0.42, 0.05], FLASH: Vec3 = [1, 0.95, 0.35];
   const paintFire = (k: number) => {
-    const lv = fireLevel[k]!, l = lit[k]!;
-    fireColors[k * 3] = 0.015 + 0.2 * lv + 0.8 * l;
-    fireColors[k * 3 + 1] = 0.006 + 0.02 * lv + 0.6 * l;
-    fireColors[k * 3 + 2] = 0.01 + 0.15 * l;
+    const l = lit[k]!;
+    const base = seen[k] ? SEEN : (model?.camera?.dayOnly ?? true) && !isDay[k] ? DARK : UNSEEN;
+    for (let c = 0; c < 3; c++) fireColors[k * 3 + c] = base[c]! + (FLASH[c]! - base[c]!) * l;
   };
-  for (let k = 0; k < cells.length; k++) paintFire(k);
-  // Only the dots that are lit (a few dozen at a time) are updated each frame.
+  const sunLocalNow = () => SUN.clone().applyQuaternion(earth.getWorldQuaternion(new THREE.Quaternion()).invert());
+  // Day and night move as Earth turns: every dot is repainted twice a second, the flashing ones every frame.
+  const repaintAll = () => {
+    const s = sunLocalNow();
+    for (let k = 0; k < fireDirs.length; k++) { const f = fireDirs[k]!; isDay[k] = f[0] * s.x + f[1] * s.y + f[2] * s.z > 0 ? 1 : 0; paintFire(k); }
+    (fireGeo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+  };
   const active = new Set<number>();
   const COS_REACH = Math.cos(0.07);
+  let sinceRepaint = 1;
 
-  const mats = makeMaterials();
   let model: EarthModel | null = null;
   let lastKey = '';
+  let seenKey = '';
   let parts: THREE.Object3D[] = [];
   let stationDirs: Vec3[] = [];
   let sat: THREE.Group | null = null;
-  const link = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0x7fd1ff, transparent: true, opacity: 0.85 }));
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 24, 1, true).translate(0, -0.5, 0), mats.cone);
+  pivot.add(cone);
+  const link = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 8, 1, true), mats.link);
   link.visible = false;
   pivot.add(link);
+  // Data packets flowing down the link while a station is in view.
+  const PACKETS = 6;
+  const packetGeo = new THREE.BufferGeometry();
+  packetGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Array(PACKETS * 3).fill(0), 3));
+  const packets = new THREE.Points(packetGeo, mats.packets);
+  packets.visible = false;
+  pivot.add(packets);
 
   // Geometry only: the materials are shared and live as long as the scene.
-  const clear = () => { for (const p of parts) { p.parent?.remove(p); p.traverse((o) => { (o as THREE.Mesh).geometry?.dispose?.(); }); } parts = []; };
+  const clear = () => { for (const p of parts) { p.parent?.remove(p); p.traverse((o) => { (o as THREE.Mesh).geometry?.dispose?.(); const sp = o as THREE.Sprite; if (sp.isSprite) { sp.material.map?.dispose(); sp.material.dispose(); } }); } parts = []; };
 
   let fast = false;
   let t = 0;
@@ -222,17 +281,29 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
     const key = JSON.stringify([m, ghost]);
     if (key === lastKey) return;
     lastKey = key;
-    const orbitChanged = !model || model.altKm !== m.altKm || model.incDeg !== m.incDeg;
+    // A new orbit or camera starts a fresh picture of what was seen.
+    const sk = JSON.stringify([m.altKm, m.incDeg, m.camera]);
+    const fresh = sk !== seenKey;
+    seenKey = sk;
     model = m;
     clear();
     const ring = ringLine(m, mats, false);
     pivot.add(ring); parts.push(ring);
     if (ghost && (ghost.altKm !== m.altKm || ghost.incDeg !== m.incDeg)) { const gr = ringLine(ghost, mats, true); pivot.add(gr); parts.push(gr); }
+    // The edge of what the orbit can see: thin circles at ± the highest latitude, with the number.
+    const edge = coverageLat(m.incDeg);
+    for (const sgn of [1, -1]) {
+      const c = latitudeCircle(sgn * edge, mats.latLine);
+      earth.add(c); parts.push(c);
+    }
+    const tag = label(`${edge.toFixed(1)}°N`);
+    tag.position.set(...(latLonToVec(edge, -70).map((x) => x * 1.12) as Vec3));
+    earth.add(tag); parts.push(tag);
     stationDirs = m.stations.map((s) => latLonToVec(s.lat, s.lon));
     const addStations = (list: { lat: number; lon: number }[], alt: number, faint: boolean) => {
       for (const s of list) {
         const v = latLonToVec(s.lat, s.lon);
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), faint ? mats.ghostStation : mats.station);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), faint ? mats.ghostStation : mats.station);
         dot.position.set(...(v.map((x) => x * 1.006) as Vec3));
         earth.add(dot); parts.push(dot);
         const c = circleOnSphere(v, footprintAngle(alt), 1.006, faint ? mats.ghostFootprint : mats.footprint);
@@ -245,12 +316,13 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
       addStations(extra, ghost.altKm, true);
     }
     firePoints.visible = m.fires;
-    sat = satellite(m, mats);
+    if (fresh) { seen.fill(0); lit.fill(0); active.clear(); covCtx.clearRect(0, 0, cov.width, cov.height); covTex.needsUpdate = true; }
+    repaintAll();
+    sat = satellite(m, ghost, mats);
+    sat.scale.setScalar(1.5);
     pivot.add(sat); parts.push(sat);
-    if (orbitChanged) { covCtx.clearRect(0, 0, cov.width, cov.height); covTex.needsUpdate = true; }
   };
 
-  let lastW = 0, lastH = 0;
   const resize = () => {
     const w = host.clientWidth, h = host.clientHeight;
     if (!w || !h || (w === lastW && h === lastH)) return;
@@ -263,9 +335,9 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
     // Resizing clears the canvas: draw at once, or the view blinks until the next frame.
     if (model) frame(0);
   };
+  let lastW = 0, lastH = 0;
   const ro = new ResizeObserver(resize);
   ro.observe(host);
-  resize();
 
   // Dragging turns the view; the wheel zooms. Nothing else.
   let drag: { x: number; y: number } | null = null;
@@ -294,52 +366,65 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
       sat.position.set(...p);
       sat.lookAt(0, 0, 0);
       const observing = ((u / (Math.PI * 2)) % 1) < model.duty;
-      const cone = sat.getObjectByName('cone')!;
-      cone.visible = observing;
-      cone.position.set(0, 0, 0.1);
-      cone.rotation.set(-Math.PI / 2, 0, 0);
+      // The field of view reaches down to the ground; it is hidden where the plan does not observe.
+      cone.visible = observing && !!model.camera;
+      cone.position.set(...p);
+      cone.lookAt(0, 0, 0);
+      cone.rotateX(-Math.PI / 2);
+      const h = r - 1;
+      cone.scale.set(h * 0.32, h, h * 0.32);
       // The point under the satellite, in Earth's own frame.
       const local = earth.worldToLocal(pivot.localToWorld(new THREE.Vector3(...p)));
       const sub: Vec3 = [local.x, local.y, local.z];
       if (fast && observing) {
         const [lat, lon] = vecToLatLon(sub);
-        covCtx.fillStyle = 'rgba(255, 210, 127, 0.18)';
+        covCtx.fillStyle = 'rgba(127, 209, 255, 0.3)';
         covCtx.beginPath();
-        covCtx.arc(((lon + 180) / 360) * cov.width, ((90 - lat) / 180) * cov.height, 5, 0, Math.PI * 2);
+        covCtx.arc(((lon + 180) / 360) * cov.width, ((90 - lat) / 180) * cov.height, 6, 0, Math.PI * 2);
         covCtx.fill();
         covTex.needsUpdate = true;
       }
       // Fires under the camera light up: day side only for daytime cameras, a share set by the camera.
       if (model.fires) {
+        sinceRepaint += dt;
         const changed = active.size > 0;
-        for (const k of active) { lit[k] = Math.max(0, lit[k]! - dt * 0.6); paintFire(k); if (!lit[k]) active.delete(k); }
+        for (const k of active) { lit[k] = Math.max(0, lit[k]! - dt * speed * 0.6); paintFire(k); if (!lit[k]) active.delete(k); }
         if (observing && model.camera) {
-          const sunLocal = SUN.clone().applyQuaternion(earth.getWorldQuaternion(new THREE.Quaternion()).invert());
+          const s = sunLocalNow();
           const sl = Math.hypot(...sub) || 1;
           const sx = sub[0] / sl, sy = sub[1] / sl, sz = sub[2] / sl;
           for (let k = 0; k < fireDirs.length; k++) {
             const f = fireDirs[k]!;
             if (f[0] * sx + f[1] * sy + f[2] * sz < COS_REACH) continue;
-            const day = f[0] * sunLocal.x + f[1] * sunLocal.y + f[2] * sunLocal.z > 0;
+            const day = f[0] * s.x + f[1] * s.y + f[2] * s.z > 0;
             const level = day ? cells[k]![2] : cells[k]![3];
             if (!level || (model.camera.dayOnly && !day)) continue;
-            if (((k * 2654435761) % 1000) / 1000 < model.camera.share) { lit[k] = 1; paintFire(k); active.add(k); }
+            if (((k * 2654435761) % 1000) / 1000 < model.camera.share && !active.has(k)) { lit[k] = 1; seen[k] = 1; paintFire(k); active.add(k); }
           }
         }
-        if (changed || active.size) (fireGeo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+        if (sinceRepaint > 0.5) { sinceRepaint = 0; repaintAll(); }
+        else if (changed || active.size) (fireGeo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
       }
-      // Link to a station in view; thickness follows the radio rate.
+      // Link to a station in view; thickness follows the radio rate; packets flow down it.
       const lam = footprintAngle(model.altKm);
       const inView = stationDirs.findIndex((s) => angleBetween(s, sub) < lam);
       if (inView >= 0) {
         const sw = pivot.worldToLocal(earth.localToWorld(new THREE.Vector3(...stationDirs[inView]!).multiplyScalar(1.006)));
         const sp = new THREE.Vector3(...p);
-        const mid = sw.clone().add(sp).multiplyScalar(0.5);
-        link.position.copy(mid);
-        link.scale.set(0.002 + 0.0035 * Math.log10(1 + model.linkMBPerMin * 10), sw.distanceTo(sp), 0.002 + 0.0035 * Math.log10(1 + model.linkMBPerMin * 10));
+        link.position.copy(sw.clone().add(sp).multiplyScalar(0.5));
+        const w = 0.003 + 0.004 * Math.log10(1 + model.linkMBPerMin * 10);
+        link.scale.set(w, sw.distanceTo(sp), w);
         link.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), sp.clone().sub(sw).normalize());
         link.visible = true;
-      } else link.visible = false;
+        const arr = packetGeo.attributes.position as THREE.BufferAttribute;
+        for (let k = 0; k < PACKETS; k++) {
+          const f = ((t * 0.9 + k / PACKETS) % 1);
+          const q = sp.clone().lerp(sw, f);
+          arr.setXYZ(k, q.x, q.y, q.z);
+        }
+        arr.needsUpdate = true;
+        packets.visible = true;
+      } else { link.visible = false; packets.visible = false; }
       // On-board data: fills all the time, drains while linked. Full = about sixteen hours of data.
       const simSec = (dt * speed * periodSec(model.altKm)) / ORBIT_SECONDS;
       const cap = Math.max(model.dataPerDay / 1.5, 1e-6);
@@ -362,6 +447,7 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);
+  resize();
 
   return {
     set: (m, g) => { set(m, g); frame(0); },

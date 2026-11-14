@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createStage, disposeGeometry, paintedTexture, seeded, type MissionScene } from './stage';
+import { createStage, disposeGeometry, paintedTexture, seeded, textSprite, type MissionScene } from './stage';
 
 /**
  * The Moon's south pole as a cratered disc seen from above at a slant, drawn for explanation: the Sun circles
@@ -9,6 +9,8 @@ import { createStage, disposeGeometry, paintedTexture, seeded, type MissionScene
 export interface LunarModel {
   kind: 'moon';
   site: { x: number; y: number; sun: number; earth: number };
+  /** The landing site's name, shown beside its marker. */
+  siteName?: string;
   crater: { x: number; y: number; r: number };
   /** Science instruments on board (small marks on the rover); the drill makes it stop and dig. */
   instruments: number;
@@ -30,7 +32,7 @@ function poleTexture(crater: LunarModel['crater']) {
   const rnd = seeded(23);
   return paintedTexture(512, 512, (ctx) => {
     const g = ctx.createRadialGradient(256, 256, 20, 256, 256, 256);
-    g.addColorStop(0, '#77736c'); g.addColorStop(1, '#5c5953');
+    g.addColorStop(0, '#b3aea2'); g.addColorStop(1, '#8f8a7f');
     ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
     for (let k = 0; k < 150; k++) {
       const x = rnd() * 512, y = rnd() * 512, r = 2 + rnd() ** 4 * 30;
@@ -63,6 +65,7 @@ export function createLunarScene(host: HTMLElement, opts: { reduceMotion: boolea
     ring: new THREE.LineBasicMaterial({ color: 0xffb74d }),
     track: new THREE.LineBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.8 }),
     earth: new THREE.MeshPhongMaterial({ color: 0x3f7fd8, emissive: 0x10264a }),
+    earthDown: new THREE.MeshPhongMaterial({ color: 0x24354f, emissive: 0x05080f }),
     sunDot: new THREE.MeshBasicMaterial({ color: 0xfff2c0 }),
     link: new THREE.MeshBasicMaterial({ color: 0x7fd1ff, transparent: true, opacity: 0.7 }),
     stars: new THREE.PointsMaterial({ color: 0x8c9ab8, size: 0.08, transparent: true, opacity: 0.6 }),
@@ -113,6 +116,11 @@ export function createLunarScene(host: HTMLElement, opts: { reduceMotion: boolea
     const site = onDisc(m.site.x, m.site.y);
     const ring = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 40 }, (_, k) => site.clone().add(new THREE.Vector3(0.35 * Math.cos((k / 40) * Math.PI * 2), 0.02, 0.35 * Math.sin((k / 40) * Math.PI * 2))))), mats.ring);
     pivot.add(ring); parts.push(ring);
+    // A tall marker and the site's name, so the landing site stands out.
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 6), mats.mark);
+    pole.position.copy(site).setY(0.3);
+    pivot.add(pole); parts.push(pole);
+    if (m.siteName) { const tag = textSprite(m.siteName); tag.position.copy(site).setY(0.85); pivot.add(tag); parts.push(tag); }
     if (ghost && (ghost.site.x !== m.site.x || ghost.site.y !== m.site.y)) {
       const g = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.05, 16), mats.ghost);
       g.position.copy(onDisc(ghost.site.x, ghost.site.y, 0.03));
@@ -156,7 +164,8 @@ export function createLunarScene(host: HTMLElement, opts: { reduceMotion: boolea
     const ea = (t / (DAY * 1.3)) * Math.PI * 2;
     const earthUp = Math.sin(ea) > Math.cos(Math.PI * model.site.earth);
     earth.position.set(-(R + 0.5), earthUp ? 0.7 : -0.4, -1.2);
-    earth.visible = earthUp;
+    // Below the horizon Earth stays as a dim marker at the edge: its direction is always shown.
+    earth.material = earthUp ? mats.earth : mats.earthDown;
     // Rover along its drive; it stops to dig when it carries the drill.
     const k = (t * (0.3 + model.duty)) % track.length;
     const p = track[Math.floor(k)]!;

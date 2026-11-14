@@ -31,7 +31,8 @@ const SHIELD_RATE = [1.7, 1, 0.55];
 function jupiterTexture() {
   const rnd = seeded(11);
   return paintedTexture(512, 256, (ctx) => {
-    const bands = ['#d9c2a0', '#b48b62', '#e8dcc6', '#a77650', '#dccbad', '#9b6b47', '#e2d3b8', '#b9906a', '#d7c4a5'];
+    // Strong light zones and dark belts, so it reads as Jupiter (and not as Saturn).
+    const bands = ['#f2e6cf', '#9a6a44', '#efe2c8', '#8a5a38', '#e8d8bb', '#a87650', '#f0e4cc', '#7f5233', '#eadcc2'];
     let y = 0;
     while (y < 256) {
       const h = 10 + rnd() * 26;
@@ -43,7 +44,8 @@ function jupiterTexture() {
     for (let k = 0; k < 160; k++) { ctx.fillStyle = rnd() > 0.5 ? '#fff6e0' : '#7a5236'; ctx.fillRect(rnd() * 512, rnd() * 256, 20 + rnd() * 60, 2); }
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#b5583a';
-    ctx.beginPath(); ctx.ellipse(330, 165, 22, 11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(330, 165, 38, 17, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#e9b89a'; ctx.lineWidth = 3; ctx.stroke();
   });
 }
 
@@ -69,7 +71,7 @@ function flybyPos(phase: number, peri: number, apo: number): THREE.Vector3 {
 }
 
 export function createJupiterScene(host: HTMLElement, opts: { reduceMotion: boolean }): MissionScene<JupiterModel> {
-  const st = createStage(host, { reduceMotion: opts.reduceMotion, dist: 19, tilt: 0.7 });
+  const st = createStage(host, { reduceMotion: opts.reduceMotion, dist: 19, tilt: 0.38 });
   const { scene, pivot } = st;
   scene.add(new THREE.AmbientLight(0x8090b0, 0.5));
   const sun = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -78,7 +80,7 @@ export function createJupiterScene(host: HTMLElement, opts: { reduceMotion: bool
 
   const mats = {
     jupiter: new THREE.MeshPhongMaterial({ map: jupiterTexture(), shininess: 4 }),
-    belt: [0.13, 0.07, 0.035].map((o) => new THREE.MeshBasicMaterial({ color: 0xc58cff, transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending })),
+    belt: [0.16, 0.08, 0.04].map((o) => new THREE.MeshBasicMaterial({ color: 0xc58cff, transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending })),
     moonOrbit: new THREE.LineBasicMaterial({ color: 0x5a6b8f, transparent: true, opacity: 0.7 }),
     europa: new THREE.MeshPhongMaterial({ color: 0xd8cbb0 }),
     ganymede: new THREE.MeshPhongMaterial({ color: 0x9c8f7c }),
@@ -102,11 +104,10 @@ export function createJupiterScene(host: HTMLElement, opts: { reduceMotion: bool
   }
 
   pivot.add(new THREE.Mesh(new THREE.SphereGeometry(1, 40, 24), mats.jupiter));
-  // Belts: three nested glowing rings, brightest on the inside.
-  [[2.8, 0.9], [2.8, 1.35], [3.0, 1.9]].forEach(([r, tube], k) => {
-    const t = new THREE.Mesh(new THREE.TorusGeometry(r!, tube!, 12, 64), mats.belt[k]!);
+  // Belts: three nested, thick glowing doughnuts, brightest on the inside (not flat rings, so not Saturn).
+  [[2.9, 0.55], [2.95, 0.95], [3.05, 1.4]].forEach(([r, tube], k) => {
+    const t = new THREE.Mesh(new THREE.TorusGeometry(r!, tube!, 16, 64), mats.belt[k]!);
     t.rotation.x = Math.PI / 2;
-    t.scale.z = 0.35;
     pivot.add(t);
   });
   for (const r of [EUROPA_R, GANYMEDE_R]) pivot.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ellipsePoints(r, r, 96)), mats.moonOrbit));

@@ -79,7 +79,7 @@ export function createStage(host: HTMLElement, opts: { reduceMotion: boolean; di
 
 /** Dispose the geometry of objects removed from the scene (materials are shared and kept). */
 export function disposeGeometry(objs: THREE.Object3D[]) {
-  for (const p of objs) { p.parent?.remove(p); p.traverse((o) => { (o as THREE.Mesh).geometry?.dispose?.(); }); }
+  for (const p of objs) { p.parent?.remove(p); p.traverse((o) => { (o as THREE.Mesh).geometry?.dispose?.(); const sp = o as THREE.Sprite; if (sp.isSprite) { sp.material.map?.dispose(); sp.material.dispose(); } }); }
 }
 
 /** A canvas texture drawn once by a function (planet bands, a cratered disc). */
@@ -90,6 +90,24 @@ export function paintedTexture(w: number, h: number, paint: (ctx: CanvasRenderin
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+/** A small text label that always faces the viewer. */
+export function textSprite(text: string, color = '#ffe2a8', scale = 1): THREE.Sprite {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 64;
+  const ctx = c.getContext('2d')!;
+  ctx.font = '600 34px system-ui, sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+  const short = text.replace(/\s*[（(].*$/, '');
+  ctx.fillText(short.length > 26 ? `${short.slice(0, 25)}…` : short, 256, 32, 500);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  s.scale.set(2.4 * scale, 0.3 * scale, 1);
+  return s;
 }
 
 /** Small deterministic random numbers for the painted textures. */

@@ -51,7 +51,7 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .tabs button.on { color: #e8ecf4; border-bottom-color: var(--accent); }
 .tabs button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.game-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 22fr) minmax(0, 43fr) minmax(0, 35fr); grid-template-rows: minmax(0, 1fr); gap: 0.5rem; }
+.game-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 38fr) minmax(0, 32fr); grid-template-rows: minmax(0, 1fr); gap: 0.5rem; }
 .autofit { overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .col { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 0.6em 0.75em; }
 
@@ -363,7 +363,8 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 
 /* Mission view (left column). */
 .col-left.with-view { display: flex; flex-direction: column; gap: 0.5em; padding: 0.5em; overflow: hidden; }
-.col-left.with-view .mv-wrap { flex: 0 0 42%; min-height: 30%; display: flex; flex-direction: column; }
+.col-left.with-view .mv-wrap { flex: 0 0 55%; min-height: 30%; display: flex; flex-direction: column; }
+@media (max-height: 760px) { .col-left.with-view .mv-wrap { flex-basis: 45%; } }
 .col-left.with-view .mission-view.small { flex: 1 1 auto; min-height: 0; }
 .col-left.with-view .left-rest { flex: 1 1 auto; min-height: 0; padding: 0 0.25em; }
 .col-left:not(.with-view) { overflow: hidden; }
@@ -493,3 +494,13 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 
 .already { margin-top: 0.4em; }
 .was-note { margin: 0.1em 0 0.3em; }
+
+/* Step 8: gauges in two columns beside the larger mission view; four-box phases in two columns. */
+.col-left.with-view .gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45em 0.9em; margin: 0.4em 0; }
+.slots.dense { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.slots.dense.cols { display: block; columns: 2; }
+.slots.dense .slot.multi { grid-column: 1 / -1; }
+.mv-legend { position: absolute; right: 0.5em; bottom: 2.2em; font-size: 0.68rem; color: #b8c3da; text-shadow: 0 1px 2px #000; pointer-events: none; display: flex; flex-direction: column; gap: 0.1em; align-items: flex-end; }
+.mv-legend i { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; margin-right: 0.3em; vertical-align: -0.05em; }
+.mv-place { position: absolute; left: 0.5em; top: 0.4em; font-size: 0.75rem; color: #dbe3f3; text-shadow: 0 1px 2px #000; pointer-events: none; }
+.mv-meter { width: 0.8em !important; height: 5em !important; }
