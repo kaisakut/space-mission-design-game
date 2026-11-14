@@ -33,7 +33,7 @@ export function CountUp({ value, suffix = '', ms = 600, delayMs = 0, instant = f
 }
 
 /** Success chance as a ring. */
-function Ring({ share, label, faint = false }: { share: number; label: string; faint?: boolean }) {
+function Ring({ share, label, faint = false, delayMs = 0 }: { share: number; label: string; faint?: boolean; delayMs?: number }) {
   const r = 26, c = 2 * Math.PI * r;
   const color = faint ? '#6b7891' : share >= 0.7 ? 'var(--good)' : share >= 0.4 ? 'var(--warn)' : 'var(--bad)';
   return (
@@ -42,7 +42,7 @@ function Ring({ share, label, faint = false }: { share: number; label: string; f
         <circle cx="32" cy="32" r={r} fill="none" stroke="#1b2540" strokeWidth="7" />
         <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="7" strokeDasharray={`${c * share} ${c}`} transform="rotate(-90 32 32)" strokeLinecap="round" />
       </svg>
-      <b><CountUp value={Math.round(share * 100)} suffix="%" /></b>
+      <b><CountUp value={Math.round(share * 100)} suffix="%" delayMs={delayMs} /></b>
       <span>{label}</span>
     </div>
   );
@@ -80,6 +80,10 @@ export function ForecastPanel({ mission, baseline, mine, stale, left }: {
 }) {
   const { t, L } = useLang();
   const [full, setFull] = useState(false);
+  // A new forecast of the player's own design: dots flow through the map, and the numbers count up as they land.
+  const [flow, setFlow] = useState(0);
+  useEffect(() => { if (mine) setFlow((k) => k + 1); }, [mine]);
+  const flowing = !!mine && !stale && flow > 0;
   const shown = mine ?? baseline;
   const causeName = useCauseName(mission);
   const outcomeName = useOutcomeName(mission);
@@ -110,15 +114,24 @@ export function ForecastPanel({ mission, baseline, mine, stale, left }: {
       finalOrder={[...OUTCOMES]}
       reasonOf={reasonOf}
       compact={compact}
+      flowKey={compact && flowing ? flow : undefined}
+      finalOf={(id) => shown.runs[id - 1]?.outcome ?? ''}
     />
   );
   const baseShare = new Map(baseline.topCauses);
   const delta = mine ? Math.round((mine.successShare - baseline.successShare) * 100) : 0;
+  const scoreDelta = mine ? Math.round((mine.score.p50 - baseline.score.p50) * 10) / 10 : 0;
+  const tone = (x: number) => (x > 0 ? 'ok' : x < 0 ? 'warn' : 'same');
+  const signed = (x: number) => `${x > 0 ? '+' : x < 0 ? '−' : '±'}${Math.abs(x)}`;
   const summary = (
     <>
       <div className="rings">
         <Ring share={baseline.successShare} label={t.baselineLabel} faint={!!mine} />
-        {mine && <><span className="ring-arrow">→</span><Ring share={mine.successShare} label={t.yourDesign} /><b className={`ring-delta ${delta > 0 ? 'ok' : delta < 0 ? 'bad' : ''}`}>{delta > 0 ? '+' : ''}{fmt(t.deltaPts, { d: delta })}</b></>}
+        {mine && <><span className="ring-arrow">→</span><Ring share={mine.successShare} label={t.yourDesign} delayMs={flowing && !reduceMotion() ? 1000 : 0} />
+          <div className="ring-deltas">
+            <div><span className="note small">{t.deltaSuccess}</span> {Math.round(baseline.successShare * 100)}% → {Math.round(mine.successShare * 100)}% <b className={tone(delta)}>({signed(delta)})</b></div>
+            <div><span className="note small">{t.deltaScore}</span> {baseline.score.p50} → {mine.score.p50} <b className={tone(scoreDelta)}>({signed(scoreDelta)})</b></div>
+          </div></>}
       </div>
       <div className="fc-sub"><Term k="percentile">{t.scoreBar}</Term></div>
       <ScoreBar rows={[{ label: t.baselineLabel, s: baseline.score, faint: !!mine }, ...(mine ? [{ label: t.yourDesign, s: mine.score }] : [])]} />

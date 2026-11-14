@@ -77,6 +77,11 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(17em, 1fr)); gap: 0.5em 1em; align-items: start; }
 .slot { border: none; padding: 0; margin: 0; min-width: 0; }
 .slot.wide { grid-column: 1 / -1; }
+/* Four or more boxes in a phase: narrower columns, so three fit side by side. */
+.slots.dense { grid-template-columns: repeat(auto-fit, minmax(13em, 1fr)); }
+.slots.dense .slot.multi { grid-column: span 2; }
+.slots.dense.cols { display: block; columns: 3 13em; column-gap: 1em; }
+.slots.dense.cols .slot { break-inside: avoid; margin-bottom: 0.5em; }
 .slot legend { font-weight: 600; font-size: 1.05em; padding: 0; }
 .slot > .note { margin: 0.1em 0 0.4em; font-size: 0.85em; }
 .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(14em, 1fr)); gap: 0.35em; }
@@ -204,7 +209,7 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .diff-advanced { color: var(--bad); border-color: var(--bad); }
 
 /* Tutorial, glossary and dialogs. Dialogs reset to the base size, whatever column they were opened from. */
-.tour { position: fixed; right: 1.25rem; bottom: 1.25rem; width: 24rem; max-width: calc(100vw - 2.5rem); z-index: 20; background: #13203f; border: 1px solid var(--accent); border-radius: 10px; padding: 0.9rem 1rem; box-shadow: 0 8px 30px rgba(0,0,0,0.5); font-size: 1rem; }
+.tour { position: fixed; right: 1.25rem; bottom: 1.25rem; width: 24rem; max-width: calc(100vw - 2.5rem); z-index: 21; background: #13203f; border: 1px solid var(--accent); border-radius: 10px; padding: 0.9rem 1rem; box-shadow: 0 8px 30px rgba(0,0,0,0.5); font-size: 1rem; }
 .tour-head { display: flex; justify-content: space-between; }
 .tour-actions { display: flex; justify-content: space-between; gap: 0.5em; }
 .tour-actions span { display: flex; gap: 0.5em; }
@@ -358,7 +363,8 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 
 /* Mission view (left column). */
 .col-left.with-view { display: flex; flex-direction: column; gap: 0.5em; padding: 0.5em; overflow: hidden; }
-.col-left.with-view .mission-view.small { flex: 0 0 42%; min-height: 30%; }
+.col-left.with-view .mv-wrap { flex: 0 0 42%; min-height: 30%; display: flex; flex-direction: column; }
+.col-left.with-view .mission-view.small { flex: 1 1 auto; min-height: 0; }
 .col-left.with-view .left-rest { flex: 1 1 auto; min-height: 0; padding: 0 0.25em; }
 .col-left:not(.with-view) { overflow: hidden; }
 .mission-view { position: relative; border-radius: 6px; background: radial-gradient(ellipse at center, #101a33 0%, #070b17 75%); overflow: hidden; }
@@ -467,3 +473,17 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .why-table td.bad, .why-box .bad { color: var(--bad); font-variant-numeric: tabular-nums; }
 .why-table td.good, .why-box .good { color: var(--good); font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .fb-bar.grow { animation: none; } }
+
+/* Step 6: forecast deltas, option cards, dialogs, the guided tour. */
+.ring-deltas { display: flex; flex-direction: column; gap: 0.15em; font-size: 0.95em; font-variant-numeric: tabular-nums; }
+.ring-deltas .same { color: var(--muted); }
+.opt-stats { margin-bottom: 0.15em; }
+.opt-diff { font-size: 0.9em !important; margin-top: 0.2em !important; }
+.opt-block { border-left: 3px solid var(--bad); padding-left: 0.5em; margin-top: 0.3em !important; font-size: 0.9em !important; }
+.modal-body { animation: modal-in 150ms ease-out both; }
+@keyframes modal-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.tour-block { position: fixed; z-index: 19; background: rgba(3, 6, 14, 0.55); }
+.tour h3 { margin: 0.2em 0 0.4em; font-size: 1.05em; }
+.tour .tour-big { font-size: 1.6em; font-weight: 700; color: #7fd1ff; }
+.tour ul { margin: 0.3em 0; padding-left: 1.2em; }
+@media (prefers-reduced-motion: reduce) { .modal-body { animation: none; } }

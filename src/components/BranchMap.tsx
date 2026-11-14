@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { leavesOf, type BranchNode } from '../engine/branchTree';
 import { fmt, useLang } from '../i18n';
 
@@ -23,6 +24,49 @@ export interface BranchMapProps {
   reasonOf?: (n: BranchNode) => { title: string; detail: string } | null;
   /** Figure only, for the small preview; the full view adds the legend and the table of reasons. */
   compact?: boolean;
+  /** Changes when a new forecast is run: one dot per run then flows along its branch to its outcome. */
+  flowKey?: number;
+  /** Final outcome key of a run (run ids start at 1), for the colour a dot takes at the end. */
+  finalOf?: (id: number) => string;
+}
+
+type Pt = [number, number];
+const FLOW_MS = 1200;
+
+/** One dot per run, moving along its branch and stacking up at its outcome; drawn once per new forecast. */
+function FlowDots({ paths }: { paths: { pts: Pt[]; from: string; to: string }[] }) {
+  const g = useRef<SVGGElement>(null);
+  useEffect(() => {
+    const dots = Array.from(g.current?.children ?? []) as SVGCircleElement[];
+    const lens = paths.map((p) => p.pts.slice(1).reduce((a, q, i) => a + Math.hypot(q[0] - p.pts[i]![0], q[1] - p.pts[i]![1]), 0));
+    const at = (p: Pt[], len: number, k: number): Pt => {
+      let d = k * len;
+      for (let i = 1; i < p.length; i++) {
+        const s = Math.hypot(p[i]![0] - p[i - 1]![0], p[i]![1] - p[i - 1]![1]);
+        if (d <= s || i === p.length - 1) { const u = s ? Math.min(1, d / s) : 1; return [p[i - 1]![0] + (p[i]![0] - p[i - 1]![0]) * u, p[i - 1]![1] + (p[i]![1] - p[i - 1]![1]) * u]; }
+        d -= s;
+      }
+      return p[p.length - 1]!;
+    };
+    const start = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const el = now - start;
+      dots.forEach((c, i) => {
+        // Staggered starts, so the dots read as a stream rather than one blob.
+        const k = Math.max(0, Math.min(1, (el - (i % 25) * 12) / (FLOW_MS - 300)));
+        const [x, y] = at(paths[i]!.pts, lens[i]!, 1 - (1 - k) ** 2);
+        c.setAttribute('cx', String(x));
+        c.setAttribute('cy', String(y));
+        c.setAttribute('fill', k >= 1 ? paths[i]!.to : paths[i]!.from);
+        c.setAttribute('opacity', el > FLOW_MS + 500 ? String(Math.max(0, 1 - (el - FLOW_MS - 500) / 400)) : '0.95');
+      });
+      if (el < FLOW_MS + 900) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [paths]);
+  return <g ref={g} pointerEvents="none">{paths.map((p, i) => <circle key={i} r={2.6} cx={p.pts[0]![0]} cy={p.pts[0]![1]} fill={p.from} />)}</g>;
 }
 
 const BG_SPLIT = 'rgba(255, 183, 77, 0.06)';
@@ -30,7 +74,7 @@ const SPLIT = '#ffb74d';
 const TEXT = '#e8ecf4';
 const MUTED = '#8c9ab8';
 
-export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder = [], reasonOf, compact = false }: BranchMapProps) {
+export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder = [], reasonOf, compact = false, flowKey, finalOf }: BranchMapProps) {
   const { t } = useLang();
 
   const T = phases;
@@ -66,6 +110,31 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
     });
     return sorted.map((k) => `${nameOf(k)} ${n.finalCounts[k]}`).join(' / ');
   };
+
+  // Each run's way through the map, for the flowing dots: along its branches, then into a stack at its outcome.
+  const flowPaths = useRef<{ key: number; paths: { pts: Pt[]; from: string; to: string }[] } | null>(null);
+  const reduce = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (flowKey && !reduce && finalOf && flowPaths.current?.key !== flowKey) {
+    const stack = new Map<BranchNode, number>();
+    const paths: { pts: Pt[]; from: string; to: string }[] = [];
+    for (const id of tree.runs) {
+      const jitter = ((id * 37) % 11) - 5;
+      const pts: Pt[] = [[LEFT - 8, ys.get(tree)! + jitter * 0.6]];
+      let n = tree;
+      while (n.children.length) {
+        const y = ys.get(n)!;
+        pts.push([xc(n.split) - 26, y + jitter * 0.6]);
+        const ch = n.children.find((c) => c.runs.includes(id))!;
+        pts.push([xc(n.split) + 26, ys.get(ch)! + jitter * 0.6]);
+        n = ch;
+      }
+      const k = stack.get(n) ?? 0;
+      stack.set(n, k + 1);
+      pts.push([W - FINAL - 8 - (k % 8) * 6, ys.get(n)! + (Math.floor(k / 8) % 3 - 1) * 6]);
+      paths.push({ pts, from: '#cfe6ff', to: colorOf(finalOf(id)) });
+    }
+    flowPaths.current = { key: flowKey, paths };
+  }
 
   const figure = () => (
     <svg viewBox={`0 0 ${W} ${H}`} className="br-svg" role="img" aria-label={t.branchMapTitle}>
@@ -117,6 +186,7 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
         <text x={6 + (LEFT - 18) / 2} y={ys.get(tree)! - 4} textAnchor="middle" fontSize="11" fontWeight={600} fill={TEXT}>{t.branchStart}</text>
         <text x={6 + (LEFT - 18) / 2} y={ys.get(tree)! + 11} textAnchor="middle" fontSize="11" fill={MUTED}>{fmt(t.branchRuns, { n: tree.runs.length })}</text>
       </g>
+      {flowPaths.current && flowKey === flowPaths.current.key && <FlowDots key={flowKey} paths={flowPaths.current.paths} />}
       {leaves.map((n, i) => {
         const y = ys.get(n)!;
         return (

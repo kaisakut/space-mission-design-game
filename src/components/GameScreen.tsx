@@ -194,7 +194,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
 
   const forecastFirst = canForecast && (!myForecast || stale);
   const step = !myForecast || stale ? 2 : 3;
-  const forecastBtn = <button type="button" className={forecastFirst ? 'primary' : 'secondary'} disabled={!canForecast} onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })}</button>;
+  const forecastBtn = <button type="button" data-tour="forecastBtn" className={forecastFirst ? 'primary' : 'secondary'} disabled={!canForecast} onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })}</button>;
   const confirmBtn = <button type="button" className={forecastFirst ? 'secondary' : 'primary'} onClick={confirm}>{game.phase < PHASE_COUNT ? fmt(t.confirmPhaseN, { n: game.phase }) : t.confirmLast}</button>;
   const lastReport = game.reports[game.reports.length - 1];
 
@@ -226,7 +226,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       </div>
       <div className="game-body">
         <div className={`col col-left ${mission.view ? 'with-view' : ''}`}>
-        {mission.view && <MissionView mission={mission} state={state} ghost={ghost} />}
+        {mission.view && <div className="mv-wrap" data-tour="view"><MissionView mission={mission} state={state} ghost={ghost} /></div>}
         <AutoFit className="left-rest" data-tour="gauges" min={0.8}>
           <Gauges gauges={state.gauges} flash={flash} />
           {pending.kUSD > 0 && <p className="warn small">{fmt(t.pendingChange, { k: pending.kUSD.toLocaleString(), d: pending.days })}</p>}
@@ -236,16 +236,19 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
             {warnings.length > 0 && <><h3 className="warn">{t.warnings}</h3><ul>{warnings.map((i, k) => <li key={k}>{issueText(i)}</li>)}</ul></>}
             {!blockers.length && !warnings.length && <p className="ok">{t.noIssues}</p>}
           </div>
-          <div className="weak">
+          <div className="weak" data-tour="weak">
             <h3>{t.weakPoints}</h3>
             {shown.topCauses.length === 0 ? <p className="ok small">{t.noCauses}</p> : (
               <ul>
                 {shown.topCauses.slice(0, 3).map(([c, share]) => {
                   const s = fixSlot(c);
+                  // Against the baseline: more often, less often, or new with this design.
+                  const before = baseline.topCauses.find(([k]) => k === c)?.[1];
+                  const mark = !myForecast ? null : before === undefined ? <span className="bad small"> {t.causeNew}</span> : share > before + 0.02 ? <span className="bad"> ↑</span> : share < before - 0.02 ? <span className="ok"> ↓</span> : null;
                   return (
                     <li key={c}>
                       {s ? <button type="button" className="link-btn" title={t.weakJump} onClick={() => jump(s.id, s.phase)}>{causeName(c)} → {L(s.label)}</button> : causeName(c)}
-                      <span className="note"> {Math.round(share * 100)}%</span>
+                      <span className="note"> {Math.round(share * 100)}%</span>{mark}
                     </li>
                   );
                 })}
@@ -254,13 +257,17 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
           </div>
         </AutoFit>
         </div>
-        <AutoFit className="col col-center" data-tour="options" min={0.8}>
+        <AutoFit className="col col-center" data-tour="options" min={0.7}>
           {tab < game.phase && <p className="note">{t.pastPhaseNote}</p>}
-          <div className={`slots ${mission.slots.filter((s) => s.phase === tab).length <= 3 ? 'roomy' : ''}`}>
+          <div className={`slots ${(() => {
+            // Four or more boxes: three narrow columns; without a wide box, flowed as columns so short boxes stack.
+            const here = mission.slots.filter((s) => s.phase === tab);
+            return here.length <= 3 ? 'roomy' : here.some((s) => s.options.length > 4 || (s.multi && s.options.length > 2)) ? 'dense' : 'dense cols';
+          })()}`}>
             {mission.slots.filter((s) => s.phase === tab).map((s) => {
               const locked = changeCost(mission, player, s.id, ['__probe__'], game.phase).locked;
               return (
-                <fieldset key={s.id} className={`slot ${s.options.length > 4 ? 'wide' : ''} ${flashSlot === s.id ? 'flash' : ''}`}>
+                <fieldset key={s.id} className={`slot ${s.options.length > 4 ? 'wide' : s.multi && s.options.length > 2 ? 'multi' : ''} ${flashSlot === s.id ? 'flash' : ''}`}>
                   <legend>{L(s.label)}</legend>
                   <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>
                   {locked && <p className="warn small">{t.lockedAfterLaunch}</p>}
@@ -321,7 +328,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       )}
       {resolved !== null && <Resolution game={game} phase={resolved} onClose={() => setResolved(null)} />}
       {allTurns && <Modal title={t.reportsTitle} wide onClose={() => setAllTurns(false)}><TurnReports game={game} heading={false} /></Modal>}
-      {guide && <Tutorial summary={mission.summary} onClose={() => setGuide(false)} />}
+      {guide && <Tutorial mission={mission} autoShare={baseline.successShare} onClose={() => setGuide(false)} />}
     </div>
   );
 }
