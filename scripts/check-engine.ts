@@ -43,7 +43,7 @@ const play = (seed: number) => {
   return g;
 };
 const g1 = play(9), g2 = play(9);
-check(!!g1.final && Object.keys(g1.final).length === 3, 'a full game ends with results for all three agencies');
+check(!!g1.final && Object.keys(g1.final).length === 4, 'a full game ends with results for all four agencies');
 check(JSON.stringify(g1.final) === JSON.stringify(g2.final), 'the same seed gives the same game');
 const sameCards = g1.reports.every((r) => Object.values(r.results).every((x) => Object.keys(x).length === r.cards.length));
 check(sameCards, 'every agency faces the same cards each phase');

@@ -96,7 +96,6 @@ export const en = {
   // Forecast
   forecastTitle: 'Forecast',
   forecastNote: 'Fly the current design to the end many times. Undecided items use the standard choice. Forecasting never changes what will really happen.',
-  runsLabel: 'Runs',
   runForecast: 'Run {n} forecasts',
   forecastStale: 'The design has changed since this forecast.',
   successChance: 'Success chance',
@@ -151,6 +150,7 @@ export const en = {
   budgetUsed: '(budget {n}% committed)',
   agency_player: 'Your agency',
   agency_cautious: 'Cautious agency',
+  agency_balanced: 'Balanced agency',
   agency_bold: 'Bold agency',
   result_protected: 'protected',
   result_partial: 'partly hit',

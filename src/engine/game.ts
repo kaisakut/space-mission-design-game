@@ -5,7 +5,8 @@ import { runForecast, type Forecast } from './forecast';
 import { Rng } from './rng';
 import { simulate, type RunResult } from './simulate';
 
-export type AgencyKind = 'player' | 'cautious' | 'bold';
+export type AgencyKind = 'player' | 'cautious' | 'balanced' | 'bold';
+export const AGENCIES: AgencyKind[] = ['player', 'cautious', 'balanced', 'bold'];
 export const PHASE_COUNT = 5;
 
 export interface Agency {
@@ -46,7 +47,7 @@ export interface Game {
 /** Turns of each agency that confirmed slots: what the player does and what the AI does go through the same rules. */
 export function newGame(m: Mission, seed: number, practice = false): Game {
   const agency = (id: AgencyKind): Agency => ({ id, picks: {}, decidedIn: {}, changeKUSD: 0, changeDays: 0, results: new Map() });
-  return { mission: m, seed, phase: 1, agencies: [agency('player'), agency('cautious'), agency('bold')], drawn: new Map(), reports: [], forecastsUsed: 0, practice, final: null };
+  return { mission: m, seed, phase: 1, agencies: AGENCIES.map(agency), drawn: new Map(), reports: [], forecastsUsed: 0, practice, final: null };
 }
 
 /** Cards for a phase, drawn once from the game's own stream so every agency faces the same ones. */
@@ -145,7 +146,7 @@ export function confirmPhase(g: Game, picksByAgency: Record<AgencyKind, Picks>):
 
   const cards = drawPhase(m, g.seed, phase);
   const drawn = new Map(g.drawn).set(phase, cards);
-  const report: TurnReport = { phase, cards: [...cards], results: { player: {}, cautious: {}, bold: {} } };
+  const report: TurnReport = { phase, cards: [...cards], results: Object.fromEntries(AGENCIES.map((id) => [id, {}])) as TurnReport['results'] };
   for (const a of agencies) {
     const d = agencyDesign({ ...g, agencies }, a);
     for (const id of cards) {

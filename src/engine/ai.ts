@@ -5,6 +5,7 @@ import { agencyForecast, pendingChanges, type Agency, type Game } from './game';
  * Rule-based rival agencies. They use the same forecast as the player and the same options, so the AI
  * works for any mission without mission-specific rules:
  * - cautious: maximises the score a bad run still gets (10th percentile), and values a high success chance;
+ * - balanced: maximises the typical score (median);
  * - bold: maximises the score of a good run (90th percentile).
  * For each slot of the current phase, in order, it tries every option and keeps the best one.
  * It does not reopen earlier decisions.
@@ -22,7 +23,7 @@ export function aiPicks(g: Game, a: Agency): Picks {
       const trial = { ...picks, [s.id]: ids };
       const pend = pendingChanges(g, a, trial);
       const f = agencyForecast(g, a, trial, AI_RUNS, `ai:${a.id}:${s.id}:${ids.join('+')}`, pend);
-      const u = a.id === 'cautious' ? f.score.p10 + 30 * f.successShare : f.score.p90 + 5 * f.successShare;
+      const u = a.id === 'cautious' ? f.score.p10 + 30 * f.successShare : a.id === 'balanced' ? f.score.p50 + 10 * f.successShare : f.score.p90 + 5 * f.successShare;
       if (!best || u > best.u + 1e-9) best = { ids, u };
     }
     picks[s.id] = best!.ids;

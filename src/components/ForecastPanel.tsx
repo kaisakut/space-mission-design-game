@@ -16,7 +16,8 @@ export const OUTCOME_COLOR: Record<Outcome, string> = {
   noLaunch: '#78909c',
 };
 
-const RUN_CHOICES = [20, 50, 100];
+/** Runs per forecast: enough for stable percentages, and still instant in the browser. */
+const RUNS = 100;
 
 /** Readable name of a cause key from a run ('solar-flare', 'fail:cdh', 'blocked:overBudget', ...). */
 export function useCauseName(mission: Mission) {
@@ -39,7 +40,6 @@ export function ForecastPanel({ mission, designKey, run, left }: {
   mission: Mission; designKey: string; run: (runs: number) => Forecast | null; left: number | null;
 }) {
   const { t, L } = useLang();
-  const [runs, setRuns] = useState(50);
   const [result, setResult] = useState<{ f: Forecast; picks: string } | null>(null);
   const key = designKey;
   const stale = result !== null && result.picks !== key;
@@ -68,13 +68,8 @@ export function ForecastPanel({ mission, designKey, run, left }: {
       <h2>{t.forecastTitle}</h2>
       <p className="note">{t.forecastNote}</p>
       <div className="controls">
-        <label>{t.runsLabel}
-          <select value={runs} onChange={(e) => setRuns(Number(e.target.value))}>
-            {RUN_CHOICES.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
-        <button type="button" className="primary" disabled={left === 0} onClick={() => { const f = run(runs); if (f) setResult({ f, picks: key }); }}>
-          {fmt(t.runForecast, { n: runs })}
+        <button type="button" className="primary" disabled={left === 0} onClick={() => { const f = run(RUNS); if (f) setResult({ f, picks: key }); }}>
+          {fmt(t.runForecast, { n: RUNS })}
         </button>
         {left !== null && <span className="note">{left > 0 ? fmt(t.forecastLeft, { n: left }) : t.forecastNoneLeft}</span>}
         {stale && <span className="warn">{t.forecastStale}</span>}
