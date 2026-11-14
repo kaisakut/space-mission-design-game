@@ -35,7 +35,11 @@ npm run build
 
 ## References
 
-_To be written: all libraries, data, code and images used in this project._
+_Being written: all libraries, data, code and images used in this project._
+
+- [React](https://react.dev/) (MIT) — user interface.
+- [three.js](https://threejs.org/) (MIT) — the 3D mission view.
+- NASA Visible Earth, [Blue Marble: Land Surface, Shallow Water, and Shaded Topography](https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography) (NASA Goddard Space Flight Center, Reto Stöckli; public domain) — Earth texture, `public/textures/earth_day_2048.jpg`.
 
 ## AI usage
 

@@ -9,6 +9,7 @@ import { fmt, tk, useLang } from '../i18n';
 import { AutoFit } from './AutoFit';
 import { ForecastPanel, RUNS } from './ForecastPanel';
 import { Gauges } from './Gauges';
+import { MissionView } from './MissionView';
 import { useCauseName } from './labels';
 import { Modal } from './Modal';
 import { OptionCard, type Diff } from './OptionCard';
@@ -35,6 +36,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const [askConfirm, setAskConfirm] = useState(false);
   const [allTurns, setAllTurns] = useState(false);
   const [flashSlot, setFlashSlot] = useState<string | null>(null);
+  const [hover, setHover] = useState<{ slot: string; id: string } | null>(null);
   const player = game.agencies.find((a) => a.id === 'player')!;
   const working = { ...player.picks, ...draft };
   const pending = useMemo(() => pendingChanges(game, player, working), [game, player, working]);
@@ -166,6 +168,12 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     return { diffs, blocks: fresh.length ? fmt(t.pickBlocks, { x: fresh.map(issueText).join(t.listSep) }) : undefined };
   };
 
+  // The design if the option under the pointer were picked: the mission view draws it faintly.
+  const hoverSlot = hover ? mission.slots.find((s) => s.id === hover.slot) : undefined;
+  const ghost = useMemo(() => (hover && hoverSlot ? agencyDesign(game, player, { ...player.picks, ...nextDraft(hover.slot, hover.id, hoverSlot.multi) }, pending) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hover, game, draft]);
+
   if (over && game.final) {
     return <AutoFit className="final-wrap" min={0.8}><FinalScreen game={game} onRestart={() => restart()} onReplaySame={() => restart(game.seed)} /></AutoFit>;
   }
@@ -203,7 +211,9 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
         <div className="turn-actions" data-tour="confirm">{forecastBtn}{confirmBtn}</div>
       </div>
       <div className="game-body">
-        <AutoFit className="col col-left" data-tour="gauges" min={0.8}>
+        <div className={`col col-left ${mission.view ? 'with-view' : ''}`}>
+        {mission.view && <MissionView mission={mission} state={state} ghost={ghost} />}
+        <AutoFit className="left-rest" data-tour="gauges" min={0.8}>
           <Gauges gauges={state.gauges} flash={flash} />
           {pending.kUSD > 0 && <p className="warn small">{fmt(t.pendingChange, { k: pending.kUSD.toLocaleString(), d: pending.days })}</p>}
           {player.changeKUSD > 0 && <p className="note small">{fmt(t.paidChanges, { k: player.changeKUSD.toLocaleString() })}</p>}
@@ -229,6 +239,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
             )}
           </div>
         </AutoFit>
+        </div>
         <AutoFit className="col col-center" data-tour="options" min={0.8}>
           {tab < game.phase && <p className="note">{t.pastPhaseNote}</p>}
           <div className={`slots ${mission.slots.filter((s) => s.phase === tab).length <= 3 ? 'roomy' : ''}`}>
@@ -256,6 +267,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                           reason={wrongOrbit ? t.cannotReachOrbit : undefined}
                           hint={c && c.kUSD > 0 && !locked ? fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days }) : undefined}
                           onPick={() => pick(s.id, id, s.multi)}
+                          onHover={(on) => setHover(on ? { slot: s.id, id } : null)}
                         />
                       );
                     })}

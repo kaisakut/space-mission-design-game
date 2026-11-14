@@ -54,15 +54,16 @@ function sourcedFields(o: Option): [string, Sourced<unknown>][] {
 /** One difference from the current choice: text and whether it makes things better or worse. */
 export type Diff = { text: string; good: boolean };
 
-export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick }: {
+export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick, onHover }: {
   option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number;
-  hint?: string; standard?: boolean; diffs?: Diff[]; reason?: string; blocks?: string; onPick: () => void;
+  hint?: string; standard?: boolean; diffs?: Diff[]; reason?: string; blocks?: string; onPick: () => void; onHover?: (on: boolean) => void;
 }) {
   const { t, L } = useLang();
   const [open, setOpen] = useState(false);
   const stats = headline(option, t, orbitId, solar);
   return (
-    <div className={`opt ${selected ? 'on' : ''} ${disabled ? 'off' : ''}`}>
+    <div className={`opt ${selected ? 'on' : ''} ${disabled ? 'off' : ''}`}
+      onMouseEnter={() => onHover?.(true)} onMouseLeave={() => onHover?.(false)} onFocus={() => onHover?.(true)} onBlur={() => onHover?.(false)}>
       <div className="opt-row">
         <label className="opt-main">
           <input type={type} name={name} checked={selected} disabled={disabled} onChange={onPick} />

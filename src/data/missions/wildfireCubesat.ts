@@ -64,6 +64,17 @@ export const wildfireCubesat: Mission = {
     changeMinKUSD: rule(30, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
     changeDelayDaysPerPhase: rule(15),
   },
+  // Picture only: latitudes are those used for the contact minutes (35° N own, 65° N high latitude);
+  // longitudes and the network sites are display values.
+  view: {
+    kind: 'earthOrbit',
+    stations: {
+      own: { lat: 35, lon: 139 },
+      highLat: { lat: 65, lon: 25 },
+      network: [{ lat: 64, lon: -147 }, { lat: -33, lon: 18 }, { lat: 13, lon: 77 }, { lat: -45, lon: 169 }, { lat: 78, lon: 15 }, { lat: 37, lon: -122 }],
+    },
+    wings: ['pwr-deploy'],
+  },
   primary: {
     id: 'detect-and-deliver',
     name: tx('Detect and deliver', '検知して届ける'),

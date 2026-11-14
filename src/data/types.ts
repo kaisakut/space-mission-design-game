@@ -293,6 +293,24 @@ export interface Mission {
   /** All options used by the slots, by id. */
   options: Option[];
   events: EventCard[];
+  /** How the mission view draws this mission. Missions without one show no view. */
+  view?: MissionViewConfig;
   /** Wording that differs from the default for this mission (e.g. "landing failure" instead of "launch failure"). */
   outcomeLabels?: Partial<Record<Outcome, Text>>;
 }
+
+/**
+ * Drawing settings for the mission view. Only for the picture: the game's numbers never come from here.
+ * Station longitudes are display values (the data gives latitudes only).
+ */
+export type MissionViewConfig = {
+  kind: 'earthOrbit';
+  stations: {
+    own: { lat: number; lon: number };
+    highLat: { lat: number; lon: number };
+    /** Shown when the design uses a commercial network (networkFactor above 1). */
+    network: { lat: number; lon: number }[];
+  };
+  /** Options whose solar panels unfold (drawn as wings). */
+  wings: string[];
+};

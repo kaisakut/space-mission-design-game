@@ -401,6 +401,14 @@ export const SOURCES: Source[] = [
     nasa: false,
     accessed: '2026-11-14',
   },
+  {
+    id: 'nasa-blue-marble',
+    title: 'Blue Marble: Land Surface, Shallow Water, and Shaded Topography (Earth texture in the mission view)',
+    publisher: 'NASA Visible Earth (Goddard Space Flight Center)',
+    url: 'https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography',
+    nasa: true,
+    accessed: '2026-11-14',
+  },
 ];
 
 export const SOURCE_BY_ID: ReadonlyMap<string, Source> = new Map(SOURCES.map((s) => [s.id, s]));

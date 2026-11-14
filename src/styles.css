@@ -356,3 +356,19 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
   .appear, .flip, .slot.flash { animation: none !important; }
   .gauge-fill, .opt { transition: none !important; }
 }
+
+/* Mission view (left column). */
+.col-left.with-view { display: flex; flex-direction: column; gap: 0.5em; padding: 0.5em; overflow: hidden; }
+.col-left.with-view .mission-view.small { flex: 0 0 42%; min-height: 30%; }
+.col-left.with-view .left-rest { flex: 1 1 auto; min-height: 0; padding: 0 0.25em; }
+.col-left:not(.with-view) { overflow: hidden; }
+.mission-view { position: relative; border-radius: 6px; background: radial-gradient(ellipse at center, #101a33 0%, #070b17 75%); overflow: hidden; }
+.mission-view.big { height: 70vh; }
+.mv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mv-info { position: absolute; left: 0.5em; bottom: 0.4em; font-size: 0.72rem; color: #b8c3da; text-shadow: 0 1px 2px #000; pointer-events: none; }
+.mv-buttons { position: absolute; right: 0.4em; bottom: 0.4em; display: flex; gap: 0.3em; }
+.mv-buttons button { font-size: 0.72rem; padding: 0.15em 0.5em; background: rgba(11, 16, 32, 0.7); }
+.mv-meter { position: absolute; right: 0.6em; top: 0.6em; width: 0.5em; height: 3em; border: 1px solid #3a4a6e; border-radius: 3px; background: rgba(11, 16, 32, 0.6); display: flex; align-items: flex-end; }
+.mv-meter span { display: block; width: 100%; background: #7fd1ff; transition: height 0.15s linear; }
+.mv-meter.over { border-color: var(--bad); }
+.mv-meter.over span { background: var(--bad); }
