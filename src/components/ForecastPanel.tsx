@@ -75,8 +75,12 @@ function ScoreBar({ rows }: { rows: { label: string; s: Forecast['score']; faint
  * Forecast column: the free baseline (confirmed design plus standard choices) and, once run, the player's
  * own forecast beside it. The branch map is readable here; clicking it opens the full map and its reasons.
  */
-export function ForecastPanel({ mission, baseline, mine, stale, left }: {
+export function ForecastPanel({ mission, baseline, mine, stale, left, pastIds, wasNote }: {
   mission: Mission; baseline: Forecast; mine: Forecast | null; stale: boolean; left: number | null;
+  /** Cards that already hit: not shown among the causes still to come. */
+  pastIds?: Set<string>;
+  /** Why the baseline moved since the last phase. */
+  wasNote?: string | null;
 }) {
   const { t, L } = useLang();
   const [full, setFull] = useState(false);
@@ -133,12 +137,13 @@ export function ForecastPanel({ mission, baseline, mine, stale, left }: {
             <div><span className="note small">{t.deltaScore}</span> {baseline.score.p50} → {mine.score.p50} <b className={tone(scoreDelta)}>({signed(scoreDelta)})</b></div>
           </div></>}
       </div>
+      {wasNote && <p className="note small was-note">{wasNote}</p>}
       <div className="fc-sub"><Term k="percentile">{t.scoreBar}</Term></div>
       <ScoreBar rows={[{ label: t.baselineLabel, s: baseline.score, faint: !!mine }, ...(mine ? [{ label: t.yourDesign, s: mine.score }] : [])]} />
       <div className="fc-sub">{t.topCauses}</div>
-      {shown.topCauses.length === 0 ? <p className="ok small">{t.noCauses}</p> : (
+      {shown.topCauses.filter(([c]) => !pastIds?.has(c)).length === 0 ? <p className="ok small">{t.noCauses}</p> : (
         <ul className="causes-bars">
-          {shown.topCauses.slice(0, 3).map(([c, share]) => {
+          {shown.topCauses.filter(([c]) => !pastIds?.has(c)).slice(0, 3).map(([c, share]) => {
             const before = baseShare.get(c) ?? 0;
             return (
               <li key={c}>

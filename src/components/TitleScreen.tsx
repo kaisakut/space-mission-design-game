@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { MISSIONS, UPCOMING } from '../data/missions';
 import type { Mission } from '../data/types';
-import { runForecast } from '../engine/forecast';
+import { FORECAST_SEED, runForecast } from '../engine/forecast';
+import { RUNS } from './ForecastPanel';
 import { fmt, tk, useLang } from '../i18n';
 import { useCauseName } from './labels';
 import { TitleGlobe } from './MissionView';
@@ -22,7 +23,8 @@ function MissionArt({ id }: { id: string }) {
 function MissionCard({ m, onStart }: { m: Mission; onStart: () => void }) {
   const { t, L } = useLang();
   const causeName = useCauseName(m);
-  const f = useMemo(() => runForecast(m, {}, 20261114, 1, 100, { stream: 'title' }), [m]);
+  // The same forecast as the first baseline in the game, so the two numbers always agree.
+  const f = useMemo(() => runForecast(m, {}, FORECAST_SEED, 1, RUNS, { stream: 'baseline' }), [m]);
   const share = Math.round(f.successShare * 100);
   const r = 15, c = 2 * Math.PI * r;
   return (

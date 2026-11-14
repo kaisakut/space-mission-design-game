@@ -3,7 +3,7 @@ import type { Mission, Resource } from '../data/types';
 import { RESOURCES } from '../data/types';
 import { aiPicks } from '../engine/ai';
 import { completePicks, type Issue, type Picks } from '../engine/design';
-import type { Forecast } from '../engine/forecast';
+import { FORECAST_SEED, type Forecast } from '../engine/forecast';
 import { agencyDesign, agencyForecast, changeCost, confirmPhase, newGame, pendingChanges, PHASE_COUNT, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
 import { play } from '../audio/sfx';
@@ -12,7 +12,7 @@ import { AutoFit } from './AutoFit';
 import { ForecastPanel, RUNS } from './ForecastPanel';
 import { Gauges } from './Gauges';
 import { MissionView } from './MissionView';
-import { useCauseName } from './labels';
+import { useCardText, useCauseName } from './labels';
 import { Modal } from './Modal';
 import { OptionCard, type Diff } from './OptionCard';
 import { FinalScreen, TurnReports } from './Reports';
@@ -49,9 +49,17 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const over = game.phase > PHASE_COUNT;
 
   // The free baseline: the confirmed design, standard choices for the rest. Its own random stream.
-  const baseline = useMemo(() => agencyForecast(game, player, player.picks, RUNS, 'baseline'),
+  // The player's forecasts share one seed and stream: an unchanged design gives exactly the baseline's numbers.
+  const baseline = useMemo(() => agencyForecast(game, player, player.picks, RUNS, 'baseline', undefined, FORECAST_SEED),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [game.phase, game.agencies]);
+  // Cards that already hit the player: they are history now, not weak points with a chance.
+  const cardText = useCardText(mission);
+  const past = useMemo(() => game.reports.flatMap((r) => r.cards.map((id) => ({ id, result: r.results.player[id] }))).filter((x) => x.result === 'hit' || x.result === 'partial'), [game.reports]);
+  const pastIds = useMemo(() => new Set(past.map((x) => x.id)), [past]);
+  const pastLines = past.map((x) => { const card = mission.events.find((e) => e.id === x.id)!; const eff = cardText.resultLine(card, x.result!); return `${L(card.name)}${eff ? ` (${eff})` : ''}`; });
+  // The baseline before the last confirmation, and what happened since, for the line under the ring.
+  const prevBase = useRef<number | null>(null);
   const designKey = JSON.stringify([working, game.phase]);
   const myForecast = mine && mine.phase === game.phase ? mine : null;
   const stale = !!myForecast && myForecast.key !== designKey;
@@ -112,7 +120,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const runForecast = () => {
     if (!canForecast) return;
     // Same random stream as the baseline, so the difference shows the design change, not noise.
-    const f = agencyForecast(game, player, working, RUNS, 'baseline', pending);
+    const f = agencyForecast(game, player, working, RUNS, 'baseline', pending, FORECAST_SEED);
     setGame({ ...game, forecastsUsed: game.forecastsUsed + 1 });
     setMine({ f, key: designKey, phase: game.phase });
     play('forecastRun');
@@ -123,6 +131,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     const picks = {} as Record<AgencyKind, Picks>;
     for (const a of game.agencies) picks[a.id] = a.id === 'player' ? working : aiPicks(game, a);
     const phase = game.phase;
+    prevBase.current = baseline.successShare;
     play('confirm');
     const g = confirmPhase(game, picks);
     setGame(g);
@@ -150,7 +159,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     const cond = card?.protectedIf ?? card?.partialIf ?? card?.readyIf;
     if (!cond) return null;
     const tags: string[] = [], keys: string[] = [];
-    const walk = (c: typeof cond): void => { if (c.kind === 'hasTag') tags.push(c.tag); else if (c.kind === 'setting') keys.push(c.key); else if (c.kind === 'all' || c.kind === 'any') c.of.forEach(walk); };
+    const walk = (c: typeof cond): void => { if (c.kind === 'hasTag') tags.push(c.tag); else if (c.kind === 'setting' || c.kind === 'settingAtMost') keys.push(c.key); else if (c.kind === 'all' || c.kind === 'any') c.of.forEach(walk); };
     walk(cond);
     return mission.slots.find((s) => s.phase <= game.phase && s.options.some((id) => {
       const o = optionById.get(id)!;
@@ -238,9 +247,9 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
           </div>
           <div className="weak" data-tour="weak">
             <h3>{t.weakPoints}</h3>
-            {shown.topCauses.length === 0 ? <p className="ok small">{t.noCauses}</p> : (
+            {shown.topCauses.filter(([c]) => !pastIds.has(c)).length === 0 ? <p className="ok small">{t.noCauses}</p> : (
               <ul>
-                {shown.topCauses.slice(0, 3).map(([c, share]) => {
+                {shown.topCauses.filter(([c]) => !pastIds.has(c)).slice(0, 3).map(([c, share]) => {
                   const s = fixSlot(c);
                   // Against the baseline: more often, less often, or new with this design.
                   const before = baseline.topCauses.find(([k]) => k === c)?.[1];
@@ -254,6 +263,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                 })}
               </ul>
             )}
+            {pastLines.length > 0 && <div className="note small already"><b>{t.alreadyHappened}</b> {pastLines.join(t.listSep)}</div>}
           </div>
         </AutoFit>
         </div>
@@ -299,7 +309,14 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
           </div>
         </AutoFit>
         <AutoFit className="col col-right" data-tour="forecast" min={0.8}>
-          <ForecastPanel mission={mission} baseline={baseline} mine={myForecast?.f ?? null} stale={stale} left={forecastsLeft} />
+          <ForecastPanel mission={mission} baseline={baseline} mine={myForecast?.f ?? null} stale={stale} left={forecastsLeft} pastIds={pastIds}
+            wasNote={(() => {
+              // Why the baseline moved since the last phase: the cards that just came, as they turned out for you.
+              const was = prevBase.current;
+              if (was === null || !lastReport || Math.round(was * 100) === Math.round(baseline.successShare * 100)) return null;
+              const what = lastReport.cards.map((id) => { const card = mission.events.find((e) => e.id === id)!; const r = lastReport.results.player[id]; return fmt(tk(t, `was_${r}`), { name: L(card.name) }); });
+              return fmt(t.wasBaseline, { n: Math.round(was * 100), why: what.join(t.listSep) || t.wasNoCards });
+            })()} />
         </AutoFit>
       </div>
       <button type="button" className="rival-strip" onClick={() => setAllTurns(true)} disabled={!game.reports.length} title={t.showAllReports}>

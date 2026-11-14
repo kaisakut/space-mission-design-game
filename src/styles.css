@@ -490,3 +490,6 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .tour .tour-big { font-size: 1.6em; font-weight: 700; color: #7fd1ff; }
 .tour ul { margin: 0.3em 0; padding-left: 1.2em; }
 @media (prefers-reduced-motion: reduce) { .modal-body { animation: none; } }
+
+.already { margin-top: 0.4em; }
+.was-note { margin: 0.1em 0 0.3em; }

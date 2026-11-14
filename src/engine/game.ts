@@ -101,9 +101,9 @@ export function agencyDesign(g: Game, a: Agency, picks: Picks = a.picks, pending
 }
 
 /** Forecast for an agency: past cards are fixed, later ones are drawn in each run. */
-export function agencyForecast(g: Game, a: Agency, picks: Picks, runs: number, stream?: string, pending = { kUSD: 0, days: 0 }): Forecast {
+export function agencyForecast(g: Game, a: Agency, picks: Picks, runs: number, stream?: string, pending = { kUSD: 0, days: 0 }, seed = g.seed): Forecast {
   const adj: Adjustments = { extraKUSD: a.changeKUSD + pending.kUSD, extraDays: a.changeDays + pending.days };
-  return runForecast(g.mission, picks, g.seed, g.phase, runs, { adj, sim: { knownPhases: g.drawn, results: a.results }, stream });
+  return runForecast(g.mission, picks, seed, g.phase, runs, { adj, sim: { knownPhases: g.drawn, results: a.results }, stream });
 }
 
 /** Total change cost of moving from the agency's confirmed picks to `picks`. */

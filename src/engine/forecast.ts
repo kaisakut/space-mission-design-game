@@ -20,6 +20,12 @@ export interface Forecast {
 export const forecastRng = (seed: number, turn: number, run: number) => new Rng(seed, `forecast:${turn}:${run}`);
 
 /**
+ * Seed of the player's forecasts (the baseline and their own), the same in every game: the mission card, the
+ * first baseline and a forecast of an unchanged design all show the same numbers. The real game uses its own seed.
+ */
+export const FORECAST_SEED = 20261114;
+
+/**
  * Runs the current design to the end `runs` times. Undecided slots use their standard choice.
  * The real game draws from other streams, so forecasting never changes what will actually happen.
  */

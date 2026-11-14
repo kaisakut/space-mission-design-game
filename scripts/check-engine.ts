@@ -27,6 +27,18 @@ for (const m of MISSIONS) {
   check(JSON.stringify(real1) === JSON.stringify(real2), `${m.id}: forecasting does not change the real game`);
   console.log(`     auto-plan: success ${Math.round(a.successShare * 100)}%, median score ${a.score.p50}`);
 }
+// The mission card, the first baseline and an unchanged design's own forecast show the same numbers.
+import { FORECAST_SEED } from '../src/engine/forecast';
+import { agencyForecast } from '../src/engine/game';
+for (const m of MISSIONS) {
+  const g0 = newGame(m, 4242);
+  const player = g0.agencies.find((a) => a.id === 'player')!;
+  const card = runForecast(m, {}, FORECAST_SEED, 1, 100, { stream: 'baseline' });
+  const base = agencyForecast(g0, player, player.picks, 100, 'baseline', undefined, FORECAST_SEED);
+  const mine = agencyForecast(g0, player, { ...player.picks }, 100, 'baseline', { kUSD: 0, days: 0 }, FORECAST_SEED);
+  check(card.successShare === base.successShare && card.score.p50 === base.score.p50, `${m.id}: mission card and first baseline agree (${Math.round(card.successShare * 100)}%)`);
+  check(JSON.stringify(base.score) === JSON.stringify(mine.score) && base.successShare === mine.successShare, `${m.id}: an unchanged design forecasts exactly the baseline`);
+}
 if (failed) process.exit(1);
 
 // A whole game with the AI: every agency ends with a result, and the same seed gives the same game.
