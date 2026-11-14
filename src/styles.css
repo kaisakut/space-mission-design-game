@@ -51,7 +51,7 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .tabs button.on { color: #e8ecf4; border-bottom-color: var(--accent); }
 .tabs button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-.game-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 38fr) minmax(0, 32fr); grid-template-rows: minmax(0, 1fr); gap: 0.5rem; }
+.game-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 29fr) minmax(0, 44fr) minmax(0, 27fr); grid-template-rows: minmax(0, 1fr); gap: 0.5rem; }
 .autofit { overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .col { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 0.6em 0.75em; }
 
@@ -82,6 +82,9 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .slots.dense .slot.multi { grid-column: span 2; }
 .slots.dense.cols { display: block; columns: 3 13em; column-gap: 1em; }
 .slots.dense.cols .slot { break-inside: avoid; margin-bottom: 0.5em; }
+/* Two or three boxes: flowed as columns so a short box is not stretched to its taller neighbour's row. */
+.slots.roomy.cols { display: block; columns: 2 17em; column-gap: 1em; }
+.slots.roomy.cols .slot { break-inside: avoid; margin-bottom: 0.5em; }
 .slot legend { font-weight: 600; font-size: 1.05em; padding: 0; }
 .slot > .note { margin: 0.1em 0 0.4em; font-size: 0.85em; }
 .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(14em, 1fr)); gap: 0.35em; }

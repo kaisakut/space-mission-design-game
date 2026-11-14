@@ -316,7 +316,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
           <div className={`slots ${(() => {
             // Four or more boxes: three narrow columns; without a wide box, flowed as columns so short boxes stack.
             const here = mission.slots.filter((s) => s.phase === tab);
-            return here.length <= 3 ? 'roomy' : here.some((s) => s.options.length > 4 || (s.multi && s.options.length > 2)) ? 'dense' : 'dense cols';
+            return here.length <= 3 ? (here.length >= 2 ? 'roomy cols' : 'roomy') : here.some((s) => s.options.length > 4 || (s.multi && s.options.length > 2)) ? 'dense' : 'dense cols';
           })()}`}>
             {mission.slots.filter((s) => s.phase === tab).map((s) => {
               const locked = changeCost(mission, player, s.id, ['__probe__'], game.phase).locked;
