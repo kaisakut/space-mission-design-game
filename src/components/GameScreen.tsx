@@ -138,7 +138,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                       <div key={id}>
                         <OptionCard
                           option={o} selected={selected} disabled={wrongOrbit || locked}
-                          type={s.multi ? 'checkbox' : 'radio'} name={s.id} orbitId={state.orbit?.id ?? null}
+                          type={s.multi ? 'checkbox' : 'radio'} name={s.id} orbitId={state.orbit?.id ?? null} solar={state.orbit?.solarFactor?.value}
                           onPick={() => pick(s.id, id, s.multi)}
                         />
                         {c && c.kUSD > 0 && !locked && <p className="change-cost">{fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days })}</p>}

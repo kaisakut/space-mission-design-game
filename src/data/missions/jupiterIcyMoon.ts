@@ -1,0 +1,377 @@
+import type { Mission } from '../types';
+import { est, nasa, rule, tx } from '../helpers';
+
+/**
+ * Mission 3 (playable): a flagship spacecraft that studies Jupiter's icy moon Europa.
+ *
+ * Modelled on NASA's Europa Clipper (mass, solar power at Jupiter, radiation vault, about 50 flybys,
+ * Falcon Heavy launch with a 5.5-year cruise). Alternative tours, most instrument masses and prices are
+ * game values: the sources describe one spacecraft, not a menu.
+ */
+
+const FLYBY_NOTE = tx(
+  'Close passes of Europa where the instrument can observe. Europa Clipper’s tour has 49 science flybys.',
+  '機器が観測できるエウロパへの接近の回数。エウロパ・クリッパーの計画では科学用の接近が49回。',
+);
+const DATA_NOTE = tx('Game value for the standard observation plan; the plan you pick scales it.', '標準の観測計画でのゲームの値。選んだ計画に応じて増減する。');
+const SUN_NOTE = tx('Sunlight at Jupiter is only about 4% of what Earth receives.', '木星での日射は、地球が受ける量の約4%しかない。');
+const CONTACT_NOTE = tx('Game value for Deep Space Network passes per day, averaged over the tour.', '深宇宙通信網との1日あたりの通信時間の、観測期間を通した平均（ゲームの値）。');
+
+export const jupiterIcyMoon: Mission = {
+  id: 'jupiter-icy-moon',
+  name: tx('Icy Moon Explorer at Jupiter', '木星の氷衛星探査機'),
+  summary: tx(
+    'Send a spacecraft to Jupiter to look for an ocean under Europa’s ice, through the harshest radiation of any planet.',
+    '木星に探査機を送り、エウロパの氷の下に海があるかを調べる。どの惑星よりも強い放射線の中を飛ぶ。',
+  ),
+  difficulty: 'advanced',
+  playable: true,
+  budgetKUSD: rule(4500000, tx('Game value for a flagship planetary mission.', '大型の惑星探査ミッションを想定したゲームの値。')),
+  opsDays: nasa(1095, ['nasa-clipper-spacecraft'], tx('About three years of flybys after arriving at Jupiter.', '木星到着後、約3年間の接近観測。')),
+  bus: {
+    massKg: est(5713, ['wikipedia-europa-clipper'], tx('Europa Clipper’s launch mass of 6,065 kg (with 2,750 kg of propellant) minus its 352 kg of instruments; the game’s vault and arrays are counted inside it.', 'エウロパ・クリッパーの打ち上げ質量6,065 kg（推進剤2,750 kgを含む）から観測機器352 kgを除いた値。ゲームでは放射線の保護容器と太陽電池もこの中に含める。')),
+    powerW: rule(450, tx('Game value for the bus on average, including heaters.', 'ヒーターを含む本体の平均のゲームの値。')),
+    cost: rule(2200000, tx('Game value; the sources list no breakdown.', 'ゲームの値（資料に内訳の記載なし）。')),
+    devDays: rule(1500, tx('Game value: about four years from concept to launch readiness.', 'ゲームの値：構想から打ち上げ準備完了まで約4年。')),
+    maxMassKg: rule(7000),
+    failPerYear: rule(0.04),
+  },
+  rules: {
+    scienceUnit: tx('close-pass observations', '件の接近観測'),
+    scienceFullScore: rule(300, tx('Science value for the full science score.', '科学価値の満点の基準。')),
+    earlyFailureByTestDepth: rule([0.15, 0.07, 0.03], tx('Game values: chance of a fatal fault in the early cruise, by test depth.', '試験の深さごとの、航行の初期に致命的な故障が出る確率（ゲームの値）。')),
+    changeFactors: rule([1.5, 3, 6]),
+    changeMinKUSD: rule(30000, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
+    changeDelayDaysPerPhase: rule(45),
+  },
+  outcomeLabels: {
+    orbitFailure: tx('Lost during cruise', '航行中に喪失'),
+  },
+  primary: {
+    id: 'ocean', name: tx('Look for the ocean', '海を探す'),
+    description: tx('Gather enough close observations to tell whether an ocean lies under the ice.', '氷の下に海があるかを判断できるだけの接近観測を集める。'),
+    points: rule(35), rule: { kind: 'science', atLeast: 60, partialAtLeast: 15 },
+  },
+  secondary: [
+    {
+      id: 'plumes', name: tx('Sample plumes', '噴出物を調べる'),
+      description: tx('Analyse material thrown out from Europa (needs an in-situ instrument).', 'エウロパから噴き出た物質を分析する（その場で測る機器が必要）。'),
+      points: rule(5), rule: { kind: 'hasTag', tag: 'insitu' }, chosenBy: 'goal:plumes',
+    },
+    {
+      id: 'shell', name: tx('Sound the ice shell', '氷の殻を透かす'),
+      description: tx('Measure the ice thickness with radar.', 'レーダーで氷の厚さを測る。'),
+      points: rule(5), rule: { kind: 'hasTag', tag: 'radar' }, chosenBy: 'goal:shell',
+    },
+    {
+      id: 'full-tour', name: tx('Complete the tour', '観測期間を完走'),
+      description: tx('Keep working for all three years.', '3年間、最後まで観測を続ける。'),
+      points: rule(5), rule: { kind: 'survive' }, chosenBy: 'goal:full',
+    },
+  ],
+  rubric: { primary: rule(35), secondary: rule(15), science: rule(25), budget: rule(15), schedule: rule(10) },
+
+  slots: [
+    {
+      id: 'secondary', phase: 1, role: 'lead', changeKind: 'plan',
+      label: tx('Secondary objectives', '副目的'),
+      help: tx('Each one adds points but also requirements. Agencies chasing the same one split its points.', '1つごとに加点されますが、要求も増えます。同じ副目的を狙う機関が多いと得点が割れます。'),
+      options: ['jsec-none', 'jsec-plumes', 'jsec-shell', 'jsec-full'], multi: { min: 0, max: 2, noneFirst: true },
+    },
+    {
+      id: 'tour', default: 'tour-flybys', phase: 1, role: 'lead', changeKind: 'hardware',
+      label: tx('Tour design', '観測の軌道'),
+      help: tx('How the spacecraft meets Europa decides how much it sees and how much radiation it takes.', 'エウロパへの近づき方で、観測できる量と浴びる放射線の量が決まります。'),
+      options: ['tour-flybys', 'tour-europa-orbit', 'tour-ganymede'],
+    },
+    {
+      id: 'budget-split', phase: 1, role: 'lead', changeKind: 'plan',
+      label: tx('Budget split', '予算の配分'),
+      help: tx('How much to keep in reserve for surprises.', '想定外に備えて、予備費をどれだけ残すか。'),
+      options: ['jsplit-balanced', 'jsplit-lean', 'jsplit-safe'],
+    },
+    {
+      id: 'instruments', default: ['jinst-eis', 'jinst-reason', 'jinst-maspex'], phase: 2, role: 'science', changeKind: 'hardware',
+      label: tx('Science instruments', '科学機器'),
+      help: tx('Europa Clipper carries nine. Pick up to four; each adds mass, power, data and cost.', 'エウロパ・クリッパーは9つ積んでいます。ここでは4つまで。機器ごとに質量・電力・データ・費用が増えます。'),
+      options: ['jinst-eis', 'jinst-mise', 'jinst-reason', 'jinst-maspex', 'jinst-suda', 'jinst-ecm'], multi: { min: 1, max: 4 },
+    },
+    {
+      id: 'power', default: 'jpwr-arrays', phase: 2, role: 'powerComms', changeKind: 'hardware',
+      label: tx('Power', '電源'),
+      help: tx('Sunlight at Jupiter is weak: arrays must be huge, or a nuclear generator can help.', '木星では日射が弱いため、太陽電池を巨大にするか、原子力電池で補います。'),
+      options: ['jpwr-small', 'jpwr-arrays', 'jpwr-hybrid'],
+    },
+    {
+      id: 'vault', default: 'jvault-standard', phase: 2, role: 'spacecraft', changeKind: 'hardware',
+      label: tx('Radiation vault', '放射線の保護容器'),
+      help: tx('Electronics sit inside a thick-walled vault, an approach first used by Juno.', '電子機器を厚い壁の容器に入れて守ります。ジュノーで初めて使われた方法です。'),
+      options: ['jvault-thin', 'jvault-standard', 'jvault-thick'],
+    },
+    {
+      id: 'radio', default: 'jcomm-x', phase: 2, role: 'powerComms', changeKind: 'hardware',
+      label: tx('Radio', '無線'),
+      help: tx('A 3 m high-gain antenna sends data across about 800 million km.', '直径3 mの高利得アンテナで、約8億 km先の地球へデータを送ります。'),
+      options: ['jcomm-x', 'jcomm-ka'],
+    },
+    {
+      id: 'launch', default: 'jlv-heavy', phase: 3, role: 'lead', changeKind: 'plan',
+      label: tx('Launch and route', '打ち上げと経路'),
+      help: tx('A cheaper rocket needs swing-bys of Mars and Earth on the way, which take longer.', '安いロケットでは途中で火星と地球のスイングバイが必要になり、時間がかかります。'),
+      options: ['jlv-heavy', 'jlv-direct'],
+    },
+    {
+      id: 'window', default: 'jwindow-first', phase: 3, role: 'lead', changeKind: 'plan',
+      label: tx('Launch window', '打ち上げ窓'),
+      help: tx('Windows to Jupiter come about once a year. Missing one costs a long wait.', '木星への打ち上げ窓は約1年に1回。逃すと長く待つことになります。'),
+      options: ['jwindow-first', 'jwindow-second'],
+    },
+    {
+      id: 'ground', default: 'jdsn-standard', phase: 3, role: 'powerComms', changeKind: 'plan',
+      label: tx('Deep Space Network time', '深宇宙通信網の時間'),
+      help: tx('The 34 m and 70 m antennas are shared by many missions.', '34 mと70 mのアンテナは、多くのミッションで共有しています。'),
+      options: ['jdsn-standard', 'jdsn-priority'],
+    },
+    {
+      id: 'testing', default: 'jtest-standard', phase: 4, role: 'spacecraft', changeKind: 'plan',
+      label: tx('Test campaign', '試験の深さ'),
+      help: tx('Deeper testing finds faults before launch but uses time and money.', '試験を厚くすると打ち上げ前に不具合を見つけられますが、時間と費用を使います。'),
+      options: ['jtest-basic', 'jtest-standard', 'jtest-full'],
+    },
+    {
+      id: 'ops-prep', default: 'jprep-minimal', phase: 4, role: 'lead', changeKind: 'plan',
+      label: tx('Operations readiness', '運用の準備'),
+      help: tx('Each flyby is planned weeks ahead; signals take over half an hour each way.', '接近は数週間前から計画します。信号は片道30分以上かかります。'),
+      options: ['jprep-minimal', 'jprep-rehearsal'],
+    },
+    {
+      id: 'model', default: 'jem-none', phase: 4, role: 'spacecraft', changeKind: 'hardware',
+      label: tx('Radiation test parts', '放射線試験用の部品'),
+      help: tx('Extra copies of parts to test in a radiation beam before launch.', '打ち上げ前に放射線ビームで試すための、予備の部品。'),
+      options: ['jem-none', 'jem-build'],
+    },
+    {
+      id: 'ops-plan', phase: 5, role: 'science', changeKind: 'plan',
+      label: tx('Observation plan', '観測計画'),
+      help: tx('Observing on more flybys gathers more data but needs more power and downlink.', '多くの接近で観測するほどデータは増えますが、電力と通信が要ります。'),
+      options: ['jops-steady', 'jops-aggressive', 'jops-careful'],
+    },
+  ],
+
+  options: [
+    { kind: 'choice', id: 'jsec-none', name: tx('None', 'なし'), description: tx('Focus on the primary objective.', '主目的に集中する。'), cost: rule(0) },
+    { kind: 'choice', id: 'jsec-plumes', name: tx('Sample plumes', '噴出物を調べる'), description: tx('Needs MASPEX or SUDA.', 'MASPEXかSUDAが必要。'), cost: rule(0), tags: ['goal:plumes'] },
+    { kind: 'choice', id: 'jsec-shell', name: tx('Sound the ice shell', '氷の殻を透かす'), description: tx('Needs the REASON radar.', 'REASONレーダーが必要。'), cost: rule(0), tags: ['goal:shell'] },
+    { kind: 'choice', id: 'jsec-full', name: tx('Complete the tour', '観測期間を完走'), description: tx('Needs to survive three years of radiation.', '3年間の放射線に耐える必要がある。'), cost: rule(0), tags: ['goal:full'] },
+
+    {
+      kind: 'orbit', id: 'tour-flybys', name: tx('Many Europa flybys from Jupiter orbit', '木星を回りながらエウロパに何度も接近'),
+      description: tx('Europa Clipper’s approach: dip in for a flyby, then leave the worst radiation to recover.', 'エウロパ・クリッパーの方法。接近してはすぐ離れ、強い放射線から抜けて回復する。'),
+      cost: rule(0),
+      solarFactor: nasa(0.04, ['jpl-clipper-presskit'], SUN_NOTE),
+      contactMinPerDay: rule(480, CONTACT_NOTE),
+      science: { remote: nasa(49, ['jpl-clipper-presskit'], FLYBY_NOTE), radar: nasa(49, ['jpl-clipper-presskit'], FLYBY_NOTE), insitu: nasa(49, ['jpl-clipper-presskit'], FLYBY_NOTE), field: nasa(49, ['jpl-clipper-presskit'], FLYBY_NOTE) },
+      tags: ['tour'],
+    },
+    {
+      kind: 'orbit', id: 'tour-europa-orbit', name: tx('Orbit Europa', 'エウロパを周回'),
+      description: tx('Continuous observation, but deep in the radiation belts all the time. Studied and rejected for Clipper.', '連続して観測できるが、常に放射線帯の奥にいる。クリッパーでは検討の末に見送られた。'),
+      cost: rule(150000, tx('Game value for the extra propellant and the capture manoeuvre.', '追加の推進剤と周回への投入の分のゲームの値。')),
+      solarFactor: nasa(0.04, ['jpl-clipper-presskit'], SUN_NOTE),
+      contactMinPerDay: rule(480, CONTACT_NOTE),
+      science: {
+        remote: rule(140, tx('Game value: continuous coverage counted as close passes.', 'ゲームの値。連続観測を接近の回数に換算した。')),
+        radar: rule(140), insitu: rule(100), field: rule(140),
+      },
+    },
+    {
+      kind: 'orbit', id: 'tour-ganymede', name: tx('Ganymede tour with two Europa flybys', 'ガニメデ中心の観測（エウロパへは2回）'),
+      description: tx('Far gentler radiation, but Europa only twice; other icy moons count less.', '放射線ははるかに弱いが、エウロパには2回だけ。ほかの氷衛星の観測は価値が低い。'),
+      cost: rule(0),
+      solarFactor: nasa(0.04, ['jpl-clipper-presskit'], SUN_NOTE),
+      contactMinPerDay: rule(480, CONTACT_NOTE),
+      science: { remote: rule(30), radar: rule(30), insitu: rule(20), field: rule(30) },
+      tags: ['tour', 'radiation:low'],
+    },
+
+    { kind: 'choice', id: 'jsplit-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('A typical reserve.', '一般的な予備費。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'jsplit-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
+    { kind: 'choice', id: 'jsplit-safe', name: tx('Safe (25% reserve)', '安全重視（予備費25%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.25) } },
+
+    { kind: 'part', id: 'jinst-eis', subsystem: 'payload', name: tx('Cameras (EIS)', 'カメラ（EIS）'), description: tx('Wide and narrow cameras map the surface; down to about 1 m per pixel from 100 km.', '広角と狭角のカメラで地表を撮る。100 kmから1画素約1 m。'), cost: rule(60000), massKg: rule(40), powerW: rule(30), dataMBPerDay: rule(800, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
+    { kind: 'part', id: 'jinst-mise', subsystem: 'payload', name: tx('Infrared spectrometer (MISE)', '赤外分光計（MISE）'), description: tx('Maps the chemical fingerprints of salts and organics on the surface.', '地表の塩や有機物の化学的な指紋を地図にする。'), cost: rule(60000), massKg: rule(65), powerW: rule(40), dataMBPerDay: rule(600, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
+    { kind: 'part', id: 'jinst-reason', subsystem: 'payload', name: tx('Ice-penetrating radar (REASON)', '氷を透かすレーダー（REASON）'), description: tx('Sounds the ice shell and looks for water within it.', '氷の殻を透かし、中の水を探す。'), cost: rule(80000), massKg: rule(70), powerW: est(30, ['nasa-clipper-nas-2017'], tx('Radiated power is 10–30 W (game takes the top of the range).', '送信電力は10〜30 W（ゲームでは上限をとる）。')), dataMBPerDay: rule(1000, DATA_NOTE), scienceWeight: rule(3), observes: 'radar', tags: ['radar'] },
+    { kind: 'part', id: 'jinst-maspex', subsystem: 'payload', name: tx('Mass spectrometer (MASPEX)', '質量分析計（MASPEX）'), description: tx('Sniffs Europa’s thin atmosphere and any plume gas.', 'エウロパの薄い大気と噴出したガスを嗅ぎ分ける。'), cost: rule(70000), massKg: rule(25), powerW: rule(40), dataMBPerDay: rule(100, DATA_NOTE), scienceWeight: rule(2.5), observes: 'insitu', tags: ['insitu'] },
+    { kind: 'part', id: 'jinst-suda', subsystem: 'payload', name: tx('Dust analyser (SUDA)', '塵の分析器（SUDA）'), description: tx('Analyses dust knocked off the surface and grains from plumes.', '地表から飛ばされた塵と、噴出物の粒を分析する。'), cost: rule(40000), massKg: rule(15), powerW: rule(20), dataMBPerDay: rule(50, DATA_NOTE), scienceWeight: rule(2), observes: 'insitu', tags: ['insitu'] },
+    {
+      kind: 'part', id: 'jinst-ecm', subsystem: 'payload', name: tx('Magnetometer (ECM)', '磁力計（ECM）'), description: tx('Senses the ocean through how it disturbs Jupiter’s magnetic field.', '木星の磁場の乱れ方から、海の存在を感じ取る。'),
+      cost: rule(30000),
+      massKg: nasa(31, ['nasa-clipper-instruments'], tx('Including the fluxgate sensors, the boom and the electronics.', '磁力センサー・伸展ブーム・電子回路を含む。')),
+      powerW: nasa(16.2, ['nasa-clipper-instruments'], tx('During science operations.', '科学観測中。')),
+      dataMBPerDay: rule(20, DATA_NOTE), scienceWeight: rule(1.5), observes: 'field',
+    },
+
+    {
+      kind: 'part', id: 'jpwr-small', subsystem: 'power', name: tx('Smaller solar arrays', '小さめの太陽電池'),
+      description: tx('Two-thirds of Clipper’s array area: lighter and cheaper, little spare power.', 'クリッパーの3分の2の面積。軽く安いが、電力の余裕は少ない。'),
+      cost: rule(60000), massKg: rule(-150, tx('Lighter than the standard arrays counted in the bus mass.', '本体の質量に含めた標準の太陽電池より軽い分。')),
+      generatesW: est(11700, ['jpl-clipper-spacecraft', 'jpl-clipper-presskit'], tx('Two-thirds of the standard arrays (700 W at Jupiter ÷ 0.04, near Earth).', '標準の太陽電池（木星で700 W ÷ 0.04、地球近くの値）の3分の2。')),
+      failPerYear: rule(0.02),
+    },
+    {
+      kind: 'part', id: 'jpwr-arrays', subsystem: 'power', name: tx('Huge solar arrays (Clipper size)', '巨大な太陽電池（クリッパーと同じ）'),
+      description: tx('Over 30 m tip to tip; at least 700 W at Jupiter for the whole mission.', '端から端まで30 m以上。木星でもミッションの間ずっと700 W以上。'),
+      cost: rule(100000), massKg: rule(0, tx('Counted in the bus mass.', '本体の質量に含む。')),
+      generatesW: est(17500, ['jpl-clipper-spacecraft', 'jpl-clipper-presskit'], tx('Designed for at least 700 W at Jupiter, where sunlight is about 4%: 700 ÷ 0.04, near Earth.', '日射が約4%の木星で700 W以上を出す設計：700 ÷ 0.04（地球近くの値）。')),
+      failPerYear: rule(0.02),
+    },
+    {
+      kind: 'part', id: 'jpwr-hybrid', subsystem: 'power', name: tx('Smaller arrays + two nuclear generators', '小さめの太陽電池＋原子力電池2基'),
+      description: tx('Steady power anywhere, but plutonium is scarce and the safety review is long.', 'どこでも安定した電力。ただしプルトニウムは貴重で、安全審査が長い。'),
+      cost: rule(300000, tx('Game value including the safety review.', '安全審査を含むゲームの値。')),
+      leadDays: rule(180, tx('Game value for the launch safety approval.', '打ち上げの安全承認の分のゲームの値。')),
+      massKg: est(-57, ['nasa-rps'], tx('Two MMRTGs of 46.5 kg each, minus the 150 kg saved on smaller arrays.', 'MMRTG 1基46.5 kgを2基、小さめの太陽電池で減る150 kgを差し引く。')),
+      generatesW: est(11700, ['jpl-clipper-spacecraft'], tx('Same arrays as the smaller option.', '小さめの太陽電池と同じ。')),
+      rtgW: est(220, ['nasa-rps'], tx('Two MMRTGs of 110 W each at launch.', '打ち上げ時110 WのMMRTGを2基。')),
+      failPerYear: rule(0.01),
+    },
+
+    { kind: 'part', id: 'jvault-thin', subsystem: 'protection', name: tx('Thin vault', '薄い保護容器'), description: tx('Saves mass; electronics wear out faster.', '質量を節約できるが、電子機器の劣化が早い。'), cost: rule(10000), massKg: rule(-80, tx('Lighter than the standard vault counted in the bus mass.', '本体の質量に含めた標準の容器より軽い分。')) },
+    {
+      kind: 'part', id: 'jvault-standard', subsystem: 'protection', name: tx('Clipper vault (9.2 mm aluminium–zinc)', 'クリッパーと同じ容器（厚さ9.2 mmのアルミ亜鉛合金）'),
+      description: tx('Walls of aluminium–zinc alloy about 9.2 mm thick around the electronics.', '電子機器を、厚さ約9.2 mmのアルミ亜鉛合金の壁で囲む。'),
+      cost: rule(30000), massKg: rule(0, tx('Counted in the bus mass.', '本体の質量に含む。')), tags: ['vault'],
+    },
+    {
+      kind: 'part', id: 'jvault-thick', subsystem: 'protection', name: tx('Thicker vault and spot shields', '厚い容器と部分的な遮へい'),
+      description: tx('Extra tantalum shielding on the most sensitive parts.', '特に弱い部品にタンタルの遮へいを足す。'),
+      cost: rule(60000), massKg: rule(120), tags: ['vault', 'vault-thick'],
+    },
+
+    { kind: 'part', id: 'jcomm-x', subsystem: 'comms', name: tx('X-band high-gain antenna (3 m)', 'Xバンドの高利得アンテナ（3 m）'), description: tx('The proven choice.', '実績のある選択。'), cost: rule(30000), massKg: rule(0, tx('Counted in the bus mass.', '本体の質量に含む。')), powerW: rule(100), downlinkMBPerMin: rule(5, tx('Game value for the data rate from Jupiter.', '木星からのデータ速度のゲームの値。')) },
+    { kind: 'part', id: 'jcomm-ka', subsystem: 'comms', name: tx('Add Ka-band', 'Kaバンドを追加'), description: tx('Several times the data rate, but rain on Earth can interrupt it.', 'データ速度は数倍になるが、地上の雨で途切れることがある。'), cost: rule(60000), massKg: rule(20), powerW: rule(130), downlinkMBPerMin: rule(12, tx('Game value: about three times X-band.', 'ゲームの値：Xバンドの約3倍。')) },
+
+    {
+      kind: 'launch', id: 'jlv-heavy', name: tx('Heavy rocket with Mars and Earth swing-bys', '大型ロケット＋火星・地球スイングバイ'),
+      description: tx('Europa Clipper’s route on a Falcon Heavy: 5½ years to Jupiter.', 'ファルコン・ヘビーでのエウロパ・クリッパーの経路。木星まで5年半。'),
+      cost: rule(180000, tx('Game value for the launch service.', '打ち上げサービスのゲームの値。')),
+      capacityKg: { 'tour-flybys': rule(6500), 'tour-europa-orbit': rule(6500), 'tour-ganymede': rule(6500) },
+      reliability: rule(0.97), windowsDay: rule([1700, 2100, 2500]),
+    },
+    {
+      kind: 'launch', id: 'jlv-direct', name: tx('Super-heavy rocket, direct route', '超大型ロケットで直行'),
+      description: tx('Much faster to Jupiter and more mass to spare, at a very high price.', '木星までずっと早く、質量の余裕も大きいが、非常に高い。'),
+      cost: rule(1500000), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
+      reliability: rule(0.95), windowsDay: rule([1700, 2100, 2500]), tags: ['direct'],
+    },
+
+    { kind: 'choice', id: 'jwindow-first', name: tx('First window', '最初の窓'), description: tx('Full schedule score, but a delay can mean a year’s wait.', '日程の点は満点。ただし遅れると1年待つおそれ。'), cost: rule(0), settings: { targetWindow: rule(0) } },
+    { kind: 'choice', id: 'jwindow-second', name: tx('Next window', '次の窓'), description: tx('Half the schedule score, plenty of time for surprises.', '日程の点は半分。想定外に備える時間ができる。'), cost: rule(0), settings: { targetWindow: rule(1) } },
+
+    { kind: 'choice', id: 'jdsn-standard', name: tx('Standard booking', '標準の割り当て'), description: tx('Share the antennas with other missions.', 'ほかのミッションとアンテナを分け合う。'), cost: rule(20000), settings: { networkFactor: rule(1) } },
+    { kind: 'choice', id: 'jdsn-priority', name: tx('Priority booking', '優先の割り当て'), description: tx('More 70 m antenna time around each flyby.', '接近のたびに70 mアンテナの時間を多く確保する。'), cost: rule(80000), settings: { networkFactor: rule(1.5) } },
+
+    { kind: 'choice', id: 'jtest-basic', name: tx('Basic', '最小限'), description: tx('Functional tests only.', '動作確認のみ。'), cost: rule(20000), leadDays: rule(60), settings: { testDepth: rule(1) } },
+    { kind: 'choice', id: 'jtest-standard', name: tx('Standard', '標準'), description: tx('Vibration, thermal vacuum and solar-array deployment tests.', '振動・熱真空・太陽電池の展開の試験。'), cost: rule(60000), leadDays: rule(120), settings: { testDepth: rule(2) } },
+    { kind: 'choice', id: 'jtest-full', name: tx('Full', '徹底'), description: tx('Adds whole-spacecraft radiation and end-to-end flyby rehearsals.', '機体全体の放射線試験と、接近観測の通し試験も行う。'), cost: rule(120000), leadDays: rule(200), settings: { testDepth: rule(3) } },
+
+    { kind: 'choice', id: 'jprep-minimal', name: tx('Minimal', '最小限'), description: tx('Plan flybys as they come.', '接近のたびに計画を立てる。'), cost: rule(0), settings: { earlyFailureFactorOps: rule(1) } },
+    { kind: 'choice', id: 'jprep-rehearsal', name: tx('Flyby rehearsals', '接近観測の通し練習'), description: tx('Rehearse the flyby sequence and recovery from safe mode.', '接近の手順と、セーフモードからの復帰を練習する。'), cost: rule(25000), leadDays: rule(60), settings: { earlyFailureFactorOps: rule(0.6) }, tags: ['opsRehearsed'] },
+
+    { kind: 'part', id: 'jem-none', subsystem: 'structure', name: tx('No spare parts', '予備なし'), description: tx('Test the flight parts only.', '本番の部品だけで試験する。'), cost: rule(0), massKg: rule(0) },
+    { kind: 'part', id: 'jem-build', subsystem: 'structure', name: tx('Spare parts for radiation tests', '放射線試験用の予備部品'), description: tx('Find weak transistors before launch, not at Jupiter.', '弱いトランジスタを、木星ではなく打ち上げ前に見つける。'), cost: rule(40000), leadDays: rule(90), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')), tags: ['engineeringModel'] },
+
+    { kind: 'choice', id: 'jops-steady', name: tx('Steady', '標準'), description: tx('Observe on most flybys.', 'ほとんどの接近で観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
+    { kind: 'choice', id: 'jops-aggressive', name: tx('Aggressive', '積極的'), description: tx('Observe on every flyby with everything; strains power and downlink.', '全部の接近で全機器を使う。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'jops-careful', name: tx('Careful', '慎重'), description: tx('Observe on selected flybys only.', '選んだ接近だけで観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
+  ],
+
+  events: [
+    {
+      id: 'jbudget-cut', phase: 1, name: tx('Budget cut', '予算の削減'),
+      story: tx('The programme budget is cut by 10%.', '計画の予算が10%削減された。'),
+      probability: rule(0.35),
+      protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
+      unprotected: [{ kind: 'resource', resource: 'budget', delta: -450000 }],
+      lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
+    },
+    {
+      id: 'jtransistors', phase: 2, name: tx('Weak transistors found', '弱いトランジスタの発覚'),
+      story: tx('Tests show some transistors may not survive Jupiter’s radiation.', '一部のトランジスタが木星の放射線に耐えられないおそれがわかった。'),
+      probability: rule(0.4),
+      protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
+      unprotected: [{ kind: 'delayDays', days: 150 }],
+      lesson: tx('{agency} had no schedule margin to test and replace weak parts.', '{agency}には、弱い部品を試して取り替える日程の余裕がなかった。'),
+    },
+    {
+      id: 'jlaunch-slip', phase: 3, name: tx('Rocket delay', 'ロケットの遅れ'),
+      story: tx('The launch vehicle slips by months.', 'ロケットの準備が数か月遅れた。'),
+      probability: rule(0.3),
+      protectedIf: { kind: 'setting', key: 'targetWindow', atLeast: 1 },
+      unprotected: [{ kind: 'delayDays', days: 300 }],
+      lesson: tx('{agency} aimed at the first window and the rocket was late.', '{agency}は最初の窓を狙っていて、ロケットが遅れた。'),
+    },
+    {
+      id: 'jtest-anomaly', phase: 4, name: tx('Test anomaly', '試験での不具合'),
+      story: tx('A hidden fault is lurking in the spacecraft.', '機体に隠れた不具合がある。'),
+      probability: rule(0.4),
+      protectedIf: { kind: 'setting', key: 'testDepth', atLeast: 2 },
+      partialIf: { kind: 'hasTag', tag: 'engineeringModel' },
+      partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.05 }],
+      unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.2 }],
+      lesson: tx('Light testing let a fault through for {agency}.', '{agency}は、試験が薄く不具合を持ち込んだ。'),
+    },
+    {
+      id: 'jlaunch-failure', phase: 4, name: tx('Launch failure', '打ち上げ失敗'),
+      story: tx('The rocket fails.', 'ロケットが失敗した。'),
+      probability: rule(0, tx('Drawn from the chosen rocket’s reliability instead of a fixed chance.', '一定の確率ではなく、選んだロケットの信頼性から引く。')),
+      unprotected: [{ kind: 'missionLost', outcome: 'launchFailure' }],
+      lesson: tx('{agency} lost the spacecraft at launch.', '{agency}は、打ち上げで探査機を失った。'),
+    },
+    {
+      id: 'jcruise', phase: 5, name: tx('Trouble on the long cruise', '長い航行中の不具合'),
+      story: tx('A thruster misbehaves during the years-long cruise.', '何年もの航行中に、スラスターが不調になった。'),
+      probability: rule(0.3),
+      protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'direct' }, { kind: 'hasTag', tag: 'opsRehearsed' }] },
+      unprotected: [{ kind: 'durationFactor', factor: 0.8 }],
+      lesson: tx('{agency} took the long route without rehearsing recovery, and lost tour time.', '{agency}は長い経路をとり、復帰の練習もしていなかったため、観測期間を失った。'),
+    },
+    {
+      id: 'jradiation', phase: 5, name: tx('Radiation damage', '放射線による損傷'),
+      story: tx('Jupiter’s radiation belts slowly damage the electronics.', '木星の放射線帯が、少しずつ電子機器を傷めた。'),
+      probability: rule(0.7),
+      protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'vault-thick' }, { kind: 'hasTag', tag: 'radiation:low' }] },
+      partialIf: { kind: 'hasTag', tag: 'vault' },
+      partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.1 }],
+      unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.5 }],
+      lesson: tx('The same radiation hit everyone; {agency}’s vault was too thin.', '同じ放射線が全機関を襲った。{agency}の保護容器は薄すぎた。'),
+    },
+    {
+      id: 'jeuropa-orbit', phase: 5, name: tx('Constant radiation in Europa orbit', 'エウロパ周回での絶え間ない放射線'),
+      story: tx('Staying close to Europa means never leaving the worst radiation.', 'エウロパのそばに居続けるので、最も強い放射線から抜け出せない。'),
+      probability: rule(0.8),
+      protectedIf: { kind: 'hasTag', tag: 'tour' },
+      partialIf: { kind: 'hasTag', tag: 'vault-thick' },
+      partial: [{ kind: 'durationFactor', factor: 0.6 }],
+      unprotected: [{ kind: 'durationFactor', factor: 0.3 }],
+      lesson: tx('{agency} orbited Europa and the electronics did not last.', '{agency}はエウロパを周回し、電子機器が持たなかった。'),
+    },
+    {
+      id: 'jdsn', phase: 5, name: tx('Antenna time cut', 'アンテナ時間の削減'),
+      story: tx('Other missions need the big antennas; your time is cut.', 'ほかのミッションが大型アンテナを必要とし、時間が削られた。'),
+      probability: rule(0.35),
+      protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
+      unprotected: [{ kind: 'scienceFactor', factor: 0.85 }],
+      lesson: tx('{agency} could not send everything when antenna time was cut.', '{agency}は、アンテナの時間が減ったときにデータを送りきれなかった。'),
+    },
+    {
+      id: 'jplume', phase: 5, name: tx('Active plume', '活発な噴出'),
+      story: tx('A plume erupts during a flyby: a rare chance to sample the ocean.', '接近中に噴出が起きた。海を直接調べられる貴重な好機。'),
+      probability: rule(0.25),
+      unprotected: [],
+      readyIf: { kind: 'hasTag', tag: 'insitu' },
+      benefit: [{ kind: 'scienceFactor', factor: 1.3 }],
+      lesson: tx('{agency} carried an in-situ instrument and sampled the plume.', '{agency}は、その場で測る機器を積んでいて噴出物を調べられた。'),
+    },
+  ],
+};

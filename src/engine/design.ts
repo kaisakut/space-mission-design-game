@@ -53,7 +53,7 @@ const MIN_PER_DAY = 1440;
 /** Picks for slots the player has not decided yet: each slot's standard choice. */
 export function defaultPicks(m: Mission): Picks {
   const p: Picks = {};
-  for (const s of m.slots) p[s.id] = [s.default ?? s.options[0]!];
+  for (const s of m.slots) p[s.id] = s.default === undefined ? [s.options[0]!] : Array.isArray(s.default) ? [...s.default] : [s.default];
   return p;
 }
 
@@ -130,7 +130,7 @@ export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): De
   let powerGen = 0;
   const solar = orbit?.solarFactor?.value ?? 1;
   for (const p of parts) {
-    powerGen += num(p.generatesW) * solar;
+    powerGen += num(p.generatesW) * solar + num(p.rtgW);
     if (p.subsystem === 'payload') powerUsed += num(p.powerW) * duty;
     else if (p.subsystem === 'comms') powerUsed += num(p.powerW) * contactShare;
     else powerUsed += num(p.powerW);

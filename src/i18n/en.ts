@@ -82,6 +82,7 @@ export const en = {
   stat_inclination: 'Inclination',
   stat_capacity: 'Carries',
   stat_sunlight: 'Sunlight',
+  stat_rtg: 'Nuclear power (W)',
   stat_reliability: 'Success',
   stat_windows: 'Windows',
   stat_days: 'Time',

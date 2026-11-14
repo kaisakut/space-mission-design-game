@@ -8,13 +8,13 @@ type Stat = { key: string; text: string };
 const n = (v: Sourced | undefined) => v?.value ?? 0;
 
 /** The 2–3 numbers worth seeing at a glance for each kind of option. Everything else is under "Details". */
-function headline(o: Option, t: ReturnType<typeof useLang>['t'], orbitId: string | null): Stat[] {
+function headline(o: Option, t: ReturnType<typeof useLang>['t'], orbitId: string | null, solar?: number): Stat[] {
   const cost = { key: 'stat_cost', text: `${n(o.cost).toLocaleString()} ${t.unit_kUSD}` };
   const days = o.leadDays ? [{ key: 'stat_days', text: `+${n(o.leadDays)} ${t.unit_days}` }] : [];
   switch (o.kind) {
     case 'part':
       if (o.subsystem === 'payload') return [{ key: 'stat_mass', text: `${n(o.massKg)} kg` }, { key: 'stat_power', text: `${n(o.powerW)} W` }, cost];
-      if (o.subsystem === 'power') return [{ key: 'stat_generates', text: `${n(o.generatesW)} W` }, { key: 'stat_mass', text: `${n(o.massKg)} kg` }, cost];
+      if (o.subsystem === 'power') return [{ key: 'stat_generates', text: `${(n(o.generatesW) * (solar ?? 1) + n(o.rtgW)).toLocaleString(undefined, { maximumFractionDigits: 0 })} W` }, { key: 'stat_mass', text: `${n(o.massKg)} kg` }, cost];
       if (o.subsystem === 'comms') return [{ key: 'stat_downlink', text: fmt(t.val_MBmin, { n: n(o.downlinkMBPerMin) }) }, { key: 'stat_power', text: `${n(o.powerW)} W` }, cost];
       return [{ key: 'stat_mass', text: `${n(o.massKg)} kg` }, cost];
     case 'orbit':
@@ -36,7 +36,7 @@ const FIELD_LABEL: Record<string, string> = {
   cost: 'stat_cost', massKg: 'stat_mass', powerW: 'stat_power', generatesW: 'stat_generates', dataMBPerDay: 'stat_data',
   downlinkMBPerMin: 'stat_downlink', contactMinPerDay: 'stat_contact', altitudeKm: 'stat_altitude', inclinationDeg: 'stat_inclination',
   leadDays: 'stat_days', reliability: 'stat_reliability', windowsDay: 'stat_windows', capacityKg: 'stat_capacity', deltaVms: 'stat_deltaV',
-  failPerYear: 'stat_failPerYear', scienceWeight: 'stat_science', science: 'stat_opportunities', settings: 'stat_setting', storageMB: 'stat_storage',
+  failPerYear: 'stat_failPerYear', rtgW: 'stat_rtg', solarFactor: 'stat_sunlight', contactHighLatMinPerDay: 'stat_contact', scienceWeight: 'stat_science', science: 'stat_opportunities', settings: 'stat_setting', storageMB: 'stat_storage',
 };
 
 /** Every sourced value of an option, for the details panel. */
@@ -50,12 +50,12 @@ function sourcedFields(o: Option): [string, Sourced<unknown>][] {
   return out;
 }
 
-export function OptionCard({ option, selected, disabled, type, name, orbitId, onPick }: {
-  option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; onPick: () => void;
+export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, onPick }: {
+  option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number; onPick: () => void;
 }) {
   const { t, L } = useLang();
   const [open, setOpen] = useState(false);
-  const stats = headline(option, t, orbitId);
+  const stats = headline(option, t, orbitId, solar);
   return (
     <div className={`opt ${selected ? 'on' : ''} ${disabled ? 'off' : ''}`}>
       <label className="opt-main">
