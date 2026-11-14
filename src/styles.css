@@ -80,11 +80,6 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 /* Four or more boxes in a phase: narrower columns, so three fit side by side. */
 .slots.dense { grid-template-columns: repeat(auto-fit, minmax(13em, 1fr)); }
 .slots.dense .slot.multi { grid-column: span 2; }
-.slots.dense.cols { display: block; columns: 3 13em; column-gap: 1em; }
-.slots.dense.cols .slot { break-inside: avoid; margin-bottom: 0.5em; }
-/* Two or three boxes: flowed as columns so a short box is not stretched to its taller neighbour's row. */
-.slots.roomy.cols { display: block; columns: 2 17em; column-gap: 1em; }
-.slots.roomy.cols .slot { break-inside: avoid; margin-bottom: 0.5em; }
 .slot legend { font-weight: 600; font-size: 1.05em; padding: 0; }
 .slot > .note { margin: 0.1em 0 0.4em; font-size: 0.85em; }
 .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(14em, 1fr)); gap: 0.35em; }
@@ -212,10 +207,12 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .diff-advanced { color: var(--bad); border-color: var(--bad); }
 
 /* Tutorial, glossary and dialogs. Dialogs reset to the base size, whatever column they were opened from. */
-.tour { position: fixed; right: 1.25rem; bottom: 1.25rem; width: 24rem; max-width: calc(100vw - 2.5rem); z-index: 21; background: #13203f; border: 1px solid var(--accent); border-radius: 10px; padding: 0.9rem 1rem; box-shadow: 0 8px 30px rgba(0,0,0,0.5); font-size: 1rem; }
+.tour { position: fixed; right: 1.25rem; bottom: 1.25rem; width: max-content; min-width: 24rem; max-width: min(30rem, calc(100vw - 2.5rem)); z-index: 21; background: #13203f; border: 1px solid var(--accent); border-radius: 10px; padding: 0.9rem 1rem; box-shadow: 0 8px 30px rgba(0,0,0,0.5); font-size: 1rem; }
 .tour-head { display: flex; justify-content: space-between; }
-.tour-actions { display: flex; justify-content: space-between; gap: 0.5em; }
-.tour-actions span { display: flex; gap: 0.5em; }
+.tour-actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5em; }
+.tour-actions span { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5em; margin-left: auto; }
+.tour-close { color: var(--muted); white-space: nowrap; }
+.tour-close:hover { color: #e8ecf4; }
 .tour-on { outline: 3px solid #ffb74d; outline-offset: 2px; border-radius: 8px; }
 .term { border-bottom: 1px dotted var(--muted); cursor: help; }
 .modal { position: fixed; inset: 0; background: rgba(5, 8, 18, 0.82); z-index: 30; display: flex; align-items: center; justify-content: center; padding: 1.25rem; font-size: 1rem; }
@@ -505,7 +502,6 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 /* Step 8: gauges in two columns beside the larger mission view; four-box phases in two columns. */
 .col-left.with-view .gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45em 0.9em; margin: 0.4em 0; }
 .slots.dense { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-.slots.dense.cols { display: block; columns: 2; }
 .slots.dense .slot.multi { grid-column: 1 / -1; }
 .mv-legend { position: absolute; right: 0.5em; bottom: 2.2em; font-size: 0.68rem; color: #b8c3da; text-shadow: 0 1px 2px #000; pointer-events: none; display: flex; flex-direction: column; gap: 0.1em; align-items: flex-end; }
 .mv-legend i { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; margin-right: 0.3em; vertical-align: -0.05em; }
@@ -661,3 +657,46 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .res-body:has(> .res-fit) { overflow: hidden; }
 .res-body > .res-fit { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 0.6em; }
 .res-fit > * { flex-shrink: 0; }
+
+/* Step 14: button labels never wrap; dark, thin scroll bars. */
+button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
+* { scrollbar-width: thin; scrollbar-color: #3a4a6e transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #3a4a6e; border-radius: 4px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+
+/* Step 14: option boxes in balanced columns; each box's heading carries a line, and boxes sit further apart than cards. */
+.slots { display: flex; flex-direction: column; gap: 1.1em; }
+.slot-cols.two { display: flex; gap: 1em; align-items: flex-start; }
+.slot-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 1.1em; }
+.slot legend { width: 100%; font-size: 1.15em; margin-bottom: 0.1em; }
+.lg-row { display: flex; align-items: center; gap: 0.35em; }
+.lg-row .lg-ico { color: #fff; margin-right: 0; flex: none; }
+.lg-text { min-width: 0; }
+.lg-line { flex: 1 1 1em; min-width: 1em; height: 1px; background: #3a4a6e; margin-left: 0.3em; }
+.lg-row .info-btn { font-size: 0.7em; margin-left: 0.3em; }
+/* A phase with one box (phase 5): taller cards, more of the description, thicker bars. */
+.slots.single .opts { grid-template-columns: 1fr; gap: 0.6em; }
+.slots.single .opt { padding: 0.75em 1em; font-size: 1em; }
+.slots.single .opt-line { -webkit-line-clamp: 3; font-size: 0.95em; margin-top: 0.3em; }
+.slots.single .opt-bars { font-size: 0.95em; gap: 0.2em 0.7em; margin-top: 0.4em; }
+.slots.single .bar { height: 7px; border-radius: 3px; }
+
+/* Step 14: level dots are larger and clearer; the plain-words line is not coloured (colour is kept for "cannot
+   launch" in red and the difference from the current choice). A guard against a current weak point is brighter. */
+.lv-dots { gap: 3px; }
+.lv-dots i { width: 8px; height: 8px; border: 1px solid var(--muted); opacity: 1; }
+.lv-dots i.f { background: #fff; border-color: #fff; }
+.eff-good, .eff-cost, .eff-guard { color: var(--muted); }
+.eff-guard.hot { color: #d6e2f5; }
+.opt-ico.diag { margin: -0.2em 0; }
+
+/* Step 14: flight details. Timeline marks are named; a mark close to the previous one goes up a level. */
+.fa-track { height: 2.5em; }
+.fa-track:has(.up) { height: 3.9em; }
+.fa-event { display: flex; flex-direction: column; align-items: center; gap: 0.05em; bottom: 0.25em; }
+.fa-event.up { bottom: 1.75em; }
+.fa-name { font-size: 0.72em; color: #e8d6a8; white-space: nowrap; }
+/* The front face is a 3D plane of its own, so its text never shows through while the card turns. */
+.res-flipcard .front { transform: rotateY(0deg) translateZ(1px); }
+.res-flipcard .back { transform: rotateY(180deg) translateZ(1px); }

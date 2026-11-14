@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GREY, movingLine, opsProgress, travel, type FlightCraft, type FlightScene } from './flightCommon';
-import { ellipsePoints, flybyPos, jupiterTexture } from './jupiterScene';
+import { ellipsePoints, flybyPos, jupiterTexture, JUPITER_R, radiationGlow } from './jupiterScene';
 import { createStage, disposeGeometry, seeded } from './stage';
 
 /**
@@ -34,12 +34,8 @@ export function createJupiterFlight(host: HTMLElement, opts: { reduceMotion: boo
   const fixed: THREE.Material[] = [];
   const keep = <T extends THREE.Material>(m: T) => { fixed.push(m); return m; };
   const jupMat = keep(new THREE.MeshPhongMaterial({ map: jupiterTexture(), shininess: 4 }));
-  pivot.add(new THREE.Mesh(new THREE.SphereGeometry(1, 40, 24), jupMat));
-  [[2.9, 0.55, 0.14], [2.95, 0.95, 0.07], [3.05, 1.4, 0.035]].forEach(([r, tube, o]) => {
-    const t = new THREE.Mesh(new THREE.TorusGeometry(r!, tube!, 16, 64), keep(new THREE.MeshBasicMaterial({ color: 0xc58cff, transparent: true, opacity: o!, depthWrite: false, blending: THREE.AdditiveBlending })));
-    t.rotation.x = Math.PI / 2;
-    pivot.add(t);
-  });
+  pivot.add(new THREE.Mesh(new THREE.SphereGeometry(JUPITER_R, 48, 32), jupMat));
+  pivot.add(radiationGlow(keep));
   const orbitMat = keep(new THREE.LineBasicMaterial({ color: 0x5a6b8f, transparent: true, opacity: 0.7 }));
   for (const r of [EUROPA_R, GANYMEDE_R]) pivot.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ellipsePoints(r, r, 96)), orbitMat));
   const europa = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 12), keep(new THREE.MeshPhongMaterial({ color: 0xd8cbb0 })));

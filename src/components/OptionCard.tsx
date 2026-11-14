@@ -83,13 +83,15 @@ function Arc({ share, label }: { share: number; label: string }) {
   );
 }
 
-export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick, onHover, slot, peers, view, compact, events, hinted, hintText }: {
+export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick, onHover, slot, peers, view, compact, events, hinted, hintText, weak }: {
   option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number;
   hint?: string; standard?: boolean; diffs?: Diff[]; reason?: string; blocks?: string; onPick: () => void; onHover?: (on: boolean) => void;
   /** The slot and its options, for the level marks and the comparison bars. */
   slot?: DecisionSlot; peers?: Option[]; view?: MissionViewConfig;
   /** Leave out the description line (it stays under "i"), for phases with many boxes. */
   compact?: boolean;
+  /** Cards among the design's weak points: a guard against one of them is shown a little brighter. */
+  weak?: Set<string>;
   /** The mission's event cards, for "protects against" in plain words. */
   events?: EventCard[];
   /** Lit by the hint button: the change expected to help most, with what it is expected to do. */
@@ -122,7 +124,7 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
       <div className="opt-row">
         <label className="opt-main">
           <input type={type} name={name} checked={selected} disabled={disabled} onChange={onPick} />
-          {hasDiagram(option, view) ? <span className="opt-ico diag"><MiniDiagram option={option} view={view} size="2.85em" /></span>
+          {hasDiagram(option, view) ? <span className="opt-ico diag"><MiniDiagram option={option} view={view} size={40} /></span>
             : <Icon name={optionIcon(option)} size="1.6em" className="opt-ico" />}
           <span className="opt-name">{L(option.name)}</span>
         </label>
@@ -149,7 +151,7 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
       {eff && (eff.strengths.length > 0 || eff.costs.length > 0 || guards.length > 0) && (
         <div className="opt-eff">
           {eff.strengths.length > 0 && <span className="eff-good">◎ {eff.strengths.slice(0, 2).map((k) => tk(t, `eff_${k}`)).join(t.listSep)}</span>}
-          {guards.map((g) => <span key={g.id} className="eff-guard"><Icon name="shield" size="1em" /> {g.full ? t.effGuard : t.effGuardPart}{t.colonSep}{cardName(g.id)}</span>)}
+          {guards.map((g) => <span key={g.id} className={`eff-guard ${weak?.has(g.id) ? 'hot' : ''}`}><Icon name="shield" size="1em" /> {g.full ? t.effGuard : t.effGuardPart}{t.colonSep}{cardName(g.id)}</span>)}
           {eff.costs.length > 0 && <span className="eff-cost">△ {t.effCost}{t.colonSep}{eff.costs.slice(0, 2).map((k) => tk(t, `eff_${k}`)).join(t.listSep)}</span>}
         </div>
       )}

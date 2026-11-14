@@ -1,7 +1,7 @@
 import type { Effect, EventCard, Mission, ObjectiveRule, Outcome, Part, Subsystem } from '../data/types';
 import { canLaunch, type DesignState } from './design';
 import { resolveEvent, type EventResult } from './events';
-import type { Rng } from './rng';
+import { Rng } from './rng';
 
 /** Status of a run at the end of each phase, shown as the lines of the branch map. */
 export type RunStatus = 'nominal' | 'atRisk' | 'critical' | 'lost';
@@ -53,12 +53,27 @@ export interface SimulateOptions {
 const FATAL: Subsystem[] = ['cdh', 'power', 'comms'];
 
 /**
+ * For display: the first part failure in operations, the day it happened, whether it ended the mission,
+ * and whether the main goal was still met (a mission can reach full success, then be lost).
+ */
+export function firstFailure(r: RunResult, opsDays: number): { sub: Subsystem; day: number; fatal: boolean; goalMet: boolean } | null {
+  if (r.opsFraction >= 0.999) return null;
+  const f = [...r.failures].sort((a, b) => a.at - b.at)[0];
+  if (!f) return null;
+  return { sub: f.sub, day: Math.max(1, Math.round(f.at * opsDays)), fatal: FATAL.includes(f.sub), goalMet: r.outcome === 'fullSuccess' };
+}
+
+/**
  * Flies one design through all five phases.
  *
- * Draw order is fixed (events of each phase, then launch, early failure, part failures), so the same
- * random generator state always gives the same run.
+ * Each kind of draw (every event card, the launch, an early failure, part failures) has its own stream derived
+ * from `rng`, so the same generator state always gives the same run, and knowing some phases' cards (later
+ * in the game) leaves every other draw unchanged: forecasts made in different phases stay comparable.
  */
-export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOptions = {}): RunResult {
+export function simulate(m: Mission, d: DesignState, rngIn: Rng, opts: SimulateOptions = {}): RunResult {
+  const base = rngIn.int(0x7fffffff);
+  const cardRng = (id: string) => new Rng(base, `card:${id}`);
+  const launchRng = new Rng(base, 'launch'), earlyRng = new Rng(base, 'early'), rng = new Rng(base, 'fail');
   const budget = m.budgetKUSD.value;
   let budgetAvail = budget;
   let readyDay = d.readyDay;
@@ -89,7 +104,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
     for (const card of m.events.filter((c) => c.phase === phase)) {
       if (isLaunchCard(card)) continue;
       const known = opts.knownPhases?.get(phase);
-      const drawn = opts.drawn ? opts.drawn.has(card.id) : known ? known.has(card.id) : rng.chance(card.probability.value);
+      const drawn = opts.drawn ? opts.drawn.has(card.id) : known ? known.has(card.id) : cardRng(card.id).chance(card.probability.value);
       if (!drawn) continue;
       const fixed = opts.results?.get(card.id);
       const r = fixed ? fixedResult(card, fixed) : resolveEvent(card, d);
@@ -118,11 +133,11 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
     else if (launchDay === null) { lost = 'noLaunch'; causes.unshift('blocked:noWindow'); }
     if (lost) phaseLog[3]!.push(causes[0]!);
   }
-  if (!lost && d.launch && !rng.chance(d.launch.reliability.value)) { lost = 'launchFailure'; causes.unshift('launchFailure'); phaseLog[3]!.push('launchFailure'); }
+  if (!lost && d.launch && !launchRng.chance(d.launch.reliability.value)) { lost = 'launchFailure'; causes.unshift('launchFailure'); phaseLog[3]!.push('launchFailure'); }
   if (!lost) {
     const depth = Math.max(1, Math.min(3, d.settings.testDepth ?? 1));
     const early = (m.rules.earlyFailureByTestDepth.value[depth - 1] ?? 0) * Object.entries(d.settings).filter(([k]) => k.startsWith('earlyFailureFactor')).reduce((a, [, v]) => a * v, 1);
-    if (rng.chance(early)) { lost = 'orbitFailure'; causes.unshift('earlyFailure'); phaseLog[3]!.push('earlyFailure'); }
+    if (earlyRng.chance(early)) { lost = 'orbitFailure'; causes.unshift('earlyFailure'); phaseLog[3]!.push('earlyFailure'); }
   }
   states.push(status());
 

@@ -6,7 +6,7 @@ import { play, stopAll } from '../audio/sfx';
 import { resolveEvent } from '../engine/events';
 import { agencyDesign, type AgencyKind, type Game } from '../engine/game';
 import { Rng } from '../engine/rng';
-import { simulate } from '../engine/simulate';
+import { firstFailure, simulate } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { OUTCOME_COLOR, RESULT_MARK, useCardText, useCauseName, useOutcomeName } from './labels';
@@ -83,7 +83,11 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
     if (id !== 'player') return fmt(raw, { agency: name(id) });
     return raw.replace(/^\{agency\}/, t.youStart).replace(/\{agency\}[’']s/g, t.yourIn).replace(/\{agency\}/g, t.youIn);
   };
-  const names = (ids: AgencyKind[], start = true) => ids.map((id, i) => nameIn(id, start && i === 0)).join(t.andSep);
+  // "A and B"; three or more: "A, B and C" (Japanese: 「A、B、C」).
+  const names = (ids: AgencyKind[], start = true) => {
+    const n = ids.map((id, i) => nameIn(id, start && i === 0));
+    return n.length <= 2 ? n.join(t.andSep) : `${n.slice(0, -1).join(t.commaSep)}${t.andLastSep}${n[n.length - 1]}`;
+  };
   const causeName = useCauseName(m);
   const outcomeName = useOutcomeName(m);
   const rank = order.findIndex((a) => a.id === 'player') + 1;
@@ -159,7 +163,8 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
     const subs = es.filter((e) => e.kind === 'failChance').map((e) => (e as { subsystem: string }).subsystem);
     if (es.length > 0 && subs.length === es.length) {
       const f = final[a].failures.find((x) => subs.includes(x.sub));
-      return f && final[a].opsFraction < 0.999 ? fmt(t.failedLost, { n: Math.max(1, Math.round(final[a].opsFraction * m.opsDays.value)) }) : t.riskRoseNoFailure;
+      const ff = f ? firstFailure(final[a], m.opsDays.value) : null;
+      return f && ff ? `${fmt(t.failedLost, { n: ff.day })}${ff.goalMet ? t.afterGoal : t.beforeGoal}` : t.riskRoseNoFailure;
     }
     return text.resultLine(card, res);
   };
@@ -206,6 +211,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
               <span className="fb-outcome">
                 <span className="swatch" style={{ background: OUTCOME_COLOR[r.outcome] }} />{outcomeName(r.outcome)}
                 {r.outcome !== 'fullSuccess' && r.causes[0] && causeName(r.causes[0]) !== outcomeName(r.outcome) && <span className="note small"> · {causeName(r.causes[0])}</span>}
+                {(() => { const ff = firstFailure(r, m.opsDays.value); return ff?.goalMet && ff.fatal ? <span className="note small"> · {fmt(t.lostOnDay, { n: ff.day })}</span> : null; })()}
                 <span className="note small"> · {r.delivered.toLocaleString()} {L(m.rules.scienceUnit)}</span>
               </span>
             </div>

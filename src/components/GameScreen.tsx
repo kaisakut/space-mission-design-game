@@ -19,6 +19,7 @@ import { Briefing } from './Briefing';
 import { Icon } from './icons';
 import { FinalScreen, TurnReports } from './Reports';
 import { AgencyLabel, Resolution } from './Resolution';
+import { SlotColumns } from './SlotColumns';
 import { Tutorial } from './Tutorial';
 
 const PHASES = [1, 2, 3, 4, 5] as const;
@@ -42,6 +43,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const [askConfirm, setAskConfirm] = useState(false);
   const [allTurns, setAllTurns] = useState(false);
   const [flashSlot, setFlashSlot] = useState<string | null>(null);
+  const [slotHelp, setSlotHelp] = useState<string | null>(null);
   const [hover, setHover] = useState<{ slot: string; id: string } | null>(null);
   // The hint button: the single change in this phase expected to help most, lit until the design changes.
   const [hinted, setHinted] = useState<{ slot: string; id: string; text: string; key: string } | { none: true; key: string } | null>(null);
@@ -64,9 +66,11 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const cardText = useCardText(mission);
   const past = useMemo(() => game.reports.flatMap((r) => r.cards.map((id) => ({ id, result: r.results.player[id] }))).filter((x) => x.result === 'hit' || x.result === 'partial'), [game.reports]);
   const pastIds = useMemo(() => new Set(past.map((x) => x.id)), [past]);
+  const weakCards = useMemo(() => new Set(baseline.topCauses.map(([c]) => c)), [baseline]);
   const pastLines = past.map((x) => { const card = mission.events.find((e) => e.id === x.id)!; const eff = cardText.resultLine(card, x.result!); return `${L(card.name)}${eff ? ` (${eff})` : ''}`; });
   // The baseline before the last confirmation, and what happened since, for the line under the ring.
   const prevBase = useRef<number | null>(null);
+  const prevPicks = useRef<Picks | null>(null);
   const designKey = JSON.stringify([working, game.phase]);
   const myForecast = mine && mine.phase === game.phase ? mine : null;
   const stale = !!myForecast && myForecast.key !== designKey;
@@ -140,6 +144,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     for (const a of game.agencies) picks[a.id] = a.id === 'player' ? working : aiPicks(game, a);
     const phase = game.phase;
     prevBase.current = baseline.successShare;
+    prevPicks.current = player.picks;
     play('confirm');
     const g = confirmPhase(game, picks);
     setGame(g);
@@ -237,6 +242,31 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [hover, game, draft]);
 
+  const lastReport = game.reports[game.reports.length - 1];
+  // Why the baseline moved since the last confirmation. Only reasons that point the way it moved are named:
+  // your own changes (measured on the same runs), cards that hit (down) or were avoided (up), risks that did not come.
+  const wasNote = useMemo(() => {
+    const was = prevBase.current;
+    if (was === null || !lastReport || Math.round(was * 100) === Math.round(baseline.successShare * 100)) return null;
+    const up = baseline.successShare > was;
+    const why: string[] = [];
+    if (prevPicks.current) {
+      const before = agencyForecast(game, player, prevPicks.current, RUNS, 'baseline', undefined, FORECAST_SEED).successShare;
+      const mine = baseline.successShare - before;
+      const changed = mission.slots.filter((s) => s.phase === lastReport.phase)
+        .flatMap((s) => (player.picks[s.id] ?? []).filter((id) => !(standard[s.id] ?? []).includes(id)))
+        .map((id) => L(optionById.get(id)!.name));
+      if (changed.length && Math.abs(mine) >= 0.01 && (mine > 0) === up) why.push(fmt(t.wasYouChose, { list: changed.join(t.listSep) }));
+    }
+    const res = lastReport.cards.map((id) => ({ id, r: lastReport.results.player[id]! }));
+    const fit = res.filter(({ r }) => (up ? r === 'protected' || r === 'ready' : r === 'hit' || r === 'partial' || r === 'missed'));
+    why.push(...fit.map(({ id, r }) => fmt(tk(t, `was_${r}`), { name: L(mission.events.find((e) => e.id === id)!.name) })));
+    if (up && !res.some(({ r }) => r === 'hit' || r === 'partial') ) { if (!why.length) why.push(t.wasNoCards); }
+    else if (up && why.length === 0) why.push(t.wasAvoided);
+    return why.length ? fmt(t.wasBaseline, { n: Math.round(was * 100), why: why.join(t.listSep) }) : fmt(t.wasOnly, { n: Math.round(was * 100) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseline]);
+
   if (over && game.final) {
     return <AutoFit className="final-wrap" min={0.8}><FinalScreen game={game} onRestart={() => restart()} onReplaySame={() => restart(game.seed)} /></AutoFit>;
   }
@@ -245,7 +275,6 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const step = !myForecast || stale ? 2 : 3;
   const forecastBtn = <button type="button" data-tour="forecastBtn" className={forecastFirst ? 'primary' : 'secondary'} disabled={!canForecast} onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })}</button>;
   const confirmBtn = <button type="button" className={forecastFirst ? 'secondary' : 'primary'} onClick={confirm}>{game.phase < PHASE_COUNT ? fmt(t.confirmPhaseN, { n: game.phase }) : t.confirmLast}</button>;
-  const lastReport = game.reports[game.reports.length - 1];
 
   return (
     <div className="game">
@@ -313,17 +342,23 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
         </div>
         <AutoFit className="col col-center" data-tour="options" min={0.7}>
           {tab < game.phase && <p className="note">{t.pastPhaseNote}</p>}
-          <div className={`slots ${(() => {
-            // Four or more boxes: three narrow columns; without a wide box, flowed as columns so short boxes stack.
+          {(() => {
+            // Up to three boxes: two balanced columns. Four or more: boxes with many choices span the column first.
             const here = mission.slots.filter((s) => s.phase === tab);
-            return here.length <= 3 ? (here.length >= 2 ? 'roomy cols' : 'roomy') : here.some((s) => s.options.length > 4 || (s.multi && s.options.length > 2)) ? 'dense' : 'dense cols';
-          })()}`}>
-            {mission.slots.filter((s) => s.phase === tab).map((s) => {
+            const isWide = (s: (typeof here)[number]) => s.options.length > 4 || (!!s.multi && s.options.length > 2);
+            const mode = here.length <= 3 ? 'roomy' : 'dense';
+            const wide = mode === 'dense' ? here.filter(isWide) : [];
+            const rest = here.filter((s) => !wide.includes(s));
+            const box = (s: (typeof here)[number]) => {
               const locked = changeCost(mission, player, s.id, ['__probe__'], game.phase).locked;
               return (
                 <fieldset key={s.id} className={`slot ${s.options.length > 4 ? 'wide' : s.multi && s.options.length > 2 ? 'multi' : ''} ${flashSlot === s.id ? 'flash' : ''}`}>
-                  <legend>{s.icon && <Icon name={s.icon} size="1.15em" className="lg-ico" />}{L(s.label)}</legend>
-                  <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>
+                  <legend><span className="lg-row">{s.icon && <Icon name={s.icon} size="1.15em" className="lg-ico" />}<span className="lg-text">{L(s.label)}</span><span className="lg-line" aria-hidden="true" />
+                    {mode === 'dense' && <button type="button" className="info-btn" aria-expanded={slotHelp === s.id} aria-label={t.details} title={L(s.help)} onClick={() => setSlotHelp(slotHelp === s.id ? null : s.id)}>i</button>}</span></legend>
+                  {/* With four or more boxes the description waits behind "i"; how many may be picked stays visible. */}
+                  {mode === 'dense' && slotHelp !== s.id
+                    ? (s.multi ? <p className="note">{fmt(t.pickUpTo, { n: s.multi.max })}</p> : null)
+                    : <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>}
                   {locked && <p className="warn small">{t.lockedAfterLaunch}</p>}
                   <div className="opts">
                     {s.options.map((id) => {
@@ -344,6 +379,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                           reason={wrongOrbit ? t.cannotReachOrbit : undefined}
                           hint={c && c.kUSD > 0 && !locked ? fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days }) : undefined}
                           events={mission.events}
+                          weak={weakCards}
                           hinted={!!hinted && 'slot' in hinted && hinted.key === designKey && hinted.slot === s.id && hinted.id === id}
                           hintText={hinted && 'slot' in hinted ? hinted.text : undefined}
                           onPick={() => pick(s.id, id, s.multi)}
@@ -354,18 +390,18 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                   </div>
                 </fieldset>
               );
-            })}
-          </div>
+            };
+            return (
+              <div className={`slots ${mode} ${here.length === 1 ? 'single' : ''}`}>
+                {wide.map(box)}
+                {here.length === 1 ? box(here[0]!) : <SlotColumns items={rest.map((s) => ({ id: s.id, node: box(s) }))} />}
+              </div>
+            );
+          })()}
         </AutoFit>
         <AutoFit className="col col-right" data-tour="forecast" min={0.8}>
           <ForecastPanel mission={mission} baseline={baseline} mine={myForecast?.f ?? null} stale={stale} left={forecastsLeft} pastIds={pastIds}
-            wasNote={(() => {
-              // Why the baseline moved since the last phase: the cards that just came, as they turned out for you.
-              const was = prevBase.current;
-              if (was === null || !lastReport || Math.round(was * 100) === Math.round(baseline.successShare * 100)) return null;
-              const what = lastReport.cards.map((id) => { const card = mission.events.find((e) => e.id === id)!; const r = lastReport.results.player[id]; return fmt(tk(t, `was_${r}`), { name: L(card.name) }); });
-              return fmt(t.wasBaseline, { n: Math.round(was * 100), why: what.join(t.listSep) || t.wasNoCards });
-            })()} />
+            wasNote={wasNote} />
         </AutoFit>
       </div>
       <button type="button" className="rival-strip" onClick={() => setAllTurns(true)} disabled={!game.reports.length} title={t.showAllReports}>
@@ -395,7 +431,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       {resolved !== null && <Resolution game={game} phase={resolved} onClose={() => setResolved(null)} />}
       {allTurns && <Modal title={t.reportsTitle} wide onClose={() => setAllTurns(false)}><TurnReports game={game} heading={false} /></Modal>}
       {brief && <Briefing mission={mission} onClose={() => setBrief(false)} />}
-      {guide && !brief && <Tutorial mission={mission} autoShare={baseline.successShare} onClose={() => setGuide(false)} />}
+      {guide && !brief && <Tutorial onClose={() => setGuide(false)} />}
     </div>
   );
 }

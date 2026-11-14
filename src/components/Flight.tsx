@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Option } from '../data/types';
 import { agencyDesign, type Agency, type Game } from '../engine/game';
+import { firstFailure } from '../engine/simulate';
 import { fmt, useLang } from '../i18n';
 import type { FlightScene } from '../view/flightCommon';
 import type { FlightModel } from '../view/flightScene';
@@ -178,7 +179,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
       opsAt, opsSeconds: OPS, fires: !!v.fires,
       sats: order.map((a, i) => {
         const e = earthModel(m, designs.get(a.id)!);
-        return { ...base(a, i), altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [] };
+        return { ...base(a, i), tag: a.id === 'player' ? t.flightYou : undefined, altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [] };
       }),
     } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,6 +191,9 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
     if (r.outcome === 'launchFailure') return { text: `✕ ${outcomeName(r.outcome)}`, bad: true };
     if (r.outcome === 'orbitFailure') return { text: `✕ ${m.outcomeLabels?.orbitFailure ? outcomeName(r.outcome) : t.flightNoSignal}`, bad: true };
     const firstFail = [...r.failures].sort((x, y) => x.at - y.at)[0];
+    // Lost after the goal was already met: not a red cross, the result still stands.
+    const ff = firstFailure(r, m.opsDays.value);
+    if (ff?.goalMet) return { text: ff.fatal ? fmt(t.goalThenLost, { n: ff.day }) : fmt(t.goalThenFail, { n: ff.day, cause: causeName(`fail:${ff.sub}`) }), bad: false };
     if (r.opsFraction < 0.999 && (firstFail || r.outcome === 'lostInOps')) return { text: `✕ ${firstFail ? causeName(`fail:${firstFail.sub}`) : causeName(r.causes[0] ?? '')}`, bad: true };
     return null;
   };
@@ -251,11 +255,20 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
       <div className="flight-axis">
         <div className="fa-track">
           <span className="fa-head" style={{ animationDelay: `${opsAt}s`, animationDuration: `${OPS}s` }} />
-          {ops5.map((id) => {
-            const card = m.events.find((e) => e.id === id)!;
-            const at = displayAt(game.seed, id);
-            return <span key={id} className="fa-event appear" style={{ left: `${at * 100}%`, ...d(opsAt + at * OPS) }} title={L(card.name)}><CardIcon card={card} /></span>;
-          })}
+          {(() => {
+            // Each mark carries the card's name; marks close together are put on two levels so names do not overlap.
+            let lastAt = -1, lastLv = 1;
+            return [...ops5].map((id) => ({ id, at: displayAt(game.seed, id) })).sort((x, y) => x.at - y.at).map(({ id, at }) => {
+              const card = m.events.find((e) => e.id === id)!;
+              const lv = at - lastAt < 0.16 && lastLv === 0 ? 1 : 0;
+              lastAt = at; lastLv = lv;
+              return (
+                <span key={id} className={`fa-event appear ${lv ? 'up' : ''}`} style={{ left: `${at * 100}%`, ...d(opsAt + at * OPS) }}>
+                  <CardIcon card={card} /><span className="fa-name">{L(card.name)}</span>
+                </span>
+              );
+            });
+          })()}
         </div>
         <div className="fa-ticks">{ticks.map((x, i) => <span key={i}>{x}</span>)}</div>
         <p className="note small">

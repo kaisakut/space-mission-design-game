@@ -28,6 +28,8 @@ export const FORECAST_SEED = 20261114;
 /**
  * Runs the current design to the end `runs` times. Undecided slots use their standard choice.
  * The real game draws from other streams, so forecasting never changes what will actually happen.
+ * A named stream does not depend on the turn: the same design gives the same runs in every phase (cards already
+ * known are simply not drawn), so a change of the baseline between phases is not noise.
  */
 export function runForecast(
   m: Mission, picks: Picks, seed: number, turn: number, runs: number,
@@ -35,7 +37,7 @@ export function runForecast(
 ): Forecast {
   const d = evaluate(m, picks, ctx.adj);
   const results: RunResult[] = [];
-  for (let i = 1; i <= runs; i++) results.push(simulate(m, d, ctx.stream ? new Rng(seed, `${ctx.stream}:${turn}:${i}`) : forecastRng(seed, turn, i), ctx.sim));
+  for (let i = 1; i <= runs; i++) results.push(simulate(m, d, ctx.stream ? new Rng(seed, `${ctx.stream}:${i}`) : forecastRng(seed, turn, i), ctx.sim));
 
   const tree = buildBranchTree(
     results.map((r, i) => ({ id: i + 1, states: r.states, final: r.outcome })),

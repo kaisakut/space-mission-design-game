@@ -21,6 +21,8 @@ export interface FlightSat {
   duty: number;
   camera: { dayOnly: boolean; share: number } | null;
   stations: { lat: number; lon: number }[];
+  /** A small name tag over the spacecraft (the player's own). */
+  tag?: string;
 }
 
 export interface FlightModel {
@@ -43,6 +45,7 @@ const radiusOf = (altKm: number) => 1 + (altKm / RE_KM) * 2;
 const NODE = 0.8;
 const ORBIT_SECONDS = 1.3;
 const EARTH_TURN_SECONDS = 3.2;
+const EARTH_START = 0;
 // Where the rockets rise from: a point on the globe facing the viewer, a little below and left of centre.
 const PAD = new THREE.Vector3(-0.35, -0.3, 0.89).normalize().multiplyScalar(1.01);
 
@@ -100,12 +103,13 @@ export function createFlightScene(host: HTMLElement, opts: { reduceMotion: boole
   const ringMat = new THREE.LineBasicMaterial({ color: 0xbfd6ff, transparent: true, opacity: 0.35 });
   const stationMat = new THREE.MeshBasicMaterial({ color: 0xffb74d });
   const grey = new THREE.MeshBasicMaterial({ color: 0x5a6478 });
+  const outlineMat = new THREE.LineBasicMaterial({ color: 0x8a94a8 });
   const failMat = new THREE.MeshBasicMaterial({ color: 0xef5350 });
   let parts: THREE.Object3D[] = [];
   let mats: THREE.Material[] = [];
 
   type Live = {
-    s: FlightSat; body: THREE.Group; bodyMat: THREE.MeshBasicMaterial; trail: THREE.Line; link: THREE.Line;
+    s: FlightSat; body: THREE.Group; bodyMat: THREE.MeshBasicMaterial; trail: THREE.Line; link: THREE.Line; tag?: THREE.Sprite;
     r: number; inc: number; offset: number; stations: Vec3[]; lam: number; u: number; x?: THREE.Mesh; greyed?: boolean;
   };
   let live: Live[] = [];
@@ -155,18 +159,25 @@ export function createFlightScene(host: HTMLElement, opts: { reduceMotion: boole
       dot.position.set(...(latLonToVec(p.lat, p.lon).map((x) => x * 1.006) as Vec3));
       earth.add(dot); parts.push(dot);
     }
+    // Spacecraft on the same orbit are spread evenly around it, so they do not sit on top of each other.
+    const onOrbit = new Map<string, number>();
+    for (const s of m.sats) if (s.kind !== 'stay') { const k = `${s.altKm}/${s.incDeg}`; onOrbit.set(k, (onOrbit.get(k) ?? 0) + 1); }
     const sameOrbit = new Map<string, number>();
     live = m.sats.map((s) => {
       const key = `${s.altKm}/${s.incDeg}`;
       const nth = sameOrbit.get(key) ?? 0;
       sameOrbit.set(key, nth + 1);
+      const spread = (Math.PI * 2) / Math.max(1, onOrbit.get(key) ?? 1);
       const bodyMat = new THREE.MeshBasicMaterial({ color: s.kind === 'dark' ? 0x5a6478 : s.color });
       mats.push(bodyMat);
       const body = new THREE.Group();
       body.add(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.13), bodyMat));
       for (const sg of [-1, 1]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.075), bodyMat); w.position.x = sg * 0.135; body.add(w); }
+      body.scale.setScalar(0.55);
       body.visible = false;
       pivot.add(body); parts.push(body);
+      let tag: THREE.Sprite | undefined;
+      if (s.tag) { tag = labelSprite(s.tag, s.color); mats.push(tag.material); tag.visible = false; pivot.add(tag); parts.push(tag); }
       const trail = line(s.color, 0.95);
       trail.visible = false;
       pivot.add(trail); parts.push(trail);
@@ -174,7 +185,7 @@ export function createFlightScene(host: HTMLElement, opts: { reduceMotion: boole
       link.visible = false;
       pivot.add(link); parts.push(link);
       return {
-        s, body, bodyMat, trail, link, r: radiusOf(s.altKm), inc: (s.incDeg * Math.PI) / 180, offset: nth * 0.45,
+        s, body, bodyMat, trail, link, tag, r: radiusOf(s.altKm), inc: (s.incDeg * Math.PI) / 180, offset: nth * spread,
         stations: s.stations.map((p) => latLonToVec(p.lat, p.lon)), lam: footprintAngle(s.altKm), u: 0,
       };
     });
@@ -185,7 +196,8 @@ export function createFlightScene(host: HTMLElement, opts: { reduceMotion: boole
   const step = (dt: number) => {
     if (!model) return;
     clock += dt;
-    earth.rotation.y = (clock / EARTH_TURN_SECONDS) * Math.PI * 2;
+    // The day side, with the Americas' land, faces the viewer as the year in orbit starts (not the dark Pacific).
+    earth.rotation.y = ((clock - model.opsAt) / EARTH_TURN_SECONDS) * Math.PI * 2 + EARTH_START;
     const sunLocal = SUN.clone().applyQuaternion(earth.getWorldQuaternion(new THREE.Quaternion()).invert());
     const inOps = clock >= model.opsAt;
     live.forEach((l, i) => {
@@ -215,7 +227,19 @@ export function createFlightScene(host: HTMLElement, opts: { reduceMotion: boole
       l.body.visible = true;
       l.body.position.copy(pos);
       l.body.lookAt(0, 0, 0);
-      if (stopped && s.kind === 'ok' && !l.greyed) { l.greyed = true; l.body.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).material = grey; }); }
+      if (l.tag) { l.tag.visible = true; l.tag.position.copy(pos.clone().multiplyScalar(1 + 0.22 / l.r)); }
+      // A lost spacecraft keeps only its outline (hollow), in grey.
+      if (stopped && s.kind === 'ok' && !l.greyed) {
+        l.greyed = true;
+        for (const o of [...l.body.children]) {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh) continue;
+          const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), outlineMat);
+          edges.position.copy(mesh.position); edges.rotation.copy(mesh.rotation);
+          mesh.visible = false;
+          l.body.add(edges);
+        }
+      }
       if (s.kind !== 'ok' || stopped) { l.link.visible = false; return; }
       const local = earth.worldToLocal(pivot.localToWorld(pos.clone()));
       const sub: Vec3 = [local.x, local.y, local.z];
@@ -255,8 +279,29 @@ export function createFlightScene(host: HTMLElement, opts: { reduceMotion: boole
     },
     dispose: () => {
       disposeGeometry(parts);
-      for (const x of [...mats, ringMat, stationMat, grey, failMat]) x.dispose();
+      for (const x of [...mats, ringMat, stationMat, grey, outlineMat, failMat]) x.dispose();
       st.dispose();
     },
   };
+}
+
+/** A small text tag drawn on a canvas, always facing the viewer. */
+function labelSprite(text: string, color: string): THREE.Sprite {
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d')!;
+  const font = '600 40px system-ui, sans-serif';
+  ctx.font = font;
+  const w = Math.ceil(ctx.measureText(text).width) + 28;
+  c.width = w; c.height = 60;
+  ctx.font = font;
+  ctx.fillStyle = 'rgba(8, 12, 24, 0.8)';
+  ctx.strokeStyle = color; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.roundRect(2, 2, w - 4, 56, 12); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(text, 14, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  sp.scale.set((0.13 * w) / 60, 0.13, 1);
+  sp.renderOrder = 5;
+  return sp;
 }

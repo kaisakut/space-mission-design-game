@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import type { Mission } from '../data/types';
 import { tk, useLang } from '../i18n';
 
 /**
@@ -8,7 +7,6 @@ import { tk, useLang } from '../i18n';
  */
 interface Step { target: string | null; key: string; act?: string; needs?: string }
 const STEPS: Step[] = [
-  { target: null, key: 'brief' },
   { target: 'view', key: 'tourView', needs: '[data-tour="view"]' },
   { target: 'forecast', key: 'tourBaseline' },
   { target: 'weak', key: 'tourWeak', act: '.link-btn', needs: '[data-tour="weak"] .link-btn' },
@@ -17,9 +15,9 @@ const STEPS: Step[] = [
   { target: 'confirm', key: 'tourConfirm' },
 ];
 
-/** The briefing, then a short hands-on walk through one turn. "Skip guide" works at any time. */
-export function Tutorial({ onClose, mission, autoShare }: { onClose: () => void; mission: Mission; autoShare: number }) {
-  const { t, L } = useLang();
+/** A short hands-on walk through one turn, after the mission briefing dialog. "Skip guide" works at any time. */
+export function Tutorial({ onClose }: { onClose: () => void }) {
+  const { t } = useLang();
   const steps = STEPS;
   const [i, setI] = useState(0);
   const step = steps[i]!;
@@ -66,22 +64,15 @@ export function Tutorial({ onClose, mission, autoShare }: { onClose: () => void;
         </>
       ) : <div className="tour-block" style={{ inset: 0 }} />}
       <div className="tour" role="dialog" aria-label={t.tourTitle}>
-        <div className="tour-head"><b>{step.target ? t.tourTitle : L(mission.name)}</b><span className="note">{i + 1} / {steps.length}</span></div>
-        {step.key === 'brief' ? (
-          <>
-            <p>{L(mission.summary)}</p>
-            <p className="note small">{t.autoPlanNote}</p>
-            <p><span className="tour-big">{Math.round(autoShare * 100)}%</span> {t.briefAuto}</p>
-            <p className="small">{t.briefRivals}</p>
-          </>
-        ) : <p>{tk(t, step.key)}</p>}
+        <div className="tour-head"><b>{t.tourTitle}</b><span className="note">{i + 1} / {steps.length}</span></div>
+        <p>{tk(t, step.key)}</p>
         {step.act && <p className="note small">{t.tourDoIt}</p>}
         <div className="tour-actions">
-          <button type="button" className="secondary" onClick={onClose}>{t.tourSkip}</button>
+          <button type="button" className="link-btn tour-close" onClick={onClose}>{t.tourSkip}</button>
           <span>
             {i > 0 && <button type="button" className="secondary" onClick={() => setI(Math.max(0, after(i, -1)))}>{t.tourBack}</button>}
             <button type="button" className={step.act ? 'secondary' : 'primary'} onClick={next}>
-              {step.key === 'brief' ? t.briefTakeOver : last ? t.tourDone : step.act ? t.tourSkipStep : t.tourNext}
+              {last ? t.tourDone : step.act ? t.tourSkipStep : t.tourNext}
             </button>
           </span>
         </div>

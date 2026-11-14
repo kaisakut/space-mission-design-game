@@ -67,6 +67,8 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const [done, setDone] = useState(false);
   // After the last phase the cards give way to the flight scene (its own page, so nothing scrolls).
   const [flightOn, setFlightOn] = useState(false);
+  // In the last phase the cards stay until the player moves on to the flight (no automatic step: they can read).
+  const [cardsEnded, setCardsEnded] = useState(false);
 
   // Standing: each agency's forecast median now (not shown after the last phase).
   const standing = useMemo(() => (game.final ? [] : game.agencies.map((a) => ({ id: a.id, score: agencyForecast(game, a, a.picks, 60, 'standing').score.p50 })).sort((x, y) => y.score - x.score)), [game]);
@@ -84,7 +86,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
         if (r) play(sound(r), start + 0.8 + i * 0.4);
       });
     });
-    const id = window.setTimeout(() => (game.final ? setFlightOn(true) : setDone(true)), eventsEnd * 1000 + 400);
+    const id = window.setTimeout(() => (game.final ? setCardsEnded(true) : setDone(true)), eventsEnd * 1000 + 400);
     return () => { clearTimeout(id); stopAll(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -103,10 +105,10 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
 
   const advance = useCallback(() => {
     stopAll();
-    if (game.final && !flightOn) setFlightOn(true);
+    if (game.final && !flightOn) { if (!cardsEnded) setCardsEnded(true); else setFlightOn(true); }
     else if (!done) setDone(true);
     else onClose();
-  }, [done, flightOn, game.final, onClose]);
+  }, [done, flightOn, cardsEnded, game.final, onClose]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); advance(); } };
     window.addEventListener('keydown', k);
@@ -118,13 +120,19 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const title = flightOn ? t.flightTitle : fmt(t.resolutionTitle, { n: phase, name: tk(t, `phase${phase}`) });
 
   return (
-    <div className={`modal resolution ${done ? 'instant' : ''}`} role="dialog" aria-label={title}>
+    <div className={`modal resolution ${done || (cardsEnded && !flightOn) ? 'instant' : ''}`} role="dialog" aria-label={title}>
       <div className="modal-body res-body">
         <div className="modal-head">
           <h2>{title}</h2>
-          <button type="button" className={done ? 'primary' : 'secondary'} onClick={advance}>
-            {!done ? `${t.skip} ▸▸` : game.final ? `${t.seeResults} ▶` : `${t.next} ▶`}
-          </button>
+          {game.final && !flightOn ? (
+            <button type="button" className={cardsEnded ? 'primary' : 'secondary'} onClick={advance}>
+              {cardsEnded ? `${t.watchFlight} ▶` : `${t.skip} ▸▸`}
+            </button>
+          ) : (
+            <button type="button" className={done ? 'primary' : 'secondary'} onClick={advance}>
+              {!done ? `${t.skip} ▸▸` : game.final ? `${t.seeResults} ▶` : `${t.next} ▶`}
+            </button>
+          )}
         </div>
 
         {flightOn && game.final ? <Flight game={game} start={0} instant={done} /> : <AutoFit className="res-fit" min={0.72}>

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createStage, disposeGeometry, paintedTexture, seeded, type MissionScene } from './stage';
 
 /**
- * Jupiter system, drawn for explanation and not to scale: Jupiter, its radiation belts as glowing rings,
+ * Jupiter system, drawn for explanation and not to scale: Jupiter, its radiation belts as a thick glow around it,
  * the orbits of Europa and Ganymede, and the spacecraft's path. Built from the design state only.
  */
 export interface JupiterModel {
@@ -49,6 +49,29 @@ export function jupiterTexture() {
   });
 }
 
+/** Radius Jupiter is drawn at: large enough that its bands and the Great Red Spot can be seen. */
+export const JUPITER_R = 1.6;
+
+/**
+ * The radiation belts as a soft, pale glow that wraps Jupiter and spreads above and below it (nested
+ * flattened shells, brightest at their edges), not a flat ring: so it does not read as Saturn.
+ */
+export function radiationGlow(keep: <T extends THREE.Material>(m: T) => T = (m) => m): THREE.Group {
+  const g = new THREE.Group();
+  ([[3.3, 1.7, 0.5], [3.9, 2.2, 0.32], [4.6, 2.8, 0.18]] as const).forEach(([r, h, o]) => {
+    const mat = keep(new THREE.ShaderMaterial({
+      uniforms: { color: { value: new THREE.Color(0xbfe4ff) }, opacity: { value: o } },
+      vertexShader: 'varying vec3 vN; varying vec3 vV; void main() { vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+      fragmentShader: 'uniform vec3 color; uniform float opacity; varying vec3 vN; varying vec3 vV; void main() { float f = 1.0 - abs(dot(normalize(vN), normalize(vV))); float a = pow(f, 1.6) * opacity; gl_FragColor = vec4(color * a, a); }',
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), mat);
+    m.scale.set(r, h, r);
+    g.add(m);
+  });
+  return g;
+}
+
 export function ellipsePoints(peri: number, apo: number, n = 160): THREE.Vector3[] {
   const a = (peri + apo) / 2, e = (apo - peri) / (apo + peri);
   const pts: THREE.Vector3[] = [];
@@ -80,7 +103,6 @@ export function createJupiterScene(host: HTMLElement, opts: { reduceMotion: bool
 
   const mats = {
     jupiter: new THREE.MeshPhongMaterial({ map: jupiterTexture(), shininess: 4 }),
-    belt: [0.16, 0.08, 0.04].map((o) => new THREE.MeshBasicMaterial({ color: 0xc58cff, transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending })),
     moonOrbit: new THREE.LineBasicMaterial({ color: 0x5a6b8f, transparent: true, opacity: 0.7 }),
     europa: new THREE.MeshPhongMaterial({ color: 0xd8cbb0 }),
     ganymede: new THREE.MeshPhongMaterial({ color: 0x9c8f7c }),
@@ -103,13 +125,8 @@ export function createJupiterScene(host: HTMLElement, opts: { reduceMotion: bool
     scene.add(new THREE.Points(g, mats.stars));
   }
 
-  pivot.add(new THREE.Mesh(new THREE.SphereGeometry(1, 40, 24), mats.jupiter));
-  // Belts: three nested, thick glowing doughnuts, brightest on the inside (not flat rings, so not Saturn).
-  [[2.9, 0.55], [2.95, 0.95], [3.05, 1.4]].forEach(([r, tube], k) => {
-    const t = new THREE.Mesh(new THREE.TorusGeometry(r!, tube!, 16, 64), mats.belt[k]!);
-    t.rotation.x = Math.PI / 2;
-    pivot.add(t);
-  });
+  pivot.add(new THREE.Mesh(new THREE.SphereGeometry(JUPITER_R, 48, 32), mats.jupiter));
+  pivot.add(radiationGlow());
   for (const r of [EUROPA_R, GANYMEDE_R]) pivot.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ellipsePoints(r, r, 96)), mats.moonOrbit));
   const europa = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 12), mats.europa);
   const ganymede = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 12), mats.ganymede);

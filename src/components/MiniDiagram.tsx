@@ -18,19 +18,23 @@ function body(o: Option, v: MissionViewConfig) {
   if (v.kind === 'earthOrbit' && o.kind === 'orbit') {
     const inc = o.inclinationDeg?.value ?? 98;
     const alt = o.altitudeKm?.value ?? 500;
-    // Tilt from the horizontal: ISS (51.6°) lies flatter, sun-synchronous (~97°) stands nearly upright. Exaggerated.
+    // Tilt from the equator: ISS (51.6°) lies flatter, sun-synchronous (~97°) stands nearly upright. Exaggerated.
     const eff = inc > 90 ? 180 - inc : inc;
-    const tilt = -Math.min(82, Math.max(12, 22 + (eff - 51.6) * 1.8));
-    // Ring size from the altitude, exaggerated so 400, 500 and 600 km differ.
-    const rx = 12 + Math.max(0, Math.min(1, (alt - 380) / 240)) * 6;
-    const ry = rx * 0.3;
-    const a = (tilt * Math.PI) / 180;
-    const sx = 20 + rx * Math.cos(a) * Math.cos(0.6) - ry * Math.sin(a) * Math.sin(0.6);
-    const sy = 20 + rx * Math.sin(a) * Math.cos(0.6) + ry * Math.cos(a) * Math.sin(0.6);
+    const tilt = -Math.min(80, Math.max(20, 30 + (eff - 51.6) * 1.6));
+    // The ring stays clear of the Earth (its short radius is at least 1.6 Earth radii), so it reads as an orbit,
+    // not as a planet's rings. Its size follows the altitude, exaggerated so 400, 500 and 600 km differ.
+    const R = 6;
+    const rx = 15 + Math.max(0, Math.min(1, (alt - 380) / 240)) * 4;
+    const ry = Math.max(R * 1.6, rx * 0.55);
+    const a = (tilt * Math.PI) / 180, t0 = 0.7;
+    const sx = 20 + rx * Math.cos(t0) * Math.cos(a) - ry * Math.sin(t0) * Math.sin(a);
+    const sy = 20 + rx * Math.cos(t0) * Math.sin(a) + ry * Math.sin(t0) * Math.cos(a);
     return <>
-      <circle cx={20} cy={20} r={8} />
+      <circle cx={20} cy={20} r={R} />
+      {/* The equator, faint, so the ring's tilt can be read against it. */}
+      <path d={`M${20 - R - 3} 20h${2 * R + 6}`} strokeWidth={0.8} opacity={0.45} strokeDasharray="1.5 1.5" />
       <ellipse cx={20} cy={20} rx={rx} ry={ry} transform={`rotate(${tilt} 20 20)`} />
-      <circle cx={sx} cy={sy} r={2} fill="currentColor" />
+      <circle cx={sx} cy={sy} r={2.2} fill="currentColor" />
     </>;
   }
   if (v.kind === 'lunarPole') {

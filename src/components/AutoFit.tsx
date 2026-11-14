@@ -10,8 +10,11 @@ export function AutoFit({ children, className = '', min = 0.62, ...rest }: { chi
     const el = ref.current;
     if (!el || el.clientHeight === 0) return;
     const fits = () => el.scrollHeight <= el.clientHeight + 2;
+    // A few pixels of rounding over the edge should not bring up a scroll bar.
+    const bar = () => { el.style.overflowY = el.scrollHeight - el.clientHeight <= 4 ? 'hidden' : ''; };
+    el.style.overflowY = '';
     el.style.fontSize = '1em';
-    if (fits()) return;
+    if (fits()) { bar(); return; }
     let lo = min, hi = 1;
     for (let i = 0; i < 7; i++) {
       const mid = (lo + hi) / 2;
@@ -19,6 +22,7 @@ export function AutoFit({ children, className = '', min = 0.62, ...rest }: { chi
       if (fits()) lo = mid; else hi = mid;
     }
     el.style.fontSize = `${lo}em`;
+    bar();
   }, [min]);
   // Refit after every render (content may have changed) and whenever the box is resized.
   useLayoutEffect(fit);
