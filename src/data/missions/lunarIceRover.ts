@@ -307,6 +307,8 @@ export const lunarIceRover: Mission = {
         '月面に届く確率。2024〜2025年のNASAの民間月輸送4回のうち、月面に届いたのは3回（Peregrineは届かず）。ただしそのうち2回は横倒しだった（横倒しは別のカード）。NASAはこの輸送を「シュートの数を打つ」方式と呼び、成功率5割でも受け入れられるとしていた。',
       )),
       windowsDay: rule([1000, 1200, 1400]),
+      // A firm order for a lander class that has flown commercial deliveries (a game distinction: Griffin itself has not flown yet).
+      tags: ['lander:committed'],
     },
     {
       kind: 'launch', id: 'lander-large', icon: 'lander', name: tx('Large commercial lander', '大型の民間着陸機'),
@@ -379,6 +381,11 @@ export const lunarIceRover: Mission = {
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
       unprotected: [{ kind: 'delayDays', days: 60 }],
       lesson: tx('{agency} had no schedule margin when an instrument arrived late.', '{agency}は、機器が遅れたときに日程の余裕がなかった。'),
+      realCase: {
+        who: tx('VIPER', 'VIPER'), year: '2024',
+        text: tx('VIPER: delivery of the integrated electronics unit slipped by more than 16 months.', 'VIPER：統合電子機器ユニットの納入が16か月以上遅れた。'),
+        sources: ['nasa-viper-build'],
+      },
     },
     {
       id: 'lander-delay', phase: 3, name: tx('Lander delay', '着陸機の遅れ'),
@@ -475,7 +482,7 @@ export const lunarIceRover: Mission = {
     {
       id: 'tip-over', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
       story: tx('The lander touches down but tips over. The rover may not be able to drive off cleanly, and the solar arrays face the wrong way.', '着陸はできたが横倒しになった。ローバーがうまく降りられず、太陽電池も違う方向を向いている。'),
-      probability: rule(0.3, tx('Game value, set lower than the 2024–2025 record (two of the three commercial landers that reached the Moon ended up on their side) so that this one card does not decide most games.', 'ゲームの値。2024〜2025年の実績（月面に届いた民間の着陸機3機のうち2機が横倒し）より低くし、このカード1枚で多くのゲームが決まらないようにした。')),
+      probability: est(0.5, ['nasa-clps-timeline', 'nasa-im2-end', 'sfn-im2'], tx('Of the three CLPS landings that reached the surface (IM-1, Blue Ghost 1, IM-2), two ended on their side. With only three, the game uses 0.5 rather than two thirds.', 'CLPSで月面に着陸できた3回（IM-1、Blue Ghost 1、IM-2）のうち2回が横倒しだった。3回しかないので、3分の2ではなく0.5とした。')),
       partialIf: { kind: 'hasTag', tag: 'lander:large' },
       partial: [{ kind: 'scienceFactor', factor: 0.8 }],
       unprotected: [{ kind: 'scienceFactor', factor: 0.5 }, { kind: 'durationFactor', factor: 0.6 }],
@@ -495,6 +502,44 @@ export const lunarIceRover: Mission = {
       readyIf: { kind: 'hasTag', tag: 'drill' },
       benefit: [{ kind: 'scienceFactor', factor: 1.25 }],
       lesson: tx('{agency} had a drill and could sample the ice-rich layer.', '{agency}はドリルを積んでいて、氷の多い層を掘れた。'),
+    },
+    {
+      id: 'lfunding-gap', phase: 1, name: tx('Funding lapse', '予算の成立が遅れる'),
+      story: tx('Appropriations lapse and government work stops. Contracts and reviews wait.', '予算の成立が遅れ、政府機関の仕事が止まった。契約と審査が進まない。'),
+      probability: est(0.23, ['crs-funding-gaps'], tx('Of the 13 fiscal years 2014–2026, three had a government-wide funding lapse of 16 days or more (16 days in FY2014, 34 in FY2019, 42 in FY2026).', '2014〜2026年度の13年度のうち、政府全体の予算の空白が16日以上続いたのは3回（2014年度16日、2019年度34日、2026年度42日）。')),
+      protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
+      unprotected: [{ kind: 'delayDays', days: 20 }],
+      lesson: tx('{agency} had no schedule margin when funding lapsed.', '{agency}は、予算の空白のときに日程の余裕がなかった。'),
+      realCase: {
+        who: tx('NASA projects', 'NASAの計画'),
+        year: '2025',
+        text: tx('GAO: during the funding lapse, the start of the solar electric propulsion life test slipped, and NISAR postponed its review before operations.', 'GAO：予算の空白で、太陽電気推進（SEP）の寿命試験の開始が遅れ、NISARは運用開始前の審査を延ばした。'),
+        sources: ['gao-26-108556'],
+      },
+    },
+    {
+      id: 'lintegration-slip', phase: 4, name: tx('Assembly and test run long', '組立と試験が長引く'),
+      story: tx('Problems that only show up once everything is assembled stretch the test campaign.', '組み立てて初めて分かる不具合が続き、試験の日程が延びた。'),
+      probability: est(0.5, ['nasa-lcc-growth'], tx('Across 20 NASA science missions launched 2000–2009, launch dates slipped on average more than 13 months from the plan at PDR, mostly during assembly and test. Slipping is the norm, so the game uses 0.5 (the value itself is a game choice).', 'NASAの科学ミッション20機（2000〜2009年打ち上げ）で、打ち上げ日はPDR時点の計画から平均13か月以上遅れ、その大半は組立・試験の間に起きた。遅れるのが普通なので0.5とした（値そのものはゲームの判断）。')),
+      protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.15 },
+      partialIf: { kind: 'hasTag', tag: 'engineeringModel' },
+      partial: [{ kind: 'delayDays', days: 20 }],
+      unprotected: [{ kind: 'delayDays', days: 40 }],
+      lesson: tx('{agency} had no schedule margin when assembly and test ran long.', '{agency}は、組立と試験が延びたときに日程の余裕がなかった。'),
+    },
+    {
+      id: 'first-flight-wait', phase: 3, name: tx('Waiting on the first flight', '初飛行の結果待ち'),
+      story: tx('Your lander has never landed. Nothing moves until its first flight is in.', '選んだ着陸機はまだ月に降りたことがない。初飛行の結果が出るまで、次へ進めない。'),
+      probability: rule(0.5),
+      protectedIf: { kind: 'hasTag', tag: 'lander:committed' },
+      unprotected: [{ kind: 'delayDays', days: 200 }],
+      lesson: tx('{agency} chose a lander with no landing yet and waited for its first flight.', '{agency}は実績のない着陸機を選び、初飛行の結果を待った。'),
+      realCase: {
+        who: tx('VIPER', 'VIPER'),
+        year: '2025',
+        text: tx('NASA ordered VIPER’s delivery on a large lander but made the part that lands the rover an option, to be decided after that lander’s first flight.', 'NASAは大型の着陸機にVIPERの輸送を発注したが、月面に届ける部分はオプションとし、その着陸機の初飛行を見てから決めるとした。'),
+        sources: ['nasa-viper-blue'],
+      },
     },
   ],
 };
