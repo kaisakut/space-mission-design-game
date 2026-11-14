@@ -55,9 +55,22 @@ export function defaultPicks(m: Mission): Picks {
   return p;
 }
 
-/** Fill undecided slots with defaults. */
+/**
+ * Fill undecided slots with their standard choice. If the standard launch cannot reach the chosen
+ * orbit, the first launch that can is used instead.
+ */
 export function completePicks(m: Mission, picks: Picks): Picks {
-  return { ...defaultPicks(m), ...picks };
+  const out = { ...defaultPicks(m), ...picks };
+  const byId = new Map(m.options.map((o) => [o.id, o]));
+  const orbitId = Object.values(out).flat().find((id) => byId.get(id)?.kind === 'orbit');
+  for (const s of m.slots) {
+    if (picks[s.id] || !orbitId) continue;
+    const cur = byId.get(out[s.id]?.[0] ?? '');
+    if (cur?.kind !== 'launch' || cur.capacityKg[orbitId]) continue;
+    const ok = s.options.find((id) => { const o = byId.get(id); return o?.kind === 'launch' && !!o.capacityKg[orbitId]; });
+    if (ok) out[s.id] = [ok];
+  }
+  return out;
 }
 
 const num = (v: { value: number } | undefined) => v?.value ?? 0;
@@ -74,7 +87,15 @@ const num = (v: { value: number } | undefined) => v?.value ?? 0;
  *   can send in the day's ground contact.
  * - Schedule: development days + option lead times, against the first launch window.
  */
-export function evaluate(m: Mission, rawPicks: Picks): DesignState {
+/** Costs and changes on top of the picks: change costs, and in the real game the effects of events so far. */
+export interface Adjustments {
+  extraKUSD?: number;
+  extraDays?: number;
+  /** Change to the budget (negative for a cut), kUSD. */
+  budgetDelta?: number;
+}
+
+export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): DesignState {
   const picks = completePicks(m, rawPicks);
   const byId = new Map(m.options.map((o) => [o.id, o]));
   const options: Option[] = [];
@@ -109,9 +130,9 @@ export function evaluate(m: Mission, rawPicks: Picks): DesignState {
   }
 
   // Budget
-  const budget = num(m.budgetKUSD);
+  const budget = num(m.budgetKUSD) + (adj.budgetDelta ?? 0);
   const reserveKUSD = budget * (settings.reserveShare ?? 0);
-  const spent = num(m.bus.cost) + options.reduce((a, o) => a + num(o.cost), 0);
+  const spent = num(m.bus.cost) + options.reduce((a, o) => a + num(o.cost), 0) + (adj.extraKUSD ?? 0);
 
   // Downlink (per day)
   // All instruments and radios count, so missions can carry several.
@@ -121,7 +142,7 @@ export function evaluate(m: Mission, rawPicks: Picks): DesignState {
   const sendPerDay = orbit ? radios.reduce((a, p) => a + num(p.downlinkMBPerMin), 0) * num(orbit.contactMinPerDay) : 0;
 
   // Schedule
-  let readyDay = num(m.bus.devDays);
+  let readyDay = num(m.bus.devDays) + (adj.extraDays ?? 0);
   for (const o of options) if (o.kind !== 'launch') readyDay += num(o.leadDays);
   const windows = launch ? [...launch.windowsDay.value].sort((a, b) => a - b) : [];
   const launchDay = windows.find((w) => w >= readyDay) ?? null;

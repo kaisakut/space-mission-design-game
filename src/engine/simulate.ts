@@ -40,6 +40,10 @@ export interface RunResult {
 export interface SimulateOptions {
   /** Event ids drawn for the real game: every agency gets the same cards. Omit to draw them in this run. */
   drawn?: Set<string>;
+  /** Phases whose cards are already known (the real game so far); later phases are drawn in this run. */
+  knownPhases?: Map<number, Set<string>>;
+  /** How each known card already turned out for this agency (kept even if the design changed since). */
+  results?: Map<string, EventResult>;
 }
 
 const FATAL: Subsystem[] = ['cdh', 'power', 'comms'];
@@ -80,9 +84,11 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   const playEvents = (phase: number) => {
     for (const card of m.events.filter((c) => c.phase === phase)) {
       if (isLaunchCard(card)) continue;
-      const drawn = opts.drawn ? opts.drawn.has(card.id) : rng.chance(card.probability.value);
+      const known = opts.knownPhases?.get(phase);
+      const drawn = opts.drawn ? opts.drawn.has(card.id) : known ? known.has(card.id) : rng.chance(card.probability.value);
       if (!drawn) continue;
-      const r = resolveEvent(card, d);
+      const fixed = opts.results?.get(card.id);
+      const r = fixed ? fixedResult(card, fixed) : resolveEvent(card, d);
       events.push({ id: card.id, phase, result: r.result });
       phaseLog[phase - 1]!.push(`${card.id}:${r.result}`);
       if (r.result === 'hit' || r.result === 'partial') { hits++; causes.push(card.id); }
@@ -193,6 +199,12 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   states.push(endedEarly ? 'lost' : primaryMet === 0 ? 'critical' : hits > 0 || fatalAt < 1 || primaryMet < 1 ? 'atRisk' : 'nominal');
   return { states, outcome, score, delivered: Math.round(delivered), causes, events, launchDay, phaseLog };
 }
+
+/** A result decided earlier in the real game, with the effects it carries. */
+const fixedResult = (card: EventCard, result: EventResult) => ({
+  card, result,
+  effects: result === 'hit' ? card.unprotected : result === 'partial' ? card.partial ?? [] : result === 'ready' ? card.benefit ?? [] : [],
+});
 
 /** The launch failure card is decided by the rocket's reliability, not drawn like other cards. */
 const isLaunchCard = (c: EventCard) => c.unprotected.some((e) => e.kind === 'missionLost' && e.outcome === 'launchFailure');

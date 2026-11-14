@@ -58,6 +58,9 @@ export const wildfireCubesat: Mission = {
       'Game values: chance the satellite never works after launch, by test depth. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
       '試験の深さごとの、打ち上げ後に動かない確率（ゲームの値）。CubeSat 101 では打ち上げ前の検証試験（振動・熱真空）を必須としている。',
     )),
+    changeFactors: rule([1.5, 3, 6], tx('Later changes ripple into more redesign and retesting.', '後で変えるほど、設計のやり直しと再試験が広がる。')),
+    changeMinKUSD: rule(30, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
+    changeDelayDaysPerPhase: rule(15),
   },
   primary: {
     id: 'detect-and-deliver',

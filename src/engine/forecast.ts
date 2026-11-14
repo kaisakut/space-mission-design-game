@@ -1,8 +1,8 @@
 import type { Mission, Outcome } from '../data/types';
 import { buildBranchTree, type BranchNode } from './branchTree';
-import { evaluate, type Picks } from './design';
+import { evaluate, type Adjustments, type Picks } from './design';
 import { Rng } from './rng';
-import { OUTCOMES, RUN_STATUSES, simulate, type RunResult } from './simulate';
+import { OUTCOMES, RUN_STATUSES, simulate, type RunResult, type SimulateOptions } from './simulate';
 
 export interface Forecast {
   runs: RunResult[];
@@ -23,10 +23,13 @@ export const forecastRng = (seed: number, turn: number, run: number) => new Rng(
  * Runs the current design to the end `runs` times. Undecided slots use their standard choice.
  * The real game draws from other streams, so forecasting never changes what will actually happen.
  */
-export function runForecast(m: Mission, picks: Picks, seed: number, turn: number, runs: number): Forecast {
-  const d = evaluate(m, picks);
+export function runForecast(
+  m: Mission, picks: Picks, seed: number, turn: number, runs: number,
+  ctx: { adj?: Adjustments; sim?: SimulateOptions; stream?: string } = {},
+): Forecast {
+  const d = evaluate(m, picks, ctx.adj);
   const results: RunResult[] = [];
-  for (let i = 1; i <= runs; i++) results.push(simulate(m, d, forecastRng(seed, turn, i)));
+  for (let i = 1; i <= runs; i++) results.push(simulate(m, d, ctx.stream ? new Rng(seed, `${ctx.stream}:${turn}:${i}`) : forecastRng(seed, turn, i), ctx.sim));
 
   const tree = buildBranchTree(
     results.map((r, i) => ({ id: i + 1, states: r.states, final: r.outcome })),

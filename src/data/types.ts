@@ -226,6 +226,12 @@ export interface MissionRules {
   scienceFullScore: Sourced;
   /** Chance the spacecraft fails right after launch, for test depth 1, 2, 3. */
   earlyFailureByTestDepth: Sourced<number[]>;
+  /** Changing a decision made 1, 2, 3+ phases ago costs the larger option cost × this factor. */
+  changeFactors: Sourced<number[]>;
+  /** Smallest cost of changing an earlier decision, kUSD (redesign work even when the parts cost nothing). */
+  changeMinKUSD: Sourced;
+  /** Days of delay per phase passed since the decision. */
+  changeDelayDaysPerPhase: Sourced;
 }
 
 export interface Rubric {

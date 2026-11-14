@@ -105,6 +105,30 @@ export const SOURCES: Source[] = [
     nasa: false,
     accessed: '2026-11-14',
   },
+  {
+    id: 'dragonfly-gecko',
+    title: 'Gecko Imager brochure (2019-04-30)',
+    publisher: 'Dragonfly Aerospace / Space Advisory Company',
+    url: 'https://www.cubesatshop.com/wp-content/uploads/2016/11/Gecko-Brochure-2019-04-30.pdf',
+    nasa: false,
+    accessed: '2026-11-14',
+  },
+  {
+    id: 'skylabs-nanoimager',
+    title: 'NANOimager (SkyLabs) product listing',
+    publisher: 'satcatalog',
+    url: 'https://satcatalog.com/component/nanoimager',
+    nasa: false,
+    accessed: '2026-11-14',
+  },
+  {
+    id: 'nasa-soa-avionics',
+    title: 'State-of-the-Art of Small Spacecraft Technology, Chapter 8: Small Spacecraft Avionics (2026 edition)',
+    publisher: 'NASA Small Spacecraft Systems Virtual Institute',
+    url: 'https://www.nasa.gov/smallsat-institute/sst-soa/small-spacecraft-avionics/',
+    nasa: true,
+    accessed: '2026-11-14',
+  },
 ];
 
 export const SOURCE_BY_ID: ReadonlyMap<string, Source> = new Map(SOURCES.map((s) => [s.id, s]));
