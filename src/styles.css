@@ -559,3 +559,39 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .title-hero .flow li + li::before { content: none; }
 .mission-art { height: 8rem; }
 @media (max-width: 800px) { .title-hero .title-globe { width: 100%; opacity: 0.45; } .hero-text { max-width: none; } }
+
+/* Step 10: the flight as one large picture: view on the left, counts on the right, the year along the bottom */
+.flight { flex: 1 1 auto; min-height: 26rem; display: grid; grid-template-columns: minmax(0, 3fr) minmax(18em, 2fr); grid-template-rows: minmax(0, 1fr) auto; gap: 0.6em 1em; padding-top: 0.2em; font-size: 1em; }
+.flight-left { position: relative; min-height: 0; border-radius: 8px; overflow: hidden; background: radial-gradient(ellipse at center, #101a33 0%, #070b17 75%); display: flex; flex-direction: column; justify-content: center; }
+.flight-canvas { position: absolute; inset: 0; }
+.flight-canvas canvas { display: block; }
+.flight-left .launch-pads { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0.5em; }
+.flight-right { display: flex; flex-direction: column; gap: 0.5em; min-width: 0; overflow-y: auto; }
+.fl-row { border: 1px solid var(--line); border-radius: 8px; padding: 0.3em 0.7em; background: #0c1324; }
+.fl-foot { display: flex; justify-content: space-between; gap: 0.6em; flex-wrap: wrap; }
+.fl-row.me { background: #13203f; }
+.fl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6em; }
+.fl-count { font-size: 1.3em; font-variant-numeric: tabular-nums; }
+.fl-track { display: block; position: relative; height: 0.8em; margin: 0.2em 0; background: #141b30; border-radius: 4px; overflow: hidden; }
+.fl-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; transform-origin: left; animation-name: grow; animation-timing-function: linear; animation-fill-mode: both; }
+.fl-status { font-size: 0.85em; color: var(--muted); }
+.fl-status.bad { color: var(--bad); }
+.fl-why { font-size: 0.85em; color: #ffd27a; }
+.fl-outcome { font-size: 0.8em; color: var(--muted); }
+.fl-events { list-style: none; margin: 0.2em 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3em; font-size: 0.85em; }
+.fl-events li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.2em 0.6em; border-top: 1px dashed var(--line); padding-top: 0.3em; }
+.fl-ev-name { display: inline-flex; align-items: center; gap: 0.3em; }
+.fl-ev-name .card-icon, .fa-event .card-icon { width: 1.2em; height: 1.2em; }
+.fl-ev-marks { display: inline-flex; gap: 0.5em; }
+.fl-ev-mark { display: inline-flex; align-items: center; gap: 0.15em; }
+.fl-ev-mark .agency-dot { width: 0.7em; height: 0.7em; min-width: 0; padding: 0; border-radius: 50%; display: inline-block; }
+.fl-ev-mark.r-protected, .fl-ev-mark.r-ready { color: var(--good); }
+.fl-ev-mark.r-partial, .fl-ev-mark.r-missed { color: var(--warn); }
+.fl-ev-mark.r-hit { color: var(--bad); }
+.flight-axis { grid-column: 1 / -1; }
+.fa-track { position: relative; height: 1.6em; border-bottom: 2px solid #2c4170; }
+.fa-head { position: absolute; left: 0; bottom: -2px; height: 4px; width: 100%; background: #7fd1ff; transform-origin: left; animation-name: grow; animation-timing-function: linear; animation-fill-mode: both; }
+.fa-event { position: absolute; bottom: 0.2em; transform: translateX(-50%); color: #ffd27a; }
+.fa-ticks { display: flex; justify-content: space-between; font-size: 0.8em; color: var(--muted); margin-top: 0.2em; }
+.flight.instant .fl-bar, .flight.instant .fa-head { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .fl-bar, .fa-head { animation: none !important; } }

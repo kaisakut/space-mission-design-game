@@ -12,7 +12,7 @@ import { Modal } from './Modal';
 const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 // Checked once per page: each check opens a WebGL context, and browsers allow only about 16 at a time.
 let webglChecked: boolean | null = null;
-const webglOk = () => {
+export const webglOk = () => {
   if (webglChecked !== null) return webglChecked;
   try {
     const c = document.createElement('canvas');
@@ -23,7 +23,7 @@ const webglOk = () => {
   return webglChecked;
 };
 /** NASA Blue Marble (Visible Earth). The view works without it: a lit sphere with a graticule. */
-const EARTH_TEXTURE = `${import.meta.env.BASE_URL}textures/earth_day_2048.jpg`;
+export const EARTH_TEXTURE = `${import.meta.env.BASE_URL}textures/earth_day_2048.jpg`;
 
 type ViewModel = (EarthModel & { kind?: undefined }) | JupiterModel | LunarModel;
 
