@@ -3,7 +3,7 @@ import type { Mission } from '../data/types';
 import { tk, useLang } from '../i18n';
 
 /** First screen: what the game is, how a turn works, and the missions to choose from. */
-export function TitleScreen({ onStart }: { onStart: (m: Mission, tutorial: boolean) => void }) {
+export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, tutorial: boolean) => void; onLibrary: () => void }) {
   const { t, L } = useLang();
   return (
     <section className="title">
@@ -13,7 +13,10 @@ export function TitleScreen({ onStart }: { onStart: (m: Mission, tutorial: boole
         <li>{t.howto2}</li>
         <li>{t.howto3}</li>
       </ol>
-      <h2>{t.chooseMission}</h2>
+      <div className="title-row">
+        <h2>{t.chooseMission}</h2>
+        <button type="button" className="secondary" onClick={onLibrary}>{t.libraryOpen}</button>
+      </div>
       <div className="missions">
         {MISSIONS.map((m) => (
           <div key={m.id} className="mission">

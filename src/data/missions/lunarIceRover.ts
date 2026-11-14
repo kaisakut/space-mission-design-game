@@ -351,6 +351,8 @@ export const lunarIceRover: Mission = {
       unprotected: [{ kind: 'resource', resource: 'budget', delta: -50000 }],
       lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
       realCase: {
+        who: tx('VIPER', 'VIPER'),
+        year: '2024',
         text: tx('VIPER: its cost passed the level that triggers a continue-or-cancel review, and NASA cancelled the nearly finished rover in July 2024.', 'VIPER：費用が継続か中止かの審査にかかる水準を超え、NASAは完成間近のローバーの中止を2024年7月に発表した。'),
         sources: ['spo-viper'],
       },
@@ -371,6 +373,8 @@ export const lunarIceRover: Mission = {
       unprotected: [{ kind: 'delayDays', days: 150 }],
       lesson: tx('{agency} aimed at the first window and the lander was late.', '{agency}は最初の窓を狙っていて、着陸機が遅れた。'),
       realCase: {
+        who: tx('VIPER and Griffin', 'VIPER と Griffin'),
+        year: '2023–2024',
         text: tx('Griffin: NASA asked for more testing of the lander’s propulsion, and VIPER’s landing slipped from 2023 to 2024 and then later.', 'Griffin：NASAが着陸機の推進系の追加試験を求め、VIPERの着陸は2023年から2024年、さらにその先へ延びた。'),
         sources: ['spo-viper'],
       },
@@ -392,6 +396,8 @@ export const lunarIceRover: Mission = {
       unprotected: [{ kind: 'missionLost', outcome: 'launchFailure' }],
       lesson: tx('{agency} lost the rover at landing.', '{agency}は、着陸でローバーを失った。'),
       realCase: {
+        who: tx('Peregrine Mission One', 'Peregrine Mission One'),
+        year: '2024',
         text: tx('Peregrine (January 2024): a helium pressure control valve failed soon after launch, propellant leaked, and the lander never reached the Moon.', 'Peregrine（2024年1月）：打ち上げ後まもなくヘリウムの圧力制御弁が故障して推進剤が漏れ、着陸機は月に届かなかった。'),
         sources: ['astrobotic-pm1'],
       },
@@ -434,6 +440,8 @@ export const lunarIceRover: Mission = {
       unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
       lesson: tx('{agency} could not send everything once Earth rose again.', '{agency}は、地球が昇ってからもデータを送りきれなかった。'),
       realCase: {
+        who: tx('NASA Deep Space Network', 'NASAの深宇宙通信網'),
+        year: '2023',
         text: tx('NASA’s Inspector General found that demand on the Deep Space Network sometimes exceeds what it can provide by about 40%.', 'NASAの監察官室によると、深宇宙通信網への需要は、ときに供給を約40%上回る。'),
         sources: ['nasa-oig-dsn'],
       },
@@ -447,6 +455,8 @@ export const lunarIceRover: Mission = {
       unprotected: [{ kind: 'scienceFactor', factor: 0.5 }, { kind: 'durationFactor', factor: 0.6 }],
       lesson: tx('{agency}’s lander tipped over, and the rover lost time and science.', '{agency}の着陸機は横倒しになり、ローバーは時間と科学を失った。'),
       realCase: {
+        who: tx('IM-2 Athena', 'IM-2 Athena'),
+        year: '2025',
         text: tx('IM-2 (March 2025): the lander came down in a crater about 250 m from its target, on its side, and its drill could not dig.', 'IM-2（2025年3月）：着陸機は目標から約250 m離れたクレーターの中に横倒しで降り、ドリルは掘れなかった。'),
         sources: ['sfn-im2'],
       },

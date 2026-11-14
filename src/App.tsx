@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { GameScreen } from './components/GameScreen';
+import { EventLibrary } from './components/EventLibrary';
 import { Glossary } from './components/Glossary';
 import { TitleScreen } from './components/TitleScreen';
 import type { Mission } from './data/types';
@@ -16,6 +17,7 @@ export function App() {
   const { lang, t, toggle } = useLang();
   const [play, setPlay] = useState<{ mission: Mission; tutorial: boolean; key: number } | null>(null);
   const [glossary, setGlossary] = useState(false);
+  const [library, setLibrary] = useState(false);
   const [size, setSize] = useState(loadSize);
   useEffect(() => {
     document.documentElement.style.fontSize = `${size}px`;
@@ -23,11 +25,11 @@ export function App() {
   }, [size]);
   const step = (d: number) => setSize(SIZES[Math.min(SIZES.length - 1, Math.max(0, SIZES.indexOf(size) + d))]!);
   return (
-    <div className={`app ${play ? 'in-game' : ''}`} lang={lang}>
+    <div className={`app ${play || library ? 'in-game' : ''}`} lang={lang}>
       <header className="app-header">
         <h1>{t.appTitle}</h1>
         <div className="header-actions">
-          {play && <button type="button" className="lang-toggle" onClick={() => setPlay(null)}>{t.backToTitle}</button>}
+          {(play || library) && <button type="button" className="lang-toggle" onClick={() => { setPlay(null); setLibrary(false); }}>{t.backToTitle}</button>}
           <button type="button" className="lang-toggle" data-tour="help" onClick={() => setGlossary(true)}>{t.help}</button>
           <span className="size-ctl">
             <button type="button" className="lang-toggle" aria-label={t.textSmaller} title={t.textSmaller} onClick={() => step(-1)}>A−</button>
@@ -39,7 +41,9 @@ export function App() {
       <main className="app-main">
         {play
           ? <GameScreen key={play.key} mission={play.mission} tutorial={play.tutorial} />
-          : <TitleScreen onStart={(mission, tutorial) => setPlay({ mission, tutorial, key: Date.now() })} />}
+          : library
+            ? <EventLibrary />
+            : <TitleScreen onStart={(mission, tutorial) => setPlay({ mission, tutorial, key: Date.now() })} onLibrary={() => setLibrary(true)} />}
       </main>
       {glossary && <Glossary onClose={() => setGlossary(false)} />}
     </div>

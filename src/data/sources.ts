@@ -369,6 +369,14 @@ export const SOURCES: Source[] = [
     nasa: false,
     accessed: '2026-11-14',
   },
+  {
+    id: 'jpl-galileo-hga-1991',
+    title: 'Galileo Antenna Deployment Problem Under Analysis (1991-04-19)',
+    publisher: 'NASA Jet Propulsion Laboratory',
+    url: 'https://www.jpl.nasa.gov/news/galileo-antenna-deployment-problem-under-analysis/',
+    nasa: true,
+    accessed: '2026-11-14',
+  },
 ];
 
 export const SOURCE_BY_ID: ReadonlyMap<string, Source> = new Map(SOURCES.map((s) => [s.id, s]));

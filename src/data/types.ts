@@ -196,7 +196,14 @@ export interface EventCard {
   /** Short line for the post-game analysis, with {agency} placeholder. */
   lesson: Text;
   /** Something like this that really happened to a mission, shown with the card. Every source must be in sources.ts. */
-  realCase?: { text: Text; sources: string[] };
+  realCase?: {
+    /** Which mission or programme it happened to, e.g. "Kepler". */
+    who: Text;
+    /** When it happened, as shown ("2013", "2023–2024"). Leave out when the sources do not give it. */
+    year?: string;
+    text: Text;
+    sources: string[];
+  };
 }
 
 /** objectiveMissed: flew to the end but delivered too little for the primary objective. */

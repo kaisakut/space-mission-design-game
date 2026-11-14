@@ -305,6 +305,8 @@ export const jupiterIcyMoon: Mission = {
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.1 }],
       lesson: tx('{agency} had neither spare parts to test nor time to spare, and flew with the risk.', '{agency}には試験用の予備部品も日程の余裕もなく、危険を抱えたまま出発した。'),
       realCase: {
+        who: tx('Europa Clipper', 'Europa Clipper'),
+        year: '2024',
         text: tx('Europa Clipper (2024): the warning came in May; months of testing showed the parts would hold up, and the spacecraft launched in its October window.', 'Europa Clipper（2024年）：5月に警報が届き、何か月もの試験で部品が持つことを確かめて、10月の打ち上げ期間に間に合わせた。'),
         sources: ['nasa-clipper-switches'],
       },
@@ -342,6 +344,8 @@ export const jupiterIcyMoon: Mission = {
       unprotected: [{ kind: 'durationFactor', factor: 0.8 }],
       lesson: tx('{agency} took the long route without rehearsing recovery, and lost tour time.', '{agency}は長い経路をとり、復帰の練習もしていなかったため、観測期間を失った。'),
       realCase: {
+        who: tx('Juno', 'Juno'),
+        year: '2016',
         text: tx('Juno (2016): two helium check valves took minutes instead of seconds to open, so the team skipped the burn to a shorter orbit and stayed in the 53-day orbit.', 'Juno（2016年）：ヘリウムの逆止弁2つが開くのに数秒でなく数分かかり、短い周回に移る噴射を見送って53日周回のまま観測した。'),
         sources: ['nasa-juno-orbit'],
       },
@@ -356,6 +360,7 @@ export const jupiterIcyMoon: Mission = {
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.5 }],
       lesson: tx('The same radiation hit everyone; {agency}’s vault was too thin.', '同じ放射線が全機関を襲った。{agency}の保護容器は薄すぎた。'),
       realCase: {
+        who: tx('Juno (JunoCam)', 'Juno（JunoCam）'),
         text: tx('JunoCam: the camera worked through Juno’s 34-orbit prime mission, then radiation damage appeared from orbit 47 and nearly every image was corrupted by orbit 56.', 'JunoCam：本来の任務の34周は正常だったが、47周目から放射線の損傷が出て、56周目にはほぼすべての画像が壊れていた。'),
         sources: ['nasa-junocam'],
       },
@@ -378,6 +383,8 @@ export const jupiterIcyMoon: Mission = {
       unprotected: [{ kind: 'scienceFactor', factor: 0.85 }],
       lesson: tx('{agency} could not send everything when antenna time was cut.', '{agency}は、アンテナの時間が減ったときにデータを送りきれなかった。'),
       realCase: {
+        who: tx('NASA Deep Space Network', 'NASAの深宇宙通信網'),
+        year: '2023',
         text: tx('NASA’s Inspector General found that demand on the Deep Space Network sometimes exceeds what it can provide by about 40%.', 'NASAの監察官室によると、深宇宙通信網への需要は、ときに供給を約40%上回る。'),
         sources: ['nasa-oig-dsn'],
       },
@@ -391,8 +398,10 @@ export const jupiterIcyMoon: Mission = {
       unprotected: [{ kind: 'scienceFactor', factor: 0.45 }],
       lesson: tx('{agency} had no spare downlink when the main antenna failed to open.', '{agency}には、主アンテナが開かなかったときの通信の余裕がなかった。'),
       realCase: {
-        text: tx('Galileo: its high-gain antenna never opened. A link planned at 134.4 kbit/s fell to 10 bit/s; compression and better ground antennas brought it back to about 1–2 kbit/s.', 'Galileo：高利得アンテナが最後まで開かなかった。毎秒134.4キロビットの計画が毎秒10ビットになり、データ圧縮と地上アンテナの工夫で実効1〜2キロビットまで戻した。'),
-        sources: ['nasa-tda-galileo', 'nasa-scan-galileo'],
+        who: tx('Galileo', 'Galileo'),
+        year: '1991',
+        text: tx('Galileo: on 11 April 1991 its high-gain antenna failed to open fully, and it never did. A link planned at 134.4 kbit/s fell to 10 bit/s; compression and better ground antennas brought it back to about 1–2 kbit/s.', 'Galileo：1991年4月11日、高利得アンテナが開ききらず、その後も開かなかった。毎秒134.4キロビットの計画が毎秒10ビットになり、データ圧縮と地上アンテナの工夫で実効1〜2キロビットまで戻した。'),
+        sources: ['jpl-galileo-hga-1991', 'nasa-tda-galileo', 'nasa-scan-galileo'],
       },
     },
     {
@@ -404,6 +413,8 @@ export const jupiterIcyMoon: Mission = {
       benefit: [{ kind: 'scienceFactor', factor: 1.1 }],
       lesson: tx('{agency}’s rehearsed team safely heated a damaged camera back to health.', '{agency}は練習を積んだチームが、傷んだカメラを安全に温めて直した。'),
       realCase: {
+        who: tx('Juno (JunoCam)', 'Juno（JunoCam）'),
+        year: '2023',
         text: tx('JunoCam (2023): the team heated the camera to 77°F (25°C) to anneal it, and it recovered in time for Juno’s close pass of Io on 30 December 2023.', 'JunoCam（2023年）：カメラを77°F（25℃）まで温める焼きなましで回復させ、2023年12月30日のイオへの接近に間に合わせた。'),
         sources: ['nasa-junocam'],
       },

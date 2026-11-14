@@ -430,6 +430,8 @@ export const wildfireCubesat: Mission = {
       unprotected: [{ kind: 'delayDays', days: 45 }],
       lesson: tx('{agency} had no schedule margin when a part arrived late.', '{agency}は、部品が遅れたときに日程の余裕がなかった。'),
       realCase: {
+        who: tx('Psyche', 'Psyche'),
+        year: '2022',
         text: tx('Psyche: late flight software and test equipment made the asteroid mission miss its 2022 launch window.', 'Psyche：飛行ソフトと試験設備の遅れで、小惑星探査機が2022年の打ち上げ窓を逃した。'),
         sources: ['nasa-psyche-irb'],
       },
@@ -442,6 +444,8 @@ export const wildfireCubesat: Mission = {
       unprotected: [{ kind: 'failChance', subsystem: 'power', add: 0.1 }],
       lesson: tx('{agency} had little power margin, and its battery came out of the long wait weakened.', '{agency}は電力に余裕がなく、長い待ちのあと電池が弱っていた。'),
       realCase: {
+        who: tx('Artemis I CubeSats', 'Artemis I のキューブサット'),
+        year: '2022',
         text: tx('Artemis I: the CubeSats sat inside the rocket for over a year, and only some could have their batteries recharged before launch.', 'Artemis I：キューブサットはロケットの中で1年以上待ち、打ち上げ前に電池を再充電できたのは一部だけだった。'),
         sources: ['sfn-artemis-cubesats'],
       },
@@ -456,6 +460,8 @@ export const wildfireCubesat: Mission = {
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.2 }],
       lesson: tx('Light testing let a fault through to orbit for {agency}.', '{agency}は、試験が薄く不具合を軌道まで持ち込んだ。'),
       realCase: {
+        who: tx('Lunar Trailblazer', 'Lunar Trailblazer'),
+        year: '2025',
         text: tx('Lunar Trailblazer (2025): contact was lost the day after launch; its solar arrays did not point at the Sun and the battery ran down.', 'Lunar Trailblazer（2025年）：打ち上げの翌日に通信が途絶えた。太陽電池が太陽を向かず、電池が尽きた。'),
         sources: ['nasa-trailblazer'],
       },
@@ -489,6 +495,8 @@ export const wildfireCubesat: Mission = {
       unprotected: [{ kind: 'scienceFactor', factor: 0.6 }],
       lesson: tx('{agency} lost pointing accuracy without a spare wheel.', '{agency}は、予備のホイールがなく指向精度を失った。'),
       realCase: {
+        who: tx('Kepler', 'Kepler'),
+        year: '2013',
         text: tx('Kepler: the second of its four wheels failed in May 2013 and the original survey ended. It came back as K2, using sunlight pressure as a “third wheel”.', 'Kepler：4つのホイールのうち2つ目が2013年5月に壊れ、本来の観測が終わった。太陽光の圧力を「3つ目のホイール」に使うK2として復活した。'),
         sources: ['nasa-kepler-k2'],
       },
