@@ -51,8 +51,12 @@ function sourcedFields(o: Option): [string, Sourced<unknown>][] {
   return out;
 }
 
-export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, onPick }: {
-  option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number; hint?: string; onPick: () => void;
+/** One difference from the current choice: text and whether it makes things better or worse. */
+export type Diff = { text: string; good: boolean };
+
+export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick }: {
+  option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number;
+  hint?: string; standard?: boolean; diffs?: Diff[]; reason?: string; blocks?: string; onPick: () => void;
 }) {
   const { t, L } = useLang();
   const [open, setOpen] = useState(false);
@@ -64,13 +68,18 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
           <input type={type} name={name} checked={selected} disabled={disabled} onChange={onPick} />
           <span className="opt-name">{L(option.name)}</span>
         </label>
+        {standard && <span className="std-mark" title={t.standardMark}>{t.standardMark}</span>}
         <button type="button" className="info-btn" aria-label={t.details} title={t.details} onClick={() => setOpen(true)}>i</button>
       </div>
+      <div className="opt-line">{L(option.description)}</div>
       {stats.length > 0 && (
         <div className="opt-stats">
           {stats.map((s) => <span key={s.key}><span className="field">{tk(t, s.key)}</span> {s.text}</span>)}
         </div>
       )}
+      {diffs && diffs.length > 0 && <div className="opt-diff">{diffs.map((d, i) => <span key={i} className={d.good ? 'ok' : 'warn'}>{d.text}</span>)}</div>}
+      {reason && <div className="opt-why">{reason}</div>}
+      {blocks && <div className="opt-block">{blocks}</div>}
       {hint && <div className="change-cost">{hint}</div>}
       {open && (
         <Modal title={L(option.name)} onClose={() => setOpen(false)}>

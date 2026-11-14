@@ -35,7 +35,8 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
 
   const T = phases;
   const total = tree.runs.length || 1;
-  const W = 1200, LEFT = 74, FINAL = 200, TOP = 46, LANE = 84;
+  // The compact map is drawn on a narrower canvas so its text stays readable in a side column.
+  const W = compact ? 480 : 1200, LEFT = compact ? 44 : 74, FINAL = compact ? 190 : 200, TOP = compact ? 26 : 46, LANE = compact ? 56 : 84;
   const colW = (W - LEFT - FINAL - 16) / T;
   const xc = (p: number) => (p > T ? W - FINAL - 26 : LEFT + (p - 0.5) * colW);
   const leaves = leavesOf(tree);
@@ -71,8 +72,8 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
       {Array.from({ length: T }, (_, i) => i + 1).map((p) => (
         <g key={p}>
           {splits.has(p) && <rect x={xc(p) - colW / 2 + 2} y={TOP - 8} width={colW - 4} height={H - TOP + 4} fill={BG_SPLIT} rx={6} />}
-          <text x={xc(p)} y={18} textAnchor="middle" fontSize="13" fontWeight={600} fill={TEXT}>{phaseName(p)}</text>
-          {splits.has(p) && <text x={xc(p)} y={34} textAnchor="middle" fontSize="11" fill={SPLIT}>◆ {t.branchSplitsHere}</text>}
+          <text x={xc(p)} y={18} textAnchor="middle" fontSize="13" fontWeight={600} fill={TEXT}>{compact ? `${p}${splits.has(p) ? ' ◆' : ''}` : phaseName(p)}</text>
+          {splits.has(p) && !compact && <text x={xc(p)} y={34} textAnchor="middle" fontSize="11" fill={SPLIT}>◆ {t.branchSplitsHere}</text>}
         </g>
       ))}
       <text x={W - FINAL / 2} y={18} textAnchor="middle" fontSize="13" fontWeight={600} fill={TEXT}>{t.branchOutcome}</text>
@@ -92,13 +93,14 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
               return <path key={j} d={`M${a},${y} C${(a + b) / 2},${y} ${(a + b) / 2},${cy} ${b},${cy}`} fill="none" stroke={colorOf(main(ch))} strokeWidth={sw(ch)} strokeOpacity={0.75} />;
             })}
             {n.children.length > 0 && <circle cx={xc(n.split) - 26} cy={y} r={7} fill="#0b1020" stroke={SPLIT} strokeWidth={3} />}
-            {n !== tree && n.from <= T && (() => {
+            {n !== tree && n.from <= T && !compact && (() => {
               const r = reasonOf?.(n);
               const base = `${nameOf(n.label)} · ${fmt(t.branchRuns, { n: n.runs.length })}`;
               const x = xc(n.from) + 30;
               const room = (n.children.length ? xc(n.split) - 30 : W - FINAL - 8) - x;
               if (!r) return <text x={x} y={y - sw(n) / 2 - 6} fontSize="11" fill={MUTED}>{fit(base, room, 11)}</text>;
               const title = fit(r.title, room, 11.5);
+              if (compact) return <g><title>{`${r.title}\n${r.detail}`}</title><text x={x} y={y - sw(n) / 2 - 6} fontSize="12" fill={TEXT}>{title}</text></g>;
               return (
                 <g>
                   <title>{`${r.title}\n${r.detail}`}</title>
