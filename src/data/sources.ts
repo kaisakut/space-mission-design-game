@@ -394,6 +394,22 @@ export const SOURCES: Source[] = [
     accessed: '2026-11-14',
   },
   {
+    id: 'npc-artica',
+    title: 'ARTICA drag sail brochure (CubeSat deorbit device: 210 g, under 5 years from 650 km)',
+    publisher: 'N.P.C. New Production Concept (NPC Spacemind)',
+    url: 'https://www.npcspacemind.com/wp-content/uploads/2025/09/ARTICA-BROCHURE.pdf',
+    nasa: false,
+    accessed: '2026-11-14',
+  },
+  {
+    id: 'fcc-5-year-rule',
+    title: 'FCC Adopts 5-Year Rule for Deorbiting Satellites',
+    publisher: 'Via Satellite',
+    url: 'https://www.satellitetoday.com/government-military/2022/09/30/fcc-adopts-5-year-rule-for-deorbiting-satellites/',
+    nasa: false,
+    accessed: '2026-11-14',
+  },
+  {
     id: 'knipp-gannon',
     title: 'May 2024 Gannon Storm: Impacts on LEO Spacecraft and Operations (presentation, citing NASA’s ICESat-2 blog)',
     publisher: 'National Academies (Knipp et al.)',

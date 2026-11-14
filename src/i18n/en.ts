@@ -149,6 +149,7 @@ export const en = {
   viewDataLine: 'Data {a} / {b} MB/day',
   viewDose: 'Radiation received (picture only)',
   viewBattery: 'Battery (picture only)',
+  stat_addsMass: 'Extra hardware (kg)',
   close: 'Close',
   libraryOpen: 'Browse event cards',
   libraryTitle: 'Event cards',

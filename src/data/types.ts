@@ -111,6 +111,8 @@ export interface Orbit extends OptionBase {
   contactMinPerDay: Sourced;
   /** Extra contact per day when a high-latitude station is added, minutes. */
   contactHighLatMinPerDay?: Sourced;
+  /** Hardware this orbit needs on the spacecraft (e.g. a drag sail to come down from a high orbit), kg. */
+  addsMassKg?: Sourced;
   /** Sunlight compared with Earth orbit (1 near Earth, about 1/27 at Jupiter). Default 1. */
   solarFactor?: Sourced;
   /**

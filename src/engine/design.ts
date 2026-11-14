@@ -115,7 +115,7 @@ export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): De
   const issues: Issue[] = [];
 
   // Mass
-  const massUsed = num(m.bus.massKg) + parts.reduce((a, p) => a + num(p.massKg), 0);
+  const massUsed = num(m.bus.massKg) + parts.reduce((a, p) => a + num(p.massKg), 0) + num(orbit?.addsMassKg);
   const launchCap = launch && orbit ? launch.capacityKg[orbit.id]?.value : undefined;
   const massAvail = Math.min(num(m.bus.maxMassKg), launchCap ?? num(m.bus.maxMassKg));
   if (launch && orbit && launchCap === undefined) issues.push({ level: 'blocker', code: 'launchWrongOrbit', values: { launch: launch.id, orbit: orbit.id } });

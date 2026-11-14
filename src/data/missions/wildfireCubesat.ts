@@ -235,7 +235,8 @@ export const wildfireCubesat: Mission = {
     {
       kind: 'orbit', id: 'orbit-sso-600', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
       description: tx('Higher: longer passes over each ground station and less air drag in solar storms, but needs a device to come down at the end.', '高い分、地上局の上を通る時間が長く、磁気嵐で大気の抵抗も受けにくい。ただし最後に降ろす装置が要る。'),
-      cost: rule(40, tx('Game value for a drag device that brings the satellite down at the end of the mission; from 600 km it would take much longer on its own.', 'ミッションの終わりに衛星を降ろす抵抗装置のゲームの値。600 kmからでは自然に落ちるまでずっと長くかかる。')),
+      cost: est(40, ['fcc-5-year-rule'], tx('Game value for buying, fitting and testing a drag sail. The US FCC requires disposal within 5 years of mission end; from 600 km a CubeSat takes far longer on its own. No public price was found, so the cost stays modest.', '抵抗帆の購入・取り付け・試験のゲームの値。米国FCCはミッション終了から5年以内の処分を求めており、600 kmからでは自然に落ちるまでずっと長くかかる。公開された価格は見つからなかったため、費用は控えめにした。')),
+      addsMassKg: pub(0.21, ['npc-artica'], tx('A commercial CubeSat drag sail (210 g) that brings a satellite down from 650 km in under 5 years.', '市販のCubeSat用抵抗帆（210 g）。650 kmから5年以内に降ろせる。')),
       altitudeKm: rule(600, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
       contactMinPerDay: est(22, ['nasa-orbits-catalog'], CONTACT_NOTE),

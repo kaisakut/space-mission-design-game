@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "check:data": "esbuild scripts/check-data.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/check-data.mjs --log-level=warning && node node_modules/.cache/check-data.mjs",
+    "audit:options": "esbuild scripts/audit-options.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/audit-options.mjs --log-level=warning && node node_modules/.cache/audit-options.mjs",
     "check:engine": "esbuild scripts/check-engine.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/check-engine.mjs --log-level=warning && node node_modules/.cache/check-engine.mjs"
   },
   "dependencies": {

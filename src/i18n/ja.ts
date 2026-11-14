@@ -151,6 +151,7 @@ export const ja: Messages = {
   viewDataLine: 'データ {a} / {b} MB/日',
   viewDose: '浴びた放射線（絵としての表示）',
   viewBattery: '電池（絵としての表示）',
+  stat_addsMass: '追加の装置（kg）',
   close: '閉じる',
   libraryOpen: 'イベントカードを見る',
   libraryTitle: 'イベントカード',
