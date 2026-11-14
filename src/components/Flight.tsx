@@ -2,10 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Option } from '../data/types';
 import { agencyDesign, type Agency, type Game } from '../engine/game';
 import { fmt, useLang } from '../i18n';
-import type { FlightModel, FlightScene } from '../view/flightScene';
+import type { FlightScene } from '../view/flightCommon';
+import type { FlightModel } from '../view/flightScene';
+import type { JupiterFlightModel } from '../view/flightJupiter';
+import type { MoonFlightModel } from '../view/flightMoon';
 import { CountUp } from './ForecastPanel';
 import { AGENCY_COLOR, RESULT_MARK, useCauseName, useOutcomeName } from './labels';
-import { EARTH_TEXTURE, earthModel, webglOk } from './MissionView';
+import { EARTH_TEXTURE, earthModel, viewModel, webglOk } from './MissionView';
 import { AgencyLabel, CardIcon } from './Resolution';
 
 /** Seconds of the operating year on screen. */
@@ -22,19 +25,28 @@ const displayAt = (seed: number, id: string) => {
 
 const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-/** The 3D flight over Earth (wildfire mission). Falls back to nothing when WebGL is unavailable. */
-function FlightView({ model, instant }: { model: FlightModel; instant: boolean }) {
+type AnyFlight = { kind: 'earth'; m: FlightModel } | { kind: 'moon'; m: MoonFlightModel } | { kind: 'jupiter'; m: JupiterFlightModel };
+
+/** three.js and each flight scene load only when the flight is shown. */
+const loadFlight = (f: AnyFlight, host: HTMLElement): Promise<FlightScene<unknown>> => {
+  const rm = reduceMotion();
+  if (f.kind === 'moon') return import('../view/flightMoon').then((x) => x.createMoonFlight(host, { reduceMotion: rm }) as FlightScene<unknown>);
+  if (f.kind === 'jupiter') return import('../view/flightJupiter').then((x) => x.createJupiterFlight(host, { reduceMotion: rm }) as FlightScene<unknown>);
+  return import('../view/flightScene').then((x) => x.createFlightScene(host, { reduceMotion: rm, textureUrl: EARTH_TEXTURE }) as FlightScene<unknown>);
+};
+
+/** The 3D flight (Earth, Moon or Jupiter). Falls back to nothing when WebGL is unavailable. */
+function FlightView({ model, instant }: { model: AnyFlight; instant: boolean }) {
   const host = useRef<HTMLDivElement>(null);
-  const scene = useRef<FlightScene | null>(null);
+  const scene = useRef<FlightScene<unknown> | null>(null);
   const [failed, setFailed] = useState(() => !webglOk());
   useEffect(() => {
     if (failed || !host.current) return;
     let alive = true;
-    import('../view/flightScene').then((x) => {
-      if (!alive || !host.current) return;
-      const sc = x.createFlightScene(host.current, { reduceMotion: reduceMotion(), textureUrl: EARTH_TEXTURE });
+    loadFlight(model, host.current).then((sc) => {
+      if (!alive) { sc.dispose(); return; }
       scene.current = sc;
-      sc.set(model);
+      sc.set(model.m);
       if (instant) sc.finish();
     }).catch(() => setFailed(true));
     return () => { alive = false; scene.current?.dispose(); scene.current = null; };
@@ -139,20 +151,36 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
   };
 
   const view = m.view?.kind === 'earthOrbit' ? m.view : null;
-  const flightModel = useMemo<FlightModel | null>(() => {
-    if (!view) return null;
-    return {
-      opsAt, opsSeconds: OPS, fires: !!view.fires,
-      sats: order.map((a, i) => {
-        const r = final[a.id];
-        const e = earthModel(m, designs.get(a.id)!);
-        return {
-          color: AGENCY_COLOR[a.id], altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, launchAt: start + 0.6 + i * 0.5,
-          kind: r.outcome === 'noLaunch' ? 'stay' : r.outcome === 'launchFailure' ? 'fail' : r.outcome === 'orbitFailure' ? 'dark' : 'ok',
-          stopAt: r.opsFraction, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [],
-        };
-      }),
+  const flightModel = useMemo<AnyFlight | null>(() => {
+    if (!m.view) return null;
+    // What every scene shares for one agency: colour, launch time, how its run went.
+    const base = (a: Agency, i: number) => {
+      const r = final[a.id];
+      return {
+        color: AGENCY_COLOR[a.id], launchAt: start + 0.6 + i * 0.5, stopAt: r.opsFraction,
+        kind: (r.outcome === 'noLaunch' ? 'stay' : r.outcome === 'launchFailure' ? 'fail' : r.outcome === 'orbitFailure' ? 'dark' : 'ok') as 'ok' | 'dark' | 'fail' | 'stay',
+      };
     };
+    const v = m.view;
+    if (v.kind === 'lunarPole') {
+      return { kind: 'moon', m: { crater: v.crater, opsAt, opsSeconds: OPS, craft: order.map((a, i) => {
+        const vm = viewModel(m, designs.get(a.id)!);
+        return { ...base(a, i), duty: vm && vm.kind === 'moon' ? vm.duty : 0.5, site: vm && vm.kind === 'moon' ? vm.site : { x: 0, y: 0 } };
+      }) } };
+    }
+    if (v.kind === 'jupiterSystem') {
+      return { kind: 'jupiter', m: { opsAt, opsSeconds: OPS, craft: order.map((a, i) => {
+        const vm = viewModel(m, designs.get(a.id)!);
+        return { ...base(a, i), duty: vm && vm.kind === 'jupiter' ? vm.duty : 0.5, path: vm && vm.kind === 'jupiter' ? vm.path : 'flybys', shield: vm && vm.kind === 'jupiter' ? vm.shield : 1 };
+      }) } };
+    }
+    return { kind: 'earth', m: {
+      opsAt, opsSeconds: OPS, fires: !!v.fires,
+      sats: order.map((a, i) => {
+        const e = earthModel(m, designs.get(a.id)!);
+        return { ...base(a, i), altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [] };
+      }),
+    } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game]);
 

@@ -28,7 +28,7 @@ export interface LunarModel {
 const R = 4; // disc radius
 const DAY = 12; // seconds per lunar day at normal speed
 
-function poleTexture(crater: LunarModel['crater']) {
+export function poleTexture(crater: LunarModel['crater']) {
   const rnd = seeded(23);
   return paintedTexture(512, 512, (ctx) => {
     const g = ctx.createRadialGradient(256, 256, 20, 256, 256, 256);

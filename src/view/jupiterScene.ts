@@ -28,7 +28,7 @@ const PERIOD = 9; // seconds per flyby loop at normal speed
 const belt = (r: number) => Math.exp(-(((r - 2.8) / 1.1) ** 2));
 const SHIELD_RATE = [1.7, 1, 0.55];
 
-function jupiterTexture() {
+export function jupiterTexture() {
   const rnd = seeded(11);
   return paintedTexture(512, 256, (ctx) => {
     // Strong light zones and dark belts, so it reads as Jupiter (and not as Saturn).
@@ -49,7 +49,7 @@ function jupiterTexture() {
   });
 }
 
-function ellipsePoints(peri: number, apo: number, n = 160): THREE.Vector3[] {
+export function ellipsePoints(peri: number, apo: number, n = 160): THREE.Vector3[] {
   const a = (peri + apo) / 2, e = (apo - peri) / (apo + peri);
   const pts: THREE.Vector3[] = [];
   for (let k = 0; k <= n; k++) {
@@ -61,7 +61,7 @@ function ellipsePoints(peri: number, apo: number, n = 160): THREE.Vector3[] {
 }
 
 /** Position on the flyby ellipse at time phase 0–1, moving faster near Jupiter (Kepler's equation). */
-function flybyPos(phase: number, peri: number, apo: number): THREE.Vector3 {
+export function flybyPos(phase: number, peri: number, apo: number): THREE.Vector3 {
   const a = (peri + apo) / 2, e = (apo - peri) / (apo + peri);
   const M = phase * Math.PI * 2;
   let E = M;
