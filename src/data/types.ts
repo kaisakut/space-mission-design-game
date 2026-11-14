@@ -1,0 +1,219 @@
+/**
+ * Data shapes for missions, parts, launch vehicles, orbits and event cards.
+ *
+ * Rules every data file follows:
+ * - Every number the player can see carries a `basis` and, unless it is a game rule, at least one source id
+ *   from src/data/sources.ts. `npm run check:data` fails if one is missing.
+ * - Text the player reads is stored in both English and Japanese (`Text`).
+ * - Units are fixed per field and named in the field: kg, W, kUSD, days, m/s, MB, probability 0–1.
+ */
+
+/** Text in both languages. */
+export interface Text {
+  en: string;
+  ja: string;
+}
+
+/**
+ * Where a value comes from.
+ * - `nasa`: taken from NASA data or a NASA document (shown with the NASA mark in the game)
+ * - `public`: taken from another public source (agency, manufacturer, paper)
+ * - `estimate`: derived from sources by a stated calculation or rounding (note says how)
+ * - `rule`: a game-balance rule, not a real-world value (no source needed; shown as "game rule")
+ * - `placeholder`: temporary, must be replaced before submission (check:data reports these)
+ */
+export type Basis = 'nasa' | 'public' | 'estimate' | 'rule' | 'placeholder';
+
+export interface Sourced<T = number> {
+  value: T;
+  basis: Basis;
+  /** Ids in SOURCES. Required unless basis is 'rule' or 'placeholder'. */
+  sources?: string[];
+  /** How the value was derived, if not copied as is. */
+  note?: Text;
+}
+
+export interface Source {
+  id: string;
+  title: string;
+  publisher: string;
+  url: string;
+  /** NASA data or document (counts toward the NASA data requirement). */
+  nasa: boolean;
+  /** Date the source was read or downloaded, YYYY-MM-DD. */
+  accessed: string;
+  /** Listed by the challenge on its Resources tab. */
+  challengeResource?: boolean;
+}
+
+/** The six resource gauges. */
+export type Resource = 'mass' | 'power' | 'budget' | 'data' | 'comms' | 'schedule';
+
+/** Subsystem a part belongs to; also decides which role tab shows it. */
+export type Subsystem = 'payload' | 'power' | 'comms' | 'adcs' | 'cdh' | 'structure' | 'propulsion' | 'thermal' | 'protection';
+export type Role = 'lead' | 'spacecraft' | 'science' | 'powerComms';
+
+/** Flags a choice gives the design; event cards and checks test for them. */
+export type Tag = string;
+
+/** One option the player can pick for a decision slot. Parts, orbits and rockets are all options. */
+export interface OptionBase {
+  id: string;
+  name: Text;
+  description: Text;
+  tags?: Tag[];
+  /** Cost to buy or build, kUSD. */
+  cost: Sourced;
+  /** Days added to the schedule (lead time, integration). */
+  leadDays?: Sourced;
+}
+
+export interface Part extends OptionBase {
+  kind: 'part';
+  subsystem: Subsystem;
+  massKg: Sourced;
+  /** Average power drawn in operation, W. */
+  powerW?: Sourced;
+  /** Average power generated (solar arrays), W. */
+  generatesW?: Sourced;
+  /** Data produced per day, MB. */
+  dataMBPerDay?: Sourced;
+  /** Data that can be sent to the ground per minute of contact, MB. */
+  downlinkMBPerMin?: Sourced;
+  /** Onboard storage, MB. */
+  storageMB?: Sourced;
+  /** Δv the part gives the spacecraft, m/s. */
+  deltaVms?: Sourced;
+  /** Chance the part fails during one year of operation (before redundancy). */
+  failPerYear?: Sourced;
+  /** Science value per detection, for instruments. */
+  scienceWeight?: Sourced;
+}
+
+export interface Orbit extends OptionBase {
+  kind: 'orbit';
+  altitudeKm: Sourced;
+  inclinationDeg: Sourced;
+  /** Δv the spacecraft itself must supply after separation, m/s (station keeping, deorbit). */
+  deltaVms: Sourced;
+  /** Average ground-station contact per day, minutes. */
+  contactMinPerDay: Sourced;
+  /** Id of the precomputed coverage table in data/ used to count real fire detections. */
+  coverageTable?: string;
+}
+
+export interface LaunchVehicle extends OptionBase {
+  kind: 'launch';
+  /** Payload capacity to each orbit in the mission, kg (orbit id → value). */
+  capacityKg: Record<string, Sourced>;
+  /** Chance of a successful launch. */
+  reliability: Sourced;
+  /** Launch windows offered, as days after the mission start. */
+  windowsDay: Sourced<number[]>;
+}
+
+/** A plain choice that is not a part, orbit or rocket (budget split, test depth, operations plan). */
+export interface Choice extends OptionBase {
+  kind: 'choice';
+  /** Direct changes to gauges or settings, interpreted by the engine by key. */
+  effects?: Partial<Record<Resource, Sourced>>;
+  /** Named settings the engine reads (e.g. reserveShare 0.15, testDepth 2). */
+  settings?: Record<string, Sourced>;
+}
+
+export type Option = Part | Orbit | LaunchVehicle | Choice;
+
+/** One decision the player makes in a phase. */
+export interface DecisionSlot {
+  id: string;
+  phase: 1 | 2 | 3 | 4 | 5;
+  role: Role;
+  label: Text;
+  help: Text;
+  /** Option ids; the first one is the default used to fill undecided slots in a forecast. */
+  options: string[];
+  /** Several options can be picked (e.g. instruments). */
+  multi?: { min: number; max: number };
+  /** Kind of change this is, for the change-cost rule. 'hardware' cannot change after launch. */
+  changeKind: 'plan' | 'hardware';
+}
+
+/** Conditions an event card tests on the design or the run so far. */
+export type Condition =
+  | { kind: 'hasTag'; tag: Tag }
+  | { kind: 'margin'; resource: Resource; atLeast: number }
+  | { kind: 'reserveAtLeast'; kUSD: number }
+  | { kind: 'setting'; key: string; atLeast: number }
+  | { kind: 'all'; of: Condition[] }
+  | { kind: 'any'; of: Condition[] };
+
+/** What happens when an event hits. */
+export type Effect =
+  | { kind: 'missionLost'; outcome: Outcome }
+  | { kind: 'resource'; resource: Resource; delta: number }
+  | { kind: 'delayDays'; days: number }
+  | { kind: 'failChance'; subsystem: Subsystem; add: number }
+  | { kind: 'scienceFactor'; factor: number }
+  | { kind: 'durationFactor'; factor: number }
+  | { kind: 'bonus'; points: number };
+
+export interface EventCard {
+  id: string;
+  phase: 1 | 2 | 3 | 4 | 5;
+  name: Text;
+  /** Shown when the card is drawn. */
+  story: Text;
+  /** Chance the card is drawn in its phase. */
+  probability: Sourced;
+  /** Bad events: fully protected means no effect. */
+  protectedIf?: Condition;
+  /** Bad events: partly protected applies `partial` instead of `unprotected`. */
+  partialIf?: Condition;
+  partial?: Effect[];
+  /** Bad events: what happens without protection. Empty for good events. */
+  unprotected: Effect[];
+  /** Good events (opportunities): the design must meet this to benefit. */
+  readyIf?: Condition;
+  benefit?: Effect[];
+  /** Short line for the post-game analysis, with {agency} placeholder. */
+  lesson: Text;
+}
+
+export type Outcome = 'fullSuccess' | 'partialSuccess' | 'noLaunch' | 'launchFailure' | 'orbitFailure' | 'lostInOps';
+
+export interface Objective {
+  id: string;
+  name: Text;
+  description: Text;
+  /** Points if fully met; partly met gives half. */
+  points: Sourced;
+  /** Engine rule that decides whether it is met, by id. */
+  rule: string;
+}
+
+export interface Rubric {
+  primary: Sourced;
+  secondary: Sourced;
+  science: Sourced;
+  budget: Sourced;
+  schedule: Sourced;
+}
+
+export interface Mission {
+  id: string;
+  name: Text;
+  summary: Text;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  /** Only the first mission is playable during the hackathon. */
+  playable: boolean;
+  budgetKUSD: Sourced;
+  /** Mission length in operation, days. */
+  opsDays: Sourced;
+  primary: Objective;
+  secondary: Objective[];
+  rubric: Rubric;
+  slots: DecisionSlot[];
+  /** All options used by the slots, by id. */
+  options: Option[];
+  events: EventCard[];
+}

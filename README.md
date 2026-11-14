@@ -16,7 +16,7 @@ _To be written._
 
 ## NASA data and resources used
 
-_To be written. Every value used in the game is listed with its source in [`data/sources.json`](data/sources.json)._
+_To be written. Every value used in the game records its source; the list of sources is [`src/data/sources.ts`](src/data/sources.ts)._
 
 ## Run locally
 
