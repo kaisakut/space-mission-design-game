@@ -297,11 +297,17 @@ export const jupiterIcyMoon: Mission = {
     },
     {
       id: 'jtransistors', phase: 2, name: tx('Weak transistors found', '弱いトランジスタの発覚'),
-      story: tx('Tests show some transistors may not survive Jupiter’s radiation.', '一部のトランジスタが木星の放射線に耐えられないおそれがわかった。'),
+      story: tx('Some transistors used all over the spacecraft may fail at lower radiation than expected. Replacing them would miss the launch window; testing them takes months.', '機体じゅうに使ったトランジスタが、想定より弱い放射線で壊れるおそれがわかった。交換すれば打ち上げ窓を逃し、試験には何か月もかかる。'),
       probability: rule(0.4),
-      protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.1 },
-      unprotected: [{ kind: 'delayDays', days: 150 }],
-      lesson: tx('{agency} had no schedule margin to test and replace weak parts.', '{agency}には、弱い部品を試して取り替える日程の余裕がなかった。'),
+      protectedIf: { kind: 'any', of: [{ kind: 'margin', resource: 'schedule', atLeast: 0.1 }, { kind: 'hasTag', tag: 'engineeringModel' }] },
+      partialIf: { kind: 'hasTag', tag: 'vault-thick' },
+      partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.03 }],
+      unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.1 }],
+      lesson: tx('{agency} had neither spare parts to test nor time to spare, and flew with the risk.', '{agency}には試験用の予備部品も日程の余裕もなく、危険を抱えたまま出発した。'),
+      realCase: {
+        text: tx('Europa Clipper (2024): the warning came in May; months of testing showed the parts would hold up, and the spacecraft launched in its October window.', 'Europa Clipper（2024年）：5月に警報が届き、何か月もの試験で部品が持つことを確かめて、10月の打ち上げ期間に間に合わせた。'),
+        sources: ['nasa-clipper-switches'],
+      },
     },
     {
       id: 'jlaunch-slip', phase: 3, name: tx('Rocket delay', 'ロケットの遅れ'),
@@ -335,6 +341,10 @@ export const jupiterIcyMoon: Mission = {
       protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'direct' }, { kind: 'hasTag', tag: 'opsRehearsed' }] },
       unprotected: [{ kind: 'durationFactor', factor: 0.8 }],
       lesson: tx('{agency} took the long route without rehearsing recovery, and lost tour time.', '{agency}は長い経路をとり、復帰の練習もしていなかったため、観測期間を失った。'),
+      realCase: {
+        text: tx('Juno (2016): two helium check valves took minutes instead of seconds to open, so the team skipped the burn to a shorter orbit and stayed in the 53-day orbit.', 'Juno（2016年）：ヘリウムの逆止弁2つが開くのに数秒でなく数分かかり、短い周回に移る噴射を見送って53日周回のまま観測した。'),
+        sources: ['nasa-juno-orbit'],
+      },
     },
     {
       id: 'jradiation', phase: 5, name: tx('Radiation damage', '放射線による損傷'),
@@ -345,6 +355,10 @@ export const jupiterIcyMoon: Mission = {
       partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.1 }],
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.5 }],
       lesson: tx('The same radiation hit everyone; {agency}’s vault was too thin.', '同じ放射線が全機関を襲った。{agency}の保護容器は薄すぎた。'),
+      realCase: {
+        text: tx('JunoCam: the camera worked through Juno’s 34-orbit prime mission, then radiation damage appeared from orbit 47 and nearly every image was corrupted by orbit 56.', 'JunoCam：本来の任務の34周は正常だったが、47周目から放射線の損傷が出て、56周目にはほぼすべての画像が壊れていた。'),
+        sources: ['nasa-junocam'],
+      },
     },
     {
       id: 'jeuropa-orbit', phase: 5, name: tx('Constant radiation in Europa orbit', 'エウロパ周回での絶え間ない放射線'),
@@ -363,6 +377,36 @@ export const jupiterIcyMoon: Mission = {
       protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.85 }],
       lesson: tx('{agency} could not send everything when antenna time was cut.', '{agency}は、アンテナの時間が減ったときにデータを送りきれなかった。'),
+      realCase: {
+        text: tx('NASA’s Inspector General found that demand on the Deep Space Network sometimes exceeds what it can provide by about 40%.', 'NASAの監察官室によると、深宇宙通信網への需要は、ときに供給を約40%上回る。'),
+        sources: ['nasa-oig-dsn'],
+      },
+    },
+    {
+      id: 'jantenna', phase: 5, name: tx('Antenna fails to open', 'アンテナが開かない'),
+      story: tx('The high-gain antenna does not unfold fully. Data must trickle home through a small antenna.', '高利得アンテナが開ききらなかった。小さなアンテナで少しずつデータを送るしかない。'),
+      probability: rule(0.12),
+      partialIf: { kind: 'margin', resource: 'downlink', atLeast: 0.4 },
+      partial: [{ kind: 'scienceFactor', factor: 0.75 }],
+      unprotected: [{ kind: 'scienceFactor', factor: 0.45 }],
+      lesson: tx('{agency} had no spare downlink when the main antenna failed to open.', '{agency}には、主アンテナが開かなかったときの通信の余裕がなかった。'),
+      realCase: {
+        text: tx('Galileo: its high-gain antenna never opened. A link planned at 134.4 kbit/s fell to 10 bit/s; compression and better ground antennas brought it back to about 1–2 kbit/s.', 'Galileo：高利得アンテナが最後まで開かなかった。毎秒134.4キロビットの計画が毎秒10ビットになり、データ圧縮と地上アンテナの工夫で実効1〜2キロビットまで戻した。'),
+        sources: ['nasa-tda-galileo', 'nasa-scan-galileo'],
+      },
+    },
+    {
+      id: 'jcamera-heal', phase: 5, name: tx('Healing a camera from afar', '遠くのカメラを温めて直す'),
+      story: tx('Radiation has damaged a camera. Heating it for a while might repair the damage, if the team knows how to try it safely.', '放射線でカメラが傷んだ。しばらく温めれば直るかもしれない。チームが安全な試し方を知っていれば。'),
+      probability: rule(0.3),
+      unprotected: [],
+      readyIf: { kind: 'hasTag', tag: 'opsRehearsed' },
+      benefit: [{ kind: 'scienceFactor', factor: 1.1 }],
+      lesson: tx('{agency}’s rehearsed team safely heated a damaged camera back to health.', '{agency}は練習を積んだチームが、傷んだカメラを安全に温めて直した。'),
+      realCase: {
+        text: tx('JunoCam (2023): the team heated the camera to 77°F (25°C) to anneal it, and it recovered in time for Juno’s close pass of Io on 30 December 2023.', 'JunoCam（2023年）：カメラを77°F（25℃）まで温める焼きなましで回復させ、2023年12月30日のイオへの接近に間に合わせた。'),
+        sources: ['nasa-junocam'],
+      },
     },
     {
       id: 'jplume', phase: 5, name: tx('Active plume', '活発な噴出'),

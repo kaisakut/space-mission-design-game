@@ -1,3 +1,4 @@
+import { SOURCE_BY_ID } from '../data/sources';
 import type { EventResult } from '../engine/events';
 import { agencyDesign, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
@@ -24,7 +25,15 @@ export function TurnReports({ game, heading = true }: { game: Game; heading?: bo
             const card = m.events.find((e) => e.id === id)!;
             return (
               <div key={id} className="card-row">
-                <div><b>{L(card.name)}</b> <span className="note">{L(card.story)}</span></div>
+                <div>
+                  <b>{L(card.name)}</b> <span className="note">{L(card.story)}</span>
+                  {card.realCase && (
+                    <div className="real-case">
+                      <span className="real-tag">{t.realCase}</span> {L(card.realCase.text)}
+                      {card.realCase.sources.map((id) => { const src = SOURCE_BY_ID.get(id); return src ? <a key={id} href={src.url} target="_blank" rel="noreferrer" className="src">{src.publisher}</a> : null; })}
+                    </div>
+                  )}
+                </div>
                 <div className="badges">
                   {game.agencies.map((a) => {
                     const res = r.results[a.id][id];
@@ -120,7 +129,7 @@ export function LatestReport({ game, open, onOpen, onClose }: { game: Game; open
       {r?.cards.map((id) => {
         const card = m.events.find((e) => e.id === id)!;
         return (
-          <div key={id} className="latest-row" title={L(card.story)}>
+          <div key={id} className="latest-row" title={card.realCase ? `${L(card.story)}\n${t.realCase}: ${L(card.realCase.text)}` : L(card.story)}>
             <b>{L(card.name)}</b>
             <span className="badges">
               {game.agencies.map((a) => {

@@ -6,6 +6,7 @@ export const en = {
   start: 'Start',
   comingSoon: 'Under construction during the NASA Space Apps Challenge 2026.',
   close: 'Close',
+  realCase: 'Real case',
   textSmaller: 'Smaller text',
   textLarger: 'Larger text',
   openFull: 'Open full view',

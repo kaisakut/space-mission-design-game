@@ -32,15 +32,15 @@ export const lunarIceRover: Mission = {
   ),
   difficulty: 'intermediate',
   playable: true,
-  budgetKUSD: est(500000, ['spacenews-viper-griffin'], tx(
-    'VIPER was estimated at $250 million in 2019 and its delivery was a $199.5 million task order; the game rounds the whole mission to $500 million.',
-    'VIPERの見積もりは2019年に2億5千万ドル、輸送の契約は1億9950万ドル。ゲームではミッション全体を5億ドルとした。',
+  budgetKUSD: est(500000, ['spo-viper', 'spacenews-viper-griffin'], tx(
+    'Game value for the rover, its instruments and a medium lander. For comparison, NASA’s cost commitment for VIPER was $433.5 million without delivery (later estimated at $609.6 million), and the Griffin delivery grew from $199.5 million to $323 million.',
+    'ローバー・機器・中型の着陸機を合わせたゲームの値。比較のため：VIPERの費用の約束は輸送を含まず4億3350万ドル（のちの見込みは6億960万ドル）、Griffinによる輸送の契約は1億9950万ドルから3億2300万ドルに増えた。',
   )),
   opsDays: nasa(100, ['nasa-viper-mission'], tx('Planned mission length: 100 Earth days, about three lunar day–night cycles.', '計画されたミッション期間：地球の100日、月の昼と夜の約3回分。')),
   bus: {
     massKg: est(417, ['nasa-viper-hw-2024', 'nasa-viper-overview-2020'], tx('Roving mass 447 kg minus the four science instruments (about 30 kg).', '走行時の質量447 kgから、4つの科学機器（約30 kg）を除いた値。')),
     powerW: rule(120, tx('Game value for driving, avionics and heaters on average.', '走行・電子機器・ヒーターの平均のゲームの値。')),
-    cost: est(150000, ['spacenews-viper-griffin'], tx('Part of VIPER’s estimated $250 million cost, for the rover without instruments (game value).', 'VIPERの見積もり2億5千万ドルのうち、機器を除いたローバー本体の分（ゲームの値）。')),
+    cost: rule(150000, tx('Game value for the rover without instruments, within the mission budget.', 'ミッション予算のうち、機器を除いたローバー本体の分（ゲームの値）。')),
     devDays: rule(900, tx('Game value: about two and a half years from concept to delivery.', 'ゲームの値：構想から引き渡しまで約2年半。')),
     maxMassKg: nasa(490, ['nasa-viper-hw-2024'], tx('VIPER launch mass including the lander interface.', '着陸機との接続部を含むVIPERの打ち上げ質量。')),
     failPerYear: rule(0.4, tx('Game value per year; the 100-day mission faces about a quarter of it.', '1年あたりのゲームの値。100日のミッションではその約4分の1。')),
@@ -291,7 +291,10 @@ export const lunarIceRover: Mission = {
         'site-nobile': pub(500, ['astrobotic-griffin']),
         'site-coldtrap': pub(500, ['astrobotic-griffin']),
       },
-      reliability: rule(0.8, tx('Game value. NASA described commercial lunar deliveries as “shots on goal” and said a 50-50 success rate would be acceptable.', 'ゲームの値。NASAは民間の月輸送を「シュートの数を打つ」方式と呼び、成功率5割でも受け入れられるとしていた。')),
+      reliability: est(0.75, ['astrobotic-pm1', 'sfn-im2', 'spacepolicy-clps'], tx(
+        'Chance of reaching the surface. Of NASA’s four commercial lunar deliveries in 2024–2025, three reached the surface (Peregrine did not), but two of those landed on their side; landing on the side is a separate card. NASA called these deliveries “shots on goal” and said a 50-50 success rate would be acceptable.',
+        '月面に届く確率。2024〜2025年のNASAの民間月輸送4回のうち、月面に届いたのは3回（Peregrineは届かず）。ただしそのうち2回は横倒しだった（横倒しは別のカード）。NASAはこの輸送を「シュートの数を打つ」方式と呼び、成功率5割でも受け入れられるとしていた。',
+      )),
       windowsDay: rule([1000, 1200, 1400]),
     },
     {
@@ -299,8 +302,9 @@ export const lunarIceRover: Mission = {
       description: tx('Plenty of mass to spare and a better landing record, at a higher price.', '質量に大きな余裕があり着陸の実績もよいが、高い。'),
       cost: rule(320000),
       capacityKg: { 'site-ridge': rule(1500), 'site-nobile': rule(1500), 'site-coldtrap': rule(1500) },
-      reliability: rule(0.88),
+      reliability: rule(0.8, tx('Game value: a little better than the medium lander.', 'ゲームの値：中型の着陸機より少しよい。')),
       windowsDay: rule([1000, 1200, 1400]),
+      tags: ['lander:large'],
     },
 
     { kind: 'choice', id: 'lwindow-first', name: tx('First window', '最初の窓'), description: tx('Full schedule score, but a delay can leave you with no launch at all.', '日程の点は満点。ただし遅れると打ち上げられなくなるおそれ。'), cost: rule(0), settings: { targetWindow: rule(0) } },
@@ -346,6 +350,10 @@ export const lunarIceRover: Mission = {
       protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
       unprotected: [{ kind: 'resource', resource: 'budget', delta: -50000 }],
       lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
+      realCase: {
+        text: tx('VIPER: its cost passed the level that triggers a continue-or-cancel review, and NASA cancelled the nearly finished rover in July 2024.', 'VIPER：費用が継続か中止かの審査にかかる水準を超え、NASAは完成間近のローバーの中止を2024年7月に発表した。'),
+        sources: ['spo-viper'],
+      },
     },
     {
       id: 'lpart-delay', phase: 2, name: tx('Instrument delay', '機器の納期遅延'),
@@ -362,6 +370,10 @@ export const lunarIceRover: Mission = {
       protectedIf: { kind: 'setting', key: 'targetWindow', atLeast: 1 },
       unprotected: [{ kind: 'delayDays', days: 150 }],
       lesson: tx('{agency} aimed at the first window and the lander was late.', '{agency}は最初の窓を狙っていて、着陸機が遅れた。'),
+      realCase: {
+        text: tx('Griffin: NASA asked for more testing of the lander’s propulsion, and VIPER’s landing slipped from 2023 to 2024 and then later.', 'Griffin：NASAが着陸機の推進系の追加試験を求め、VIPERの着陸は2023年から2024年、さらにその先へ延びた。'),
+        sources: ['spo-viper'],
+      },
     },
     {
       id: 'ltest-anomaly', phase: 4, name: tx('Test anomaly', '試験での不具合'),
@@ -379,6 +391,10 @@ export const lunarIceRover: Mission = {
       probability: rule(0, tx('Drawn from the chosen lander’s reliability instead of a fixed chance.', '一定の確率ではなく、選んだ着陸機の信頼性から引く。')),
       unprotected: [{ kind: 'missionLost', outcome: 'launchFailure' }],
       lesson: tx('{agency} lost the rover at landing.', '{agency}は、着陸でローバーを失った。'),
+      realCase: {
+        text: tx('Peregrine (January 2024): a helium pressure control valve failed soon after launch, propellant leaked, and the lander never reached the Moon.', 'Peregrine（2024年1月）：打ち上げ後まもなくヘリウムの圧力制御弁が故障して推進剤が漏れ、着陸機は月に届かなかった。'),
+        sources: ['astrobotic-pm1'],
+      },
     },
     {
       id: 'lsolar-storm', phase: 5, name: tx('Solar storm', '太陽嵐'),
@@ -417,6 +433,23 @@ export const lunarIceRover: Mission = {
       protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
       lesson: tx('{agency} could not send everything once Earth rose again.', '{agency}は、地球が昇ってからもデータを送りきれなかった。'),
+      realCase: {
+        text: tx('NASA’s Inspector General found that demand on the Deep Space Network sometimes exceeds what it can provide by about 40%.', 'NASAの監察官室によると、深宇宙通信網への需要は、ときに供給を約40%上回る。'),
+        sources: ['nasa-oig-dsn'],
+      },
+    },
+    {
+      id: 'tip-over', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
+      story: tx('The lander touches down but tips over. The rover may not be able to drive off cleanly, and the solar arrays face the wrong way.', '着陸はできたが横倒しになった。ローバーがうまく降りられず、太陽電池も違う方向を向いている。'),
+      probability: rule(0.3, tx('Game value. Two of the three commercial landers that reached the Moon in 2024–2025 ended up on their side.', 'ゲームの値。2024〜2025年に月面に届いた民間の着陸機3機のうち、2機が横倒しになった。')),
+      partialIf: { kind: 'hasTag', tag: 'lander:large' },
+      partial: [{ kind: 'scienceFactor', factor: 0.8 }],
+      unprotected: [{ kind: 'scienceFactor', factor: 0.5 }, { kind: 'durationFactor', factor: 0.6 }],
+      lesson: tx('{agency}’s lander tipped over, and the rover lost time and science.', '{agency}の着陸機は横倒しになり、ローバーは時間と科学を失った。'),
+      realCase: {
+        text: tx('IM-2 (March 2025): the lander came down in a crater about 250 m from its target, on its side, and its drill could not dig.', 'IM-2（2025年3月）：着陸機は目標から約250 m離れたクレーターの中に横倒しで降り、ドリルは掘れなかった。'),
+        sources: ['sfn-im2'],
+      },
     },
     {
       id: 'ice-rich', phase: 5, name: tx('Ice-rich spot', '氷の多い場所'),

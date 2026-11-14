@@ -142,6 +142,8 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .badge.good { color: var(--good); border-color: var(--good); }
 .badge.warn { color: var(--warn); border-color: var(--warn); }
 .badge.bad { color: var(--bad); border-color: var(--bad); }
+.real-case { font-size: 0.9em; color: #c8d0e0; margin-top: 0.2em; }
+.real-tag { font-size: 0.8em; border: 1px solid #6f9cf0; color: #8fb2f5; border-radius: 3px; padding: 0 0.35em; margin-right: 0.2em; }
 .rivals { margin: 0.4em 0 0; padding-left: 1.2em; font-size: 0.9em; }
 .final-wrap { height: 100%; }
 .final-screen { display: flex; flex-direction: column; gap: 0.6em; align-items: flex-start; }

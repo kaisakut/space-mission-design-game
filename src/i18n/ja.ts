@@ -8,6 +8,7 @@ export const ja: Messages = {
   start: 'はじめる',
   comingSoon: 'NASA Space Apps Challenge 2026 の期間中に開発中です。',
   close: '閉じる',
+  realCase: '実際の例',
   textSmaller: '文字を小さく',
   textLarger: '文字を大きく',
   openFull: '拡大して見る',

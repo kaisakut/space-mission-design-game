@@ -55,9 +55,9 @@ export const wildfireCubesat: Mission = {
   rules: {
     scienceUnit: tx('fires', '件の火災'),
     scienceFullScore: rule(200000, tx('Science value for the full science score; a standard design earns about 40% of it.', '科学価値の満点の基準。標準の設計でその約4割。')),
-    earlyFailureByTestDepth: rule([0.15, 0.08, 0.04], tx(
-      'Game values: chance the satellite never works after launch, by test depth. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
-      '試験の深さごとの、打ち上げ後に動かない確率（ゲームの値）。CubeSat 101 では打ち上げ前の検証試験（振動・熱真空）を必須としている。',
+    earlyFailureByTestDepth: est([0.18, 0.08, 0.04], ['langer-2016', 'nasa-cubesat101'], tx(
+      'Chance the satellite never works after launch, by test depth. Basic testing: 18% of 178 CubeSats launched by mid-2014 never made contact (Langer 2016). The values for deeper testing are game values. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
+      '試験の深さごとの、打ち上げ後に動かない確率。最小限の試験の値：2014年半ばまでに打ち上げたキューブサット178機のうち18%が一度も通信できなかった（Langer 2016）。それより深い試験の値はゲームの値。CubeSat 101 では打ち上げ前の検証試験（振動・熱真空）を必須としている。',
     )),
     changeFactors: rule([1.5, 3, 6], tx('Later changes ripple into more redesign and retesting.', '後で変えるほど、設計のやり直しと再試験が広がる。')),
     changeMinKUSD: rule(30, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
@@ -429,6 +429,22 @@ export const wildfireCubesat: Mission = {
       protectedIf: { kind: 'margin', resource: 'schedule', atLeast: 0.15 },
       unprotected: [{ kind: 'delayDays', days: 45 }],
       lesson: tx('{agency} had no schedule margin when a part arrived late.', '{agency}は、部品が遅れたときに日程の余裕がなかった。'),
+      realCase: {
+        text: tx('Psyche: late flight software and test equipment made the asteroid mission miss its 2022 launch window.', 'Psyche：飛行ソフトと試験設備の遅れで、小惑星探査機が2022年の打ち上げ窓を逃した。'),
+        sources: ['nasa-psyche-irb'],
+      },
+    },
+    {
+      id: 'long-wait', phase: 3, name: tx('Long wait in the rocket', '打ち上げ待ちで電池が減る'),
+      story: tx('The main payload slips. Your CubeSat waits for months inside the rocket and cannot be charged.', '主衛星の都合で打ち上げが延びた。キューブサットはロケットの中で何か月も待ち、充電できない。'),
+      probability: rule(0.3),
+      protectedIf: { kind: 'margin', resource: 'power', atLeast: 0.2 },
+      unprotected: [{ kind: 'failChance', subsystem: 'power', add: 0.1 }],
+      lesson: tx('{agency} had little power margin, and its battery came out of the long wait weakened.', '{agency}は電力に余裕がなく、長い待ちのあと電池が弱っていた。'),
+      realCase: {
+        text: tx('Artemis I: the CubeSats sat inside the rocket for over a year, and only some could have their batteries recharged before launch.', 'Artemis I：キューブサットはロケットの中で1年以上待ち、打ち上げ前に電池を再充電できたのは一部だけだった。'),
+        sources: ['sfn-artemis-cubesats'],
+      },
     },
     {
       id: 'test-anomaly', phase: 4, name: tx('Test anomaly', '試験での不具合'),
@@ -439,6 +455,10 @@ export const wildfireCubesat: Mission = {
       partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.05 }],
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.2 }],
       lesson: tx('Light testing let a fault through to orbit for {agency}.', '{agency}は、試験が薄く不具合を軌道まで持ち込んだ。'),
+      realCase: {
+        text: tx('Lunar Trailblazer (2025): contact was lost the day after launch; its solar arrays did not point at the Sun and the battery ran down.', 'Lunar Trailblazer（2025年）：打ち上げの翌日に通信が途絶えた。太陽電池が太陽を向かず、電池が尽きた。'),
+        sources: ['nasa-trailblazer'],
+      },
     },
     {
       id: 'launch-failure', phase: 4, name: tx('Launch failure', '打ち上げ失敗'),
@@ -468,6 +488,10 @@ export const wildfireCubesat: Mission = {
       protectedIf: { kind: 'hasTag', tag: 'spareWheel' },
       unprotected: [{ kind: 'scienceFactor', factor: 0.6 }],
       lesson: tx('{agency} lost pointing accuracy without a spare wheel.', '{agency}は、予備のホイールがなく指向精度を失った。'),
+      realCase: {
+        text: tx('Kepler: the second of its four wheels failed in May 2013 and the original survey ended. It came back as K2, using sunlight pressure as a “third wheel”.', 'Kepler：4つのホイールのうち2つ目が2013年5月に壊れ、本来の観測が終わった。太陽光の圧力を「3つ目のホイール」に使うK2として復活した。'),
+        sources: ['nasa-kepler-k2'],
+      },
     },
     {
       id: 'station-cut', phase: 5, name: tx('Ground station time cut', '地上局の割り当て減'),

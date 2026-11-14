@@ -86,6 +86,10 @@ export function validateMission(m: Mission): DataIssue[] {
     if (e.benefit && !e.readyIf) err(w, 'benefit without readyIf');
     const p = e.probability.value;
     if (p < 0 || p > 1) err(w, 'probability must be between 0 and 1');
+    if (e.realCase) {
+      if (!e.realCase.sources.length) err(w, 'realCase needs at least one source');
+      for (const s of e.realCase.sources) if (!SOURCE_BY_ID.has(s)) err(w, `unknown source id '${s}' in realCase`);
+    }
   }
 
   const orbitList = m.options.filter((o) => o.kind === 'orbit');
