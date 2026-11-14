@@ -28,3 +28,23 @@ for (const m of MISSIONS) {
   console.log(`     standard design: success ${Math.round(a.successShare * 100)}%, median score ${a.score.p50}`);
 }
 if (failed) process.exit(1);
+
+// A whole game with the AI: every agency ends with a result, and the same seed gives the same game.
+import { aiPicks } from '../src/engine/ai';
+import { confirmPhase, newGame, type AgencyKind } from '../src/engine/game';
+import type { Picks } from '../src/engine/design';
+const play = (seed: number) => {
+  let g = newGame(MISSIONS[0]!, seed);
+  while (g.phase <= 5) {
+    const picks = {} as Record<AgencyKind, Picks>;
+    for (const a of g.agencies) picks[a.id] = a.id === 'player' ? {} : aiPicks(g, a);
+    g = confirmPhase(g, picks);
+  }
+  return g;
+};
+const g1 = play(9), g2 = play(9);
+check(!!g1.final && Object.keys(g1.final).length === 3, 'a full game ends with results for all three agencies');
+check(JSON.stringify(g1.final) === JSON.stringify(g2.final), 'the same seed gives the same game');
+const sameCards = g1.reports.every((r) => Object.values(r.results).every((x) => Object.keys(x).length === r.cards.length));
+check(sameCards, 'every agency faces the same cards each phase');
+if (failed) process.exit(1);

@@ -1,4 +1,4 @@
-import { DesignScreen } from './components/DesignScreen';
+import { GameScreen } from './components/GameScreen';
 import { MISSIONS } from './data/missions';
 import { useLang } from './i18n';
 
@@ -15,7 +15,7 @@ export function App() {
       <main className="app-main">
         <p className="tagline">{t.tagline}</p>
         <p className="note">{t.comingSoon}</p>
-        <DesignScreen mission={MISSIONS[0]!} />
+        <GameScreen mission={MISSIONS[0]!} />
       </main>
     </div>
   );

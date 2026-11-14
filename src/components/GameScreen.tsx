@@ -1,0 +1,164 @@
+import { useMemo, useState } from 'react';
+import type { Mission } from '../data/types';
+import { aiPicks } from '../engine/ai';
+import type { Issue, Picks } from '../engine/design';
+import { agencyDesign, agencyForecast, changeCost, confirmPhase, newGame, pendingChanges, PHASE_COUNT, type AgencyKind, type Game } from '../engine/game';
+import { fmt, tk, useLang } from '../i18n';
+import { ForecastPanel } from './ForecastPanel';
+import { Gauges } from './Gauges';
+import { OptionCard } from './OptionCard';
+import { FinalResults, TurnReports } from './Reports';
+
+const PHASES = [1, 2, 3, 4, 5] as const;
+const newSeed = () => Math.floor(Math.random() * 1e9);
+
+/** The game: one turn per phase. Decide, forecast once (or freely in practice mode), confirm, see what happened. */
+export function GameScreen({ mission }: { mission: Mission }) {
+  const { t, L } = useLang();
+  const [game, setGame] = useState<Game>(() => newGame(mission, newSeed()));
+  const [tab, setTab] = useState(1);
+  const [draft, setDraft] = useState<Picks>({});
+  const player = game.agencies.find((a) => a.id === 'player')!;
+  const working = { ...player.picks, ...draft };
+  const pending = useMemo(() => pendingChanges(game, player, working), [game, player, working]);
+  const state = useMemo(() => agencyDesign(game, player, working, pending), [game, player, working, pending]);
+  const optionById = useMemo(() => new Map(mission.options.map((o) => [o.id, o])), [mission]);
+  const over = game.phase > PHASE_COUNT;
+
+  const pick = (slotId: string, optionId: string, multi?: { min: number; max: number }) => {
+    const slot = mission.slots.find((s) => s.id === slotId)!;
+    const cur = state.picks[slotId] ?? [];
+    let ids: string[];
+    if (!multi) ids = [optionId];
+    else {
+      // In a multi-choice slot the first option means "none" and clears the others.
+      const none = slot.options[0]!;
+      if (optionId === none) ids = [none];
+      else {
+        const without = cur.filter((x) => x !== none);
+        const next = without.includes(optionId) ? without.filter((x) => x !== optionId) : [...without, optionId].slice(-multi.max);
+        ids = next.length ? next : [none];
+      }
+    }
+    const next: Picks = { ...draft, [slotId]: ids };
+    // Changing the orbit: keep the launch valid by switching to one that reaches the new orbit.
+    const chosen = optionById.get(optionId);
+    if (chosen?.kind === 'orbit') {
+      const launchSlot = mission.slots.find((x) => x.options.some((id) => optionById.get(id)?.kind === 'launch'));
+      const curLaunch = launchSlot ? optionById.get((state.picks[launchSlot.id] ?? [])[0] ?? '') : undefined;
+      if (launchSlot && launchSlot.phase <= game.phase && curLaunch?.kind === 'launch' && !curLaunch.capacityKg[optionId]) {
+        const ok = launchSlot.options.find((id) => { const l = optionById.get(id); return l?.kind === 'launch' && !!l.capacityKg[optionId]; });
+        if (ok) next[launchSlot.id] = [ok];
+      }
+    }
+    setDraft(next);
+  };
+
+  const confirm = () => {
+    const picks = {} as Record<AgencyKind, Picks>;
+    for (const a of game.agencies) picks[a.id] = a.id === 'player' ? working : aiPicks(game, a);
+    const g = confirmPhase(game, picks);
+    setGame(g);
+    setDraft({});
+    setTab(Math.min(g.phase, PHASE_COUNT));
+  };
+  const restart = () => { setGame(newGame(mission, newSeed(), game.practice)); setDraft({}); setTab(1); };
+
+  const issueText = (i: Issue) => {
+    const values = { ...i.values };
+    for (const k of ['launch', 'orbit'] as const) { const o = optionById.get(String(values[k] ?? '')); if (o) values[k] = L(o.name); }
+    return fmt(tk(t, `issue_${i.code}`), values);
+  };
+  const blockers = state.issues.filter((i) => i.level === 'blocker');
+  const warnings = state.issues.filter((i) => i.level === 'warning');
+  const forecastsLeft = game.practice ? null : Math.max(0, 1 - game.forecastsUsed);
+
+  if (over && game.final) {
+    return (
+      <>
+        <FinalResults game={game} onRestart={restart} />
+        <TurnReports game={game} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="turnbar">
+        <div>
+          <b>{fmt(t.turnTitle, { n: game.phase, total: PHASE_COUNT, name: tk(t, `phase${game.phase}`) })}</b>
+          <span className="note">{t.turnHelp}</span>
+        </div>
+        <label className="practice">
+          <input type="checkbox" checked={game.practice} onChange={(e) => setGame({ ...game, practice: e.target.checked })} />
+          {t.practiceMode}
+        </label>
+        <button type="button" className="primary" onClick={confirm}>{game.phase < PHASE_COUNT ? t.confirmPhase : t.confirmLast}</button>
+      </div>
+      <section className="design">
+        <div className="design-side">
+          <h2>{L(mission.name)}</h2>
+          <p className="note">{L(mission.summary)}</p>
+          <Gauges gauges={state.gauges} />
+          {pending.kUSD > 0 && <p className="warn small">{fmt(t.pendingChange, { k: pending.kUSD, d: pending.days })}</p>}
+          {player.changeKUSD > 0 && <p className="note small">{fmt(t.paidChanges, { k: player.changeKUSD })}</p>}
+          <div className="issues">
+            {!blockers.length && !warnings.length && <p className="ok">{t.noIssues}</p>}
+            {blockers.length > 0 && <><h3 className="bad">{t.blockers}</h3><ul>{blockers.map((i, k) => <li key={k}>{issueText(i)}</li>)}</ul></>}
+            {warnings.length > 0 && <><h3 className="warn">{t.warnings}</h3><ul>{warnings.map((i, k) => <li key={k}>{issueText(i)}</li>)}</ul></>}
+          </div>
+        </div>
+        <div className="design-main">
+          <div className="tabs" role="tablist">
+            {PHASES.map((p) => (
+              <button key={p} type="button" role="tab" aria-selected={tab === p} disabled={p > game.phase} className={tab === p ? 'on' : ''} onClick={() => setTab(p)}>
+                {fmt(t.phaseTab, { n: p, name: tk(t, `phase${p}`) })}{p < game.phase ? ' ✓' : ''}
+              </button>
+            ))}
+          </div>
+          {tab < game.phase && <p className="note">{t.pastPhaseNote}</p>}
+          {mission.slots.filter((s) => s.phase === tab).map((s) => {
+            const locked = changeCost(mission, player, s.id, ['__probe__'], game.phase).locked;
+            return (
+              <fieldset key={s.id} className="slot">
+                <legend>{L(s.label)}</legend>
+                <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>
+                {locked && <p className="warn small">{t.lockedAfterLaunch}</p>}
+                <div className="opts">
+                  {s.options.map((id) => {
+                    const o = optionById.get(id)!;
+                    const selected = (state.picks[s.id] ?? []).includes(id);
+                    const wrongOrbit = o.kind === 'launch' && state.orbit !== null && !o.capacityKg[state.orbit.id];
+                    const c = selected ? null : changeCost(mission, player, s.id, [id], game.phase);
+                    return (
+                      <div key={id}>
+                        <OptionCard
+                          option={o} selected={selected} disabled={wrongOrbit || locked}
+                          type={s.multi ? 'checkbox' : 'radio'} name={s.id} orbitId={state.orbit?.id ?? null}
+                          onPick={() => pick(s.id, id, s.multi)}
+                        />
+                        {c && c.kUSD > 0 && !locked && <p className="change-cost">{fmt(t.changeCostHint, { k: c.kUSD, d: c.days })}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            );
+          })}
+        </div>
+      </section>
+      <ForecastPanel
+        mission={mission}
+        designKey={JSON.stringify([working, game.phase])}
+        left={forecastsLeft}
+        run={(runs) => {
+          if (!game.practice && game.forecastsUsed >= 1) return null;
+          const f = agencyForecast(game, player, working, runs, undefined, pending);
+          setGame({ ...game, forecastsUsed: game.forecastsUsed + 1 });
+          return f;
+        }}
+      />
+      <TurnReports game={game} />
+    </>
+  );
+}

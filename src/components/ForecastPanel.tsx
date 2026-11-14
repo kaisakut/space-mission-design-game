@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { Mission, Outcome } from '../data/types';
-import type { Picks } from '../engine/design';
-import { branchReasons, runForecast, type Forecast } from '../engine/forecast';
+import { branchReasons, type Forecast } from '../engine/forecast';
 import type { BranchNode } from '../engine/branchTree';
 import { OUTCOMES } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
@@ -19,22 +18,33 @@ export const OUTCOME_COLOR: Record<Outcome, string> = {
 
 const RUN_CHOICES = [20, 50, 100];
 
-/** Forecast: run the current design to the end many times and show where it tends to end up. */
-export function ForecastPanel({ mission, picks, seed, turn }: { mission: Mission; picks: Picks; seed: number; turn: number }) {
+/** Readable name of a cause key from a run ('solar-flare', 'fail:cdh', 'blocked:overBudget', ...). */
+export function useCauseName(mission: Mission) {
   const { t, L } = useLang();
-  const [runs, setRuns] = useState(50);
-  const [result, setResult] = useState<{ f: Forecast; picks: string } | null>(null);
-  const key = JSON.stringify(picks);
-  const stale = result !== null && result.picks !== key;
-
-  const causeName = (c: string) => {
+  return (c: string) => {
     const card = mission.events.find((e) => e.id === c);
     if (card) return L(card.name);
     if (c.startsWith('fail:')) return tk(t, `cause_fail_${c.slice(5)}`);
     if (c.startsWith('warn:')) return tk(t, `cause_warn_${c.slice(5)}`);
-    if (c.startsWith('blocked:')) return tk(t, `cause_blocked_${c.slice(8)}`) === `cause_blocked_${c.slice(8)}` ? t.cause_blocked : tk(t, `cause_blocked_${c.slice(8)}`);
+    if (c.startsWith('blocked:')) { const k = `cause_blocked_${c.slice(8)}`; return tk(t, k) === k ? t.cause_blocked : tk(t, k); }
     return tk(t, `cause_${c}`);
   };
+}
+
+/**
+ * Forecast: run the current design to the end many times and show where it tends to end up.
+ * `run` returns null when no forecast is left this turn; `left` is shown next to the button.
+ */
+export function ForecastPanel({ mission, designKey, run, left }: {
+  mission: Mission; designKey: string; run: (runs: number) => Forecast | null; left: number | null;
+}) {
+  const { t, L } = useLang();
+  const [runs, setRuns] = useState(50);
+  const [result, setResult] = useState<{ f: Forecast; picks: string } | null>(null);
+  const key = designKey;
+  const stale = result !== null && result.picks !== key;
+
+  const causeName = useCauseName(mission);
   const happening = (key: string) => {
     const [id, result] = key.split(':');
     const card = mission.events.find((e) => e.id === id);
@@ -63,9 +73,10 @@ export function ForecastPanel({ mission, picks, seed, turn }: { mission: Mission
             {RUN_CHOICES.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </label>
-        <button type="button" className="primary" onClick={() => setResult({ f: runForecast(mission, picks, seed, turn, runs), picks: key })}>
+        <button type="button" className="primary" disabled={left === 0} onClick={() => { const f = run(runs); if (f) setResult({ f, picks: key }); }}>
           {fmt(t.runForecast, { n: runs })}
         </button>
+        {left !== null && <span className="note">{left > 0 ? fmt(t.forecastLeft, { n: left }) : t.forecastNoneLeft}</span>}
         {stale && <span className="warn">{t.forecastStale}</span>}
       </div>
       {result && (
