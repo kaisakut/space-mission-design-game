@@ -1,11 +1,13 @@
-# Builds the game and publishes it to GitHub Pages on every push to main.
-# GitHub Pages on the Free plan requires the repository to be public:
-# enable Pages (Settings > Pages > Source: GitHub Actions) after switching to public.
+# Builds the game and publishes it to GitHub Pages.
+# While the repository is private this runs only when started by hand (Actions > Run workflow),
+# because GitHub Pages on the Free plan needs a public repository.
+# After switching to public and enabling Pages (Settings > Pages > Source: GitHub Actions),
+# add the push trigger back:
+#   push:
+#     branches: [main]
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
