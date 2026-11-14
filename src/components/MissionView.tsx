@@ -7,8 +7,17 @@ import { coverageLat } from '../view/orbit';
 import { Modal } from './Modal';
 
 const reduceMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+// Checked once per page: each check opens a WebGL context, and browsers allow only about 16 at a time.
+let webglChecked: boolean | null = null;
 const webglOk = () => {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
+  if (webglChecked !== null) return webglChecked;
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    webglChecked = !!gl;
+    (gl as WebGLRenderingContext | null)?.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch { webglChecked = false; }
+  return webglChecked;
 };
 /** NASA Blue Marble (Visible Earth). The view works without it: a lit sphere with a graticule. */
 const EARTH_TEXTURE = `${import.meta.env.BASE_URL}textures/earth_day_2048.jpg`;
@@ -43,7 +52,7 @@ export function earthModel(m: Mission, d: DesignState): EarthModel | null {
 function Scene({ model, ghost, fast, onMeter }: { model: EarthModel; ghost: EarthModel | null; fast: boolean; onMeter: (l: number, o: boolean) => void }) {
   const host = useRef<HTMLDivElement>(null);
   const scene = useRef<EarthScene | null>(null);
-  const [failed, setFailed] = useState(!webglOk());
+  const [failed, setFailed] = useState(() => !webglOk());
   const latest = useRef({ model, ghost });
   latest.current = { model, ghost };
   useEffect(() => {

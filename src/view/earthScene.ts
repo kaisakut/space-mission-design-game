@@ -55,7 +55,27 @@ function graticule(): THREE.LineSegments {
   return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x3a5a8e, transparent: true, opacity: 0.55 }));
 }
 
-function circleOnSphere(center: Vec3, angle: number, radius: number, color: number, opacity: number): THREE.LineLoop {
+/**
+ * Materials are made once per scene and shared: a new material means a new shader program, and compiling
+ * programs on every design change made the view stall (and on weak GPUs, blank out).
+ */
+function makeMaterials() {
+  return {
+    ring: new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 }),
+    ghostRing: new THREE.LineDashedMaterial({ vertexColors: true, transparent: true, opacity: 0.45, dashSize: 0.04, gapSize: 0.03 }),
+    station: new THREE.MeshBasicMaterial({ color: 0xffb74d }),
+    ghostStation: new THREE.MeshBasicMaterial({ color: 0xffb74d, transparent: true, opacity: 0.4 }),
+    footprint: new THREE.LineBasicMaterial({ color: 0xffb74d, transparent: true, opacity: 0.6 }),
+    ghostFootprint: new THREE.LineBasicMaterial({ color: 0xffb74d, transparent: true, opacity: 0.24 }),
+    body: new THREE.MeshStandardMaterial({ color: 0xe8ecf4, metalness: 0.3, roughness: 0.5 }),
+    wing: new THREE.MeshStandardMaterial({ color: 0x2f6fde, side: THREE.DoubleSide, metalness: 0.4, roughness: 0.4 }),
+    shield: new THREE.MeshBasicMaterial({ color: 0xffb74d }),
+    cone: new THREE.MeshBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.18, side: THREE.DoubleSide }),
+  };
+}
+type Mats = ReturnType<typeof makeMaterials>;
+
+function circleOnSphere(center: Vec3, angle: number, radius: number, mat: THREE.LineBasicMaterial): THREE.LineLoop {
   const c = new THREE.Vector3(...center).normalize();
   const a = new THREE.Vector3(0, 1, 0).cross(c);
   if (a.lengthSq() < 1e-6) a.set(1, 0, 0);
@@ -66,10 +86,10 @@ function circleOnSphere(center: Vec3, angle: number, radius: number, color: numb
     const t = (k / 64) * Math.PI * 2;
     pts.push(c.clone().multiplyScalar(Math.cos(angle)).add(a.clone().multiplyScalar(Math.sin(angle) * Math.cos(t))).add(b.clone().multiplyScalar(Math.sin(angle) * Math.sin(t))).multiplyScalar(radius));
   }
-  return new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+  return new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), mat);
 }
 
-function ringLine(m: EarthModel, opacity: number, dashed: boolean): THREE.Line {
+function ringLine(m: EarthModel, mats: Mats, dashed: boolean): THREE.Line {
   const r = radiusOf(m.altKm), inc = (m.incDeg * Math.PI) / 180;
   const pts: number[] = [], colors: number[] = [];
   for (let k = 0; k <= 180; k++) {
@@ -85,28 +105,25 @@ function ringLine(m: EarthModel, opacity: number, dashed: boolean): THREE.Line {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  const mat = dashed
-    ? new THREE.LineDashedMaterial({ vertexColors: true, transparent: true, opacity, dashSize: 0.04, gapSize: 0.03 })
-    : new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity });
-  const line = new THREE.Line(g, mat);
+  const line = new THREE.Line(g, dashed ? mats.ghostRing : mats.ring);
   if (dashed) line.computeLineDistances();
   return line;
 }
 
-function satellite(m: EarthModel): THREE.Group {
+function satellite(m: EarthModel, mats: Mats): THREE.Group {
   const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.055), new THREE.MeshStandardMaterial({ color: 0xe8ecf4, metalness: 0.3, roughness: 0.5 })));
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.055), mats.body));
   if (m.wings) for (const s of [-1, 1]) {
-    const w = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.03), new THREE.MeshStandardMaterial({ color: 0x2f6fde, side: THREE.DoubleSide, metalness: 0.4, roughness: 0.4 }));
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.03), mats.wing);
     w.position.x = s * 0.055;
     g.add(w);
   }
   for (let k = 0; k < m.rings; k++) {
-    const t = new THREE.Mesh(new THREE.TorusGeometry(0.055 + k * 0.018, 0.004, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffb74d }));
+    const t = new THREE.Mesh(new THREE.TorusGeometry(0.055 + k * 0.018, 0.004, 6, 32), mats.shield);
     t.rotation.x = Math.PI / 2;
     g.add(t);
   }
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.18, side: THREE.DoubleSide }));
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 16, 1, true), mats.cone);
   cone.name = 'cone';
   g.add(cone);
   return g;
@@ -182,7 +199,9 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
   const active = new Set<number>();
   const COS_REACH = Math.cos(0.07);
 
+  const mats = makeMaterials();
   let model: EarthModel | null = null;
+  let lastKey = '';
   let parts: THREE.Object3D[] = [];
   let stationDirs: Vec3[] = [];
   let sat: THREE.Group | null = null;
@@ -190,7 +209,8 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
   link.visible = false;
   pivot.add(link);
 
-  const clear = () => { for (const p of parts) { p.parent?.remove(p); p.traverse((o) => { const x = o as THREE.Mesh; x.geometry?.dispose?.(); const mt = x.material as THREE.Material | THREE.Material[] | undefined; if (Array.isArray(mt)) mt.forEach((y) => y.dispose()); else mt?.dispose?.(); }); } parts = []; };
+  // Geometry only: the materials are shared and live as long as the scene.
+  const clear = () => { for (const p of parts) { p.parent?.remove(p); p.traverse((o) => { (o as THREE.Mesh).geometry?.dispose?.(); }); } parts = []; };
 
   let fast = false;
   let t = 0;
@@ -198,30 +218,34 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
   let meterCb: ((l: number, o: boolean) => void) | null = null;
 
   const set = (m: EarthModel, ghost: EarthModel | null) => {
+    // Most picks (objectives, budget split...) change nothing that is drawn: then there is nothing to rebuild.
+    const key = JSON.stringify([m, ghost]);
+    if (key === lastKey) return;
+    lastKey = key;
     const orbitChanged = !model || model.altKm !== m.altKm || model.incDeg !== m.incDeg;
     model = m;
     clear();
-    const ring = ringLine(m, 0.9, false);
+    const ring = ringLine(m, mats, false);
     pivot.add(ring); parts.push(ring);
-    if (ghost && (ghost.altKm !== m.altKm || ghost.incDeg !== m.incDeg)) { const gr = ringLine(ghost, 0.45, true); pivot.add(gr); parts.push(gr); }
+    if (ghost && (ghost.altKm !== m.altKm || ghost.incDeg !== m.incDeg)) { const gr = ringLine(ghost, mats, true); pivot.add(gr); parts.push(gr); }
     stationDirs = m.stations.map((s) => latLonToVec(s.lat, s.lon));
-    const addStations = (list: { lat: number; lon: number }[], alt: number, opacity: number) => {
+    const addStations = (list: { lat: number; lon: number }[], alt: number, faint: boolean) => {
       for (const s of list) {
         const v = latLonToVec(s.lat, s.lon);
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffb74d, transparent: true, opacity }));
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), faint ? mats.ghostStation : mats.station);
         dot.position.set(...(v.map((x) => x * 1.006) as Vec3));
         earth.add(dot); parts.push(dot);
-        const c = circleOnSphere(v, footprintAngle(alt), 1.006, 0xffb74d, 0.6 * opacity);
+        const c = circleOnSphere(v, footprintAngle(alt), 1.006, faint ? mats.ghostFootprint : mats.footprint);
         earth.add(c); parts.push(c);
       }
     };
-    addStations(m.stations, m.altKm, 1);
+    addStations(m.stations, m.altKm, false);
     if (ghost) {
       const extra = ghost.stations.filter((g) => !m.stations.some((s) => s.lat === g.lat && s.lon === g.lon));
-      addStations(extra, ghost.altKm, 0.4);
+      addStations(extra, ghost.altKm, true);
     }
     firePoints.visible = m.fires;
-    sat = satellite(m);
+    sat = satellite(m, mats);
     pivot.add(sat); parts.push(sat);
     if (orbitChanged) { covCtx.clearRect(0, 0, cov.width, cov.height); covTex.needsUpdate = true; }
   };
@@ -343,7 +367,7 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
     set: (m, g) => { set(m, g); frame(0); },
     setFast: (on) => { fast = on; if (opts.reduceMotion && on) { for (let k = 0; k < 400; k++) frame(0.05); } },
     onMeter: (cb) => { meterCb = cb; },
-    dispose: () => { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); clear(); renderer.dispose(); el.remove(); },
+    dispose: () => { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); clear(); Object.values(mats).forEach((x) => x.dispose()); renderer.dispose(); renderer.forceContextLoss(); el.remove(); },
   };
 }
 
