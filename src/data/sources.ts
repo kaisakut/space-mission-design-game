@@ -426,6 +426,22 @@ export const SOURCES: Source[] = [
     accessed: '2026-11-14',
   },
   {
+    id: 'via-firesat-latency',
+    title: 'Next-generation satellites and sensors look to speed up wildfire response (FireSat downlinks within minutes through a hybrid ground network)',
+    publisher: 'Via Satellite',
+    url: 'https://www.satellitetoday.com/magazine/2025/03/28/next-generation-satellites-and-sensors-look-to-speed-up-wildfire-response-april-may-2025/',
+    nasa: false,
+    accessed: '2026-11-14',
+  },
+  {
+    id: 'spacepolicy-viper-blue',
+    title: 'VIPER might have a new ride to the Moon on Blue Origin ($190 million CS-7 task order; Griffin’s order had grown to $323 million)',
+    publisher: 'SpacePolicyOnline',
+    url: 'https://spacepolicyonline.com/news/viper-might-have-a-new-ride-to-the-moon-on-blue-origin/',
+    nasa: false,
+    accessed: '2026-11-14',
+  },
+  {
     id: 'npc-artica',
     title: 'ARTICA drag sail brochure (CubeSat deorbit device: 210 g, under 5 years from 650 km)',
     publisher: 'N.P.C. New Production Concept (NPC Spacemind)',

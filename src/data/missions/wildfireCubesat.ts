@@ -98,9 +98,10 @@ export const wildfireCubesat: Mission = {
     {
       id: 'fast-alert',
       name: tx('Fast alert', '速報'),
-      description: tx('Send data quickly: radio capacity at least twice the data made each day.', 'すぐに送れる余裕を持つ。送れる量が、1日に作るデータの2倍以上。'),
+      description: tx('Alert within minutes of a detection: a station in view on almost every orbit (a commercial network) and radio capacity at least twice the data made each day.', '検知から数分で知らせる。ほぼ毎周回見える地上局（商用の局網）と、1日に作るデータの2倍以上を送れる余裕が必要。'),
       points: rule(5),
-      rule: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
+      // A satellite can only send what it saw when it passes a station: fast alerts need stations all around the world.
+      rule: { kind: 'all', of: [{ kind: 'hasTag', tag: 'frequentContact' }, { kind: 'margin', resource: 'downlink', atLeast: 0.5 }] },
       chosenBy: 'goal:fast',
     },
     {
@@ -370,11 +371,12 @@ export const wildfireCubesat: Mission = {
     },
     {
       kind: 'choice', id: 'gs-network', name: tx('Commercial station network', '商用の地上局網'),
-      description: tx('Pay per pass to stations around the world.', '世界中の局を、1回ごとに料金を払って使う。'),
+      description: tx('Pay per pass to stations around the world, including the far north: a station in view on almost every orbit, as fast-alert services such as FireSat use.', '北極圏を含む世界中の局を、1回ごとに料金を払って使う。ほぼ毎周回、どこかの局が見える。FireSatのような速報サービスはこの方式。'),
       cost: rule(150),
+      tags: ['frequentContact'],
       settings: {
         highLatStation: rule(1),
-        networkFactor: est(3, ['nasa-soa-comms'], tx('Pay-per-pass services are one of the ground options NASA lists for small missions; the game counts them as three times your own stations.', 'NASAは小型ミッションの地上局の選択肢として1回ごとの有料サービスを挙げている。ゲームでは自前の局の3倍の通信時間として扱う。')),
+        networkFactor: est(3, ['nasa-soa-comms', 'via-firesat-latency'], tx('Pay-per-pass services are one of the ground options NASA lists for small missions; the game counts them as three times your own stations.', 'NASAは小型ミッションの地上局の選択肢として1回ごとの有料サービスを挙げている。ゲームでは自前の局の3倍の通信時間として扱う。')),
       },
     },
     {

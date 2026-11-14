@@ -310,10 +310,10 @@ export const lunarIceRover: Mission = {
     },
     {
       kind: 'launch', id: 'lander-large', name: tx('Large commercial lander', '大型の民間着陸機'),
-      description: tx('A little more likely to reach the surface, and a tip-over does less damage, but it costs more.', '月面に届く確率が少し高く、横倒しになっても被害が小さいが、高い。'),
-      cost: rule(250000, tx('Game value: about a quarter more than the medium lander.', 'ゲームの値：中型の着陸機より約4分の1高い。')),
+      description: tx('The class NASA turned to for VIPER in 2025: about the same price and carries far more, and a tip-over does less damage, but it had not landed yet.', '2025年にNASAがVIPERの輸送に選び直した級。価格はほぼ同じで積める量はずっと多く、横倒しの被害も小さいが、まだ着陸の実績がなかった。'),
+      cost: pub(190000, ['spacepolicy-viper-blue'], tx('VIPER’s 2025 task order on Blue Origin’s Blue Moon MK1, up to $190 million.', '2025年のVIPER輸送契約（ブルー・オリジンのBlue Moon MK1）、最大1億9000万ドル。')),
       capacityKg: { 'site-ridge': rule(1500), 'site-nobile': rule(1500), 'site-coldtrap': rule(1500) },
-      reliability: rule(0.8, tx('Game value: a little better than the medium lander.', 'ゲームの値：中型の着陸機より少しよい。')),
+      reliability: rule(0.65, tx('Game value: a new lander with no landing yet. NASA made the VIPER delivery depend on the lander’s first flight.', 'ゲームの値：まだ着陸の実績がない新しい着陸機。NASAはVIPERの輸送を、この着陸機の初飛行の結果しだいとした。')),
       windowsDay: rule([1000, 1200, 1400]),
       tags: ['lander:large'],
     },
