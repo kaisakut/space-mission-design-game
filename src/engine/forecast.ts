@@ -12,7 +12,7 @@ export interface Forecast {
   outcomeCounts: Record<Outcome, number>;
   /** Total score: 10th percentile, median, 90th percentile. */
   score: { p10: number; p50: number; p90: number };
-  /** The causes seen most often in runs that did not fully succeed: [cause, share of all runs]. */
+  /** Every cause seen in runs that did not fully succeed, most often first: [cause, share of all runs]. */
   topCauses: [string, number][];
 }
 
@@ -54,7 +54,8 @@ export function runForecast(
     if (r.outcome === 'fullSuccess') continue;
     for (const c of new Set(r.causes)) causeCount.set(c, (causeCount.get(c) ?? 0) + 1);
   }
-  const topCauses = [...causeCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c, n]) => [c, n / runs] as [string, number]);
+  // All of them, not only three: the screen leaves out cards that already happened and shows the next ones.
+  const topCauses = [...causeCount.entries()].sort((a, b) => b[1] - a[1]).map(([c, n]) => [c, n / runs] as [string, number]);
 
   return {
     runs: results,
@@ -65,6 +66,9 @@ export function runForecast(
     topCauses,
   };
 }
+
+/** The weak points to show: the most frequent causes that have not already happened. */
+export const liveCauses = (f: Forecast, past?: Set<string>, n = 3) => f.topCauses.filter(([c]) => !past?.has(c)).slice(0, n);
 
 /** Why a branch split off: the happening whose share differs most between this branch and its siblings. */
 export interface BranchReason {

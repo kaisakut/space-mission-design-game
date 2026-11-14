@@ -96,6 +96,25 @@ function LaunchPads({ order, game, start }: { order: Agency[]; game: Game; start
  * display only.
  */
 export function Flight({ game, start, instant }: { game: Game; start: number; instant: boolean }) {
+  // The event list shows whole rows only: its height is cut to the last row that fits (the rest scrolls).
+  const evList = useRef<HTMLUListElement>(null);
+  useLayoutEffect(() => {
+    const el = evList.current, box = el?.parentElement;
+    if (!el || !box) return;
+    const fit = () => {
+      el.style.maxHeight = '';
+      const room = el.clientHeight;
+      if (el.scrollHeight <= room + 1) return;
+      const rows = [...el.children] as HTMLElement[];
+      let h = 0;
+      for (const r of rows) { const bottom = r.offsetTop - el.offsetTop + r.offsetHeight; if (bottom <= room) h = bottom; else break; }
+      if (h > 0) el.style.maxHeight = `${h + 1}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    return () => ro.disconnect();
+  });
   const { t, L, lang } = useLang();
   const names = useAgencyName();
   const m = game.mission;
@@ -222,14 +241,14 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
           const launchedAt = start + 0.6 + order.indexOf(a) * 0.5;
           return (
             <div key={a.id} className={`fl-row ${a.id === 'player' && !names.multi ? 'me' : ''}`}>
+              {/* Name, bar and count on one line, so the event list below keeps room. A craft that never flew has no bar. */}
               <div className="fl-head">
                 <AgencyLabel id={a.id} />
+                {(flew || !st) ? <span className="fl-track">
+                  {flew && share > 0 && <span className="fl-bar" style={{ width: `${Math.max(1.5, share * 100)}%`, background: AGENCY_COLOR[a.id], animationDelay: `${opsAt}s`, animationDuration: `${OPS * Math.max(0.05, r.opsFraction) + 0.01}s` }} />}
+                </span> : <span className="fl-gap" />}
                 <b className="fl-count">{flew ? <CountUp value={r.delivered} ms={OPS * 1000 * Math.max(0.05, r.opsFraction)} delayMs={opsAt * 1000} instant={instant} /> : '—'}</b>
               </div>
-              {/* A craft that never flew has no bar: its row is one line lower. */}
-              {(flew || !st) && <span className="fl-track">
-                {flew && share > 0 && <span className="fl-bar" style={{ width: `${Math.max(1.5, share * 100)}%`, background: AGENCY_COLOR[a.id], animationDelay: `${opsAt}s`, animationDuration: `${OPS * Math.max(0.05, r.opsFraction) + 0.01}s` }} />}
-              </span>}
               <div className="fl-foot">
                 {st ? <span className={`fl-status appear ${st.bad ? 'bad' : ''}`} style={d(flew ? opsAt + OPS * r.opsFraction : launchedAt + 1)}>{st.text}</span> : <span />}
                 {!st?.text.includes(outcomeName(r.outcome)) && <span className="fl-outcome appear" style={d(opsAt + OPS + 0.2)}>{outcomeName(r.outcome)}</span>}
@@ -239,7 +258,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
           );
         })}
         {ops5.length > 0 && (
-          <ul className="fl-events">
+          <ul className="fl-events" ref={evList}>
             {ops5.map((id) => {
               const card = m.events.find((e) => e.id === id)!;
               const at = displayAt(game.seed, id);

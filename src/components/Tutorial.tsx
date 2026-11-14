@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useState, type CSSProperties } from 'react';
 import { tk, useLang } from '../i18n';
 
 /**
@@ -11,18 +11,24 @@ const STEPS: Step[] = [
   { target: 'forecast', key: 'tourBaseline' },
   { target: 'weak', key: 'tourWeak', act: '.link-btn', needs: '[data-tour="weak"] .link-btn' },
   { target: 'options', key: 'tourPick', act: '.opt input' },
-  { target: 'nextItem', key: 'tourNextItem', act: 'button', needs: '[data-tour="nextItem"]' },
+  // Rewritten below when the open item is the last one (there is no "Next item" then).
+  { target: 'nextItem folded', key: 'tourNextItem', act: '[data-tour="nextItem"], [data-tour="folded"]' },
   { target: 'forecastBtn', key: 'tourRun', act: 'button' },
   { target: 'confirm', key: 'tourConfirm' },
 ];
+
+/** Every element a step points at (a step can name several, e.g. the "Next item" button and the folded rows). */
+const targets = (target: string | null) => (target ? target.split(' ').flatMap((x) => [...document.querySelectorAll(`[data-tour="${x}"]`)]) : []);
 
 /** A short hands-on walk through one turn, after the mission briefing dialog. "Skip guide" works at any time. */
 export function Tutorial({ onClose }: { onClose: () => void }) {
   const { t } = useLang();
   const steps = STEPS;
   const [i, setI] = useState(0);
-  const step = steps[i]!;
-  // Steps whose part of the screen is missing (no mission view, no weak point to click) are passed over.
+  // The "Next item" step on the last open item asks for nothing: it only points at the folded rows.
+  const [lastItem, setLastItem] = useState(false);
+  useLayoutEffect(() => { if (steps[i]!.key === 'tourNextItem') setLastItem(!document.querySelector('[data-tour="nextItem"]')); }, [i, steps]);
+  const step: Step = steps[i]!.key === 'tourNextItem' && lastItem ? { target: 'folded', key: 'tourFolded' } : steps[i]!;
   // Decided once, so the numbering counts only the steps this guide will show (1/6 … 6/6, no gaps).
   const [shown] = useState(() => steps.map((x) => !x.needs || !!document.querySelector(x.needs)));
   const ok = (k: number) => shown[k]!;
@@ -30,8 +36,6 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
   const after = (k: number, dir: 1 | -1) => { let j = k + dir; while (j >= 0 && j < steps.length && !ok(j)) j += dir; return j; };
   const last = after(i, 1) >= steps.length;
   const next = () => (last ? onClose() : setI(after(i, 1)));
-  // The hole in the dimmed screen follows the target (it can move when the layout changes).
-  const [hole, setHole] = useState<DOMRect | null>(null);
   // The guide box sits at the bottom of the middle column (its lower half is free), not over the side columns.
   const [spot, setSpot] = useState<CSSProperties>({});
   useEffect(() => {
@@ -43,9 +47,16 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
     window.addEventListener('resize', read);
     return () => window.removeEventListener('resize', read);
   }, []);
+  // The hole in the dimmed screen covers everything the step points at (it can move when the layout changes).
+  const [hole, setHole] = useState<DOMRect | null>(null);
   useEffect(() => {
     if (!step.target) { setHole(null); return; }
-    const read = () => setHole(document.querySelector(`[data-tour="${step.target}"]`)?.getBoundingClientRect() ?? null);
+    const read = () => {
+      const rs = targets(step.target).map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0);
+      if (!rs.length) { setHole(null); return; }
+      const l = Math.min(...rs.map((r) => r.left)), tp = Math.min(...rs.map((r) => r.top));
+      setHole(new DOMRect(l, tp, Math.max(...rs.map((r) => r.right)) - l, Math.max(...rs.map((r) => r.bottom)) - tp));
+    };
     read();
     const id = window.setInterval(read, 250);
     window.addEventListener('resize', read);
@@ -53,19 +64,21 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
   }, [step.target]);
 
   useEffect(() => {
-    if (!step.target) return;
-    const el = document.querySelector(`[data-tour="${step.target}"]`);
-    if (!el) return;
-    el.classList.add('tour-on');
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // The forecast step is done already if this phase's forecast has been used.
+    if (step.key === 'tourRun' && (document.querySelector('[data-tour="forecastBtn"]') as HTMLButtonElement | null)?.disabled) { next(); return; }
+    const els = targets(step.target);
+    if (!els.length) return;
+    els.forEach((el) => el.classList.add('tour-on'));
+    els[0]!.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     // Steps that ask for an action move on by themselves once it is done.
     const onClick = (e: Event) => {
-      if (step.act && (e.target as Element).closest(step.act) && el.contains(e.target as Node)) window.setTimeout(next, 250);
+      const hit = step.act && (e.target as Element).closest?.(step.act);
+      if (hit && els.some((el) => el.contains(hit))) window.setTimeout(next, 250);
     };
-    el.addEventListener('click', onClick);
-    return () => { el.classList.remove('tour-on'); el.removeEventListener('click', onClick); };
+    document.addEventListener('click', onClick, true);
+    return () => { els.forEach((el) => el.classList.remove('tour-on')); document.removeEventListener('click', onClick, true); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [i]);
+  }, [i, lastItem]);
 
   return (
     <>

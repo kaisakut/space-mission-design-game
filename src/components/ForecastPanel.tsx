@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Mission, Outcome } from '../data/types';
-import { branchReasons, type Forecast } from '../engine/forecast';
+import { branchReasons, liveCauses, type Forecast } from '../engine/forecast';
 import type { BranchNode } from '../engine/branchTree';
 import { OUTCOMES } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
@@ -8,6 +8,29 @@ import { BranchMap } from './BranchMap';
 import { OUTCOME_COLOR, useCauseName, useOutcomeName } from './labels';
 import { Term } from './Glossary';
 import { Modal } from './Modal';
+
+/**
+ * What to show when no cause is left to list. "Nothing went wrong" only when every run fully succeeded;
+ * otherwise how the runs ended (as in the branch map), so a low success rate never reads as "no problem".
+ */
+export function NoCauses({ mission, f }: { mission: Mission; f: Forecast }) {
+  const { t } = useLang();
+  const outcomeName = useOutcomeName(mission);
+  const n = f.runs.length;
+  if (f.outcomeCounts.fullSuccess === n) return <p className="ok small">{t.noCauses}</p>;
+  const rows = OUTCOMES.filter((o) => o !== 'fullSuccess' && f.outcomeCounts[o] > 0).sort((a, b) => f.outcomeCounts[b] - f.outcomeCounts[a]);
+  return (
+    <ul className="causes-bars outcome-split">
+      {rows.map((o) => (
+        <li key={o}>
+          <span className="cb-name">{outcomeName(o)}</span>
+          <span className="cb-bar"><span style={{ width: `${Math.min(100, (f.outcomeCounts[o] / n) * 200)}%`, background: OUTCOME_COLOR[o] }} /></span>
+          <span className="cb-val">{Math.round((f.outcomeCounts[o] / n) * 100)}%</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** Runs per forecast: enough for stable percentages, and still instant in the browser. */
 export const RUNS = 100;
@@ -142,9 +165,9 @@ export function ForecastPanel({ mission, baseline, mine, stale, left, pastIds, w
       <div className="fc-sub"><Term k="percentile">{t.scoreBar}</Term></div>
       <ScoreBar rows={[{ label: t.baselineLabel, s: baseline.score, faint: !!mine }, ...(mine ? [{ label: t.yourDesign, s: mine.score }] : [])]} />
       <div className="fc-sub">{t.topCauses}</div>
-      {shown.topCauses.filter(([c]) => !pastIds?.has(c)).length === 0 ? <p className="ok small">{t.noCauses}</p> : (
+      {liveCauses(shown, pastIds).length === 0 ? <NoCauses mission={mission} f={shown} /> : (
         <ul className="causes-bars">
-          {shown.topCauses.filter(([c]) => !pastIds?.has(c)).slice(0, 3).map(([c, share]) => {
+          {liveCauses(shown, pastIds).map(([c, share]) => {
             const before = baseShare.get(c) ?? 0;
             return (
               <li key={c}>

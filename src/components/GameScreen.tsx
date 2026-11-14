@@ -3,13 +3,13 @@ import type { Mission, Resource } from '../data/types';
 import { RESOURCES } from '../data/types';
 import { aiPicks } from '../engine/ai';
 import { completePicks, type Issue, type Picks } from '../engine/design';
-import { FORECAST_SEED, type Forecast } from '../engine/forecast';
+import { FORECAST_SEED, liveCauses, type Forecast } from '../engine/forecast';
 import { agencyDesign, agencyForecast, changeCost, confirmPhase, newGame, pendingChanges, PHASE_COUNT, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
 import { play } from '../audio/sfx';
 import { LOW_MARGIN } from '../engine/design';
 import { AutoFit } from './AutoFit';
-import { ForecastPanel, RUNS } from './ForecastPanel';
+import { ForecastPanel, NoCauses, RUNS } from './ForecastPanel';
 import { Gauges } from './Gauges';
 import { MissionView } from './MissionView';
 import { AGENCY_COLOR, SeatContext, useCardText, useCauseName } from './labels';
@@ -84,7 +84,6 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
   const cardText = useCardText(mission);
   const past = useMemo(() => game.reports.flatMap((r) => r.cards.map((id) => ({ id, result: r.results[player.id][id] }))).filter((x) => x.result === 'hit' || x.result === 'partial'), [game.reports, player.id]);
   const pastIds = useMemo(() => new Set(past.map((x) => x.id)), [past]);
-  const weakCards = useMemo(() => new Set(baseline.topCauses.map(([c]) => c)), [baseline]);
   const pastLines = past.map((x) => { const card = mission.events.find((e) => e.id === x.id)!; const eff = cardText.resultLine(card, x.result!); return `${L(card.name)}${eff ? ` (${eff})` : ''}`; });
   // The baseline before the last confirmation, and what happened since, for the line under the ring.
   const prevBase = useRef<Partial<Record<AgencyKind, number>>>({});
@@ -194,6 +193,8 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
   };
   const doConfirm = () => {
     if (multi) { passOn(); return; }
+    // Confirming a phase ends the guide (it never carries over into the next phase).
+    setGuide(false);
     const picks = {} as Record<AgencyKind, Picks>;
     for (const a of game.agencies) picks[a.id] = a.id === 'player' ? working : aiPicks(game, a);
     const phase = game.phase;
@@ -249,7 +250,8 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
     setHintBusy(true);
     setGame((g) => ({ ...g, hintsUsed: { ...g.hintsUsed, [player.id]: g.hintsUsed[player.id] + 1 } }));
     setTimeout(() => {
-      const runs = 60;
+      // The same runs and stream as the forecast panel, so the hint's numbers match a forecast of the same design.
+      const runs = RUNS;
       const value = (f: Forecast) => f.score.p50 + 20 * f.successShare;
       const now = agencyForecast(game, player, working, runs, 'baseline', pending, FORECAST_SEED);
       let best: { slot: string; id: string; f: Forecast } | null = null;
@@ -325,7 +327,10 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
     setTimeout(() => setFlashSlot(null), 1200);
   };
   // Items that guard against a weak point shown on the left, and items behind a launch blocker.
-  const weakSlots = new Set(shown.topCauses.map(([c]) => fixSlot(c)?.id).filter((x): x is string => !!x));
+  // The weak points on the left, the "helps a weak point" marks in the middle and on the options: one list.
+  const weak = liveCauses(shown, pastIds);
+  const weakCards = new Set(weak.map(([c]) => c));
+  const weakSlots = new Set(weak.map(([c]) => fixSlot(c)?.id).filter((x): x is string => !!x));
   const blockSlots = new Set(blockers.flatMap((i) => ['launch', 'orbit'].map((k) => String(i.values[k] ?? '')))
     .flatMap((id) => mission.slots.filter((sl) => sl.options.includes(id)).map((sl) => sl.id)));
 
@@ -359,7 +364,8 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
   const forecastRanks = useMemo(() => {
     if (!multi || game.phase < 2 || game.final) return null;
     const st = game.agencies.map((a) => ({ id: a.id, score: agencyForecast(game, a, a.picks, 60, 'standing').score.p50 })).sort((x, y) => y.score - x.score);
-    return Object.fromEntries(st.map((x, i) => [x.id, i + 1])) as Record<AgencyKind, number>;
+    // Equal scores (to one decimal) share a place: 1, 2, 2, 4.
+    return Object.fromEntries(st.map((x) => [x.id, 1 + st.filter((y) => Math.round(y.score * 10) > Math.round(x.score * 10)).length])) as Record<AgencyKind, number>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.phase, game.agencies]);
   // Names for labels: the seats when playing together (solo keeps the dictionary names).
@@ -461,9 +467,9 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
           </div>
           <div className="weak" data-tour="weak">
             <h3>{t.weakPoints}</h3>
-            {shown.topCauses.filter(([c]) => !pastIds.has(c)).length === 0 ? <p className="ok small">{t.noCauses}</p> : (
+            {weak.length === 0 ? <NoCauses mission={mission} f={shown} /> : (
               <ul>
-                {shown.topCauses.filter(([c]) => !pastIds.has(c)).slice(0, 3).map(([c, share]) => {
+                {weak.map(([c, share]) => {
                   const s = fixSlot(c);
                   // Against the baseline: more often, less often, or new with this design.
                   const before = baseline.topCauses.find(([k]) => k === c)?.[1];
@@ -499,7 +505,7 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
                 const shownNames = names.length > 2 ? `${names.slice(0, 2).join(t.commaSep)}${fmt(t.andMore, { n: names.length - 2 })}` : names.join(t.commaSep);
                 const looked = seen.has(s.id) || tab < game.phase;
                 return (
-                  <button key={s.id} type="button" aria-expanded={false}
+                  <button key={s.id} type="button" aria-expanded={false} data-tour="folded"
                     className={`item-row ${blocked ? 'blocked' : ''} ${rowFlash.has(s.id) || flashSlot === s.id ? 'flash' : ''}`}
                     onClick={() => openItem(s.id)}>
                     <span className="ir-mark" aria-hidden>{weakHere ? '⚠' : looked ? '✓' : ''}</span>
@@ -512,12 +518,13 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
                 );
               }
               const n = s.options.length;
-              // Up to three options: one full-width card each (two columns inside). More: cards side by side.
+              // Up to three options: one full-width card each (two columns inside). More: two columns at most; five or
+              // more scroll inside the item, so names and descriptions keep two lines each.
               const wideCards = n <= 3;
-              const cols = wideCards ? 1 : n === 4 ? 2 : 3;
+              const cols = wideCards ? 1 : 2;
               const next = here[idx + 1];
               return (
-                <fieldset key={s.id} className={`slot open ${tight ? 'tight' : ''} ${flashSlot === s.id ? 'flash' : ''}`} style={{ ['--cols' as string]: cols }}>
+                <fieldset key={s.id} className={`slot open ${tight && n < 5 ? 'tight' : ''} ${n >= 5 ? 'many' : ''} ${flashSlot === s.id ? 'flash' : ''}`} style={{ ['--cols' as string]: cols }}>
                   <legend>
                     <span className="lg-row">
                       {s.icon && <Icon name={s.icon} size="1.15em" className="lg-ico" />}
@@ -561,8 +568,8 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
                       {next
                         ? <button type="button" className="secondary" data-tour="nextItem" onClick={() => openItem(next.id)}>{t.nextItem} ▶</button>
                         : canForecast
-                          ? <button type="button" className="primary" data-tour="nextItem" onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })} ▶</button>
-                          : <button type="button" className="primary" data-tour="nextItem" onClick={confirm}>{lockLabel}</button>}
+                          ? <button type="button" className="primary" onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })} ▶</button>
+                          : <button type="button" className="primary" onClick={confirm}>{lockLabel}</button>}
                     </div>
                   )}
                 </fieldset>

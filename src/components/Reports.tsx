@@ -52,11 +52,12 @@ export function TurnReports({ game, heading = true, viewer = 'player' }: { game:
             );
           })}
           <ul className="rivals">
-            {game.agencies.filter((a) => a.id !== viewer).map((a) => {
+            {/* Alone, your own picks are in the game screen; together, every seat is listed in seat order. */}
+            {game.agencies.filter((a) => game.mode === 'multi' || a.id !== viewer).map((a) => {
               const chosen = m.slots.filter((s) => s.phase === r.phase).flatMap((s) => (a.picks[s.id] ?? []).map((id) => byId.get(id))).filter(Boolean).map((o) => L(o!.name));
               const d = agencyDesign(game, a);
               const used = Math.round((d.gauges.budget.used / Math.max(m.budgetKUSD.value, 1)) * 100);
-              return <li key={a.id}><b>{agencyName.name(a.id)}</b>: {chosen.join('、') || '—'} <span className="note">{fmt(t.budgetUsed, { n: used })}</span></li>;
+              return <li key={a.id}><b>{agencyName.name(a.id)}</b>: {chosen.join(t.commaSep) || '—'} <span className="note">{fmt(t.budgetUsed, { n: used })}</span></li>;
             })}
           </ul>
         </div>
@@ -94,8 +95,12 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
   const [sel, setSel] = useState<AgencyKind>(() => (multi ? order[0]!.id : 'player'));
   const causeName = useCauseName(m);
   const outcomeName = useOutcomeName(m);
-  const rank = order.findIndex((a) => a.id === sel) + 1;
-  const top = order.filter((a) => final[a.id].score.total === final[order[0]!.id].score.total).map((a) => a.id);
+  // Equal scores (to one decimal, as shown) share a place, and the next place is skipped: 1, 2, 2, 2.
+  const key = (id: AgencyKind) => Math.round(final[id].score.total * 10);
+  const rankOf = (id: AgencyKind) => 1 + order.filter((a) => key(a.id) > key(id)).length;
+  const tiedOf = (id: AgencyKind) => order.some((a) => a.id !== id && key(a.id) === key(id));
+  const rank = rankOf(sel), tied = tiedOf(sel);
+  const top = order.filter((a) => rankOf(a.id) === 1).map((a) => a.id);
   const ord = (n: number) => tk(t, `ord${n}`);
   const step = 0.5;
   const rankAt = order.length * step + 0.2;
@@ -169,7 +174,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
     if (es.length > 0 && subs.length === es.length) {
       const f = final[a].failures.find((x) => subs.includes(x.sub));
       const ff = f ? firstFailure(final[a], m.opsDays.value) : null;
-      return f && ff ? `${fmt(t.failedLost, { n: ff.day, craft: m.craftName ? L(m.craftName) : '' })}${ff.goalMet ? t.afterGoal : t.beforeGoal}` : t.riskRoseNoFailure;
+      return f && ff ? `${ff.goalMet ? fmt(t.failedStopped, { n: ff.day }) : fmt(t.failedLost, { n: ff.day, craft: m.craftName ? L(m.craftName) : '' })}${ff.goalMet ? t.afterGoal : t.beforeGoal}` : t.riskRoseNoFailure;
     }
     return text.resultLine(card, res);
   };
@@ -204,11 +209,11 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
           {game.sameEvents && <span className="tag-setting">{t.tagSameEvents}</span>}
           <span className="tag-setting">{game.hints ? t.tagHintsOn : t.tagHintsOff}</span>
         </span>
-        <b className="final-rank appear" style={d(rankAt)}>{multi ? (top.length > 1 ? fmt(t.winnersTied, { names: tidy(agencyName.list(top, (id) => agencyName.spaced(agencyName.inText(id)))) }) : fmt(t.winner, { name: agencyName.inText(top[0]!) })) : fmt(t.resultsRank, { n: ord(rank) })}</b>
+        <b className="final-rank appear" style={d(rankAt)}>{multi ? (top.length > 1 ? fmt(t.winnersTied, { names: tidy(agencyName.list(top, (id) => agencyName.spaced(agencyName.inText(id)))) }) : fmt(t.winner, { name: agencyName.inText(top[0]!) })) : fmt(tied ? t.resultsRankTied : t.resultsRank, { n: ord(rank) })}</b>
       </div>
       {/* Only the middle scrolls: the heading and the buttons below always stay on screen. */}
       <div className="final-body">
-      {!multi && game.hintsUsed.player > 0 && <p className="note small final-hints">{fmt(t.hintsUsed, { n: game.hintsUsed.player })}</p>}
+      {!multi && game.hintsUsed.player > 0 && <p className="note small final-hints">{fmt(game.hintsUsed.player === 1 ? t.hintsUsedOne : t.hintsUsed, { n: game.hintsUsed.player })}</p>}
       <div className="final-bars">
         {order.map((a, i) => {
           const r = final[a.id];
@@ -216,7 +221,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
           return (
             <div key={a.id} className={`fb-row appear ${a.id === 'player' && !multi ? 'me' : ''} ${multi ? 'pickable' : ''}`} style={d(at)}
               {...(multi ? { role: 'button', tabIndex: 0, 'aria-pressed': sel === a.id, onClick: () => setSel(a.id), onKeyDown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(a.id); } } } : {})}>
-              <span className="fb-rank">{i + 1}</span>
+              <span className="fb-rank">{rankOf(a.id)}</span>
               <span className="fb-name"><AgencyLabel id={a.id} /></span>
               <span className="fb-bar grow" style={d(at)} title={fmt(t.breakdownLine, { p: r.score.primary, s: r.score.secondary, sc: Math.round(r.score.science * 10) / 10, b: Math.round(r.score.budget * 10) / 10, d: r.score.schedule })}>
                 {PARTS.map((k) => <span key={k} className={`fb-part fb-${k}`} style={{ width: `${r.score[k]}%` }} />)}
@@ -239,11 +244,11 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
           {order.map((a) => <button key={a.id} type="button" role="radio" aria-checked={sel === a.id} className={sel === a.id ? 'on' : ''} onClick={() => setSel(a.id)}><AgencyLabel id={a.id} /></button>)}
         </div>
       )}
-      {multi && game.hintsUsed[sel] > 0 && <p className="note small final-hints">{tidy(fmt(t.hintsUsedBy, { name: nameIn(sel), n: game.hintsUsed[sel] }))}</p>}
+      {multi && game.hintsUsed[sel] > 0 && <p className="note small final-hints">{tidy(fmt(game.hintsUsed[sel] === 1 ? t.hintsUsedByOne : t.hintsUsedBy, { name: nameIn(sel), n: game.hintsUsed[sel] }))}</p>}
 
       <div className="why-row appear" style={d(rankAt + 0.4)}>
         <div className="why-box">
-          <h3>{multi ? tidy(rank === 1 ? fmt(t.whyWonOf, { name: nameIn(sel) }) : fmt(t.whyRankOf, { name: nameIn(sel), n: ord(rank) })) : rank === 1 ? t.whyWon : fmt(t.whyRank, { n: ord(rank) })}</h3>
+          <h3>{multi ? tidy(rank === 1 && !tied ? fmt(t.whyWonOf, { name: nameIn(sel) }) : fmt(tied ? t.whyRankTiedOf : t.whyRankOf, { name: nameIn(sel), n: ord(rank) })) : rank === 1 && !tied ? t.whyWon : fmt(tied ? t.whyRankTied : t.whyRank, { n: ord(rank) })}</h3>
           {!['fullSuccess', 'partialSuccess'].includes(me.outcome) && me.causes[0] && <p className="why-cause">✕ {outcomeName(me.outcome)}: {causeName(me.causes[0])}</p>}
           <p><b>{fmt(rank === 1 ? t.leadOverSecond : t.gapToFirst, { x: sign(me.score.total - final[leader].score.total) })}</b> <span className="note small">({multi ? agencyName.inText(leader) : name(leader)})</span></p>
           <table className="why-table"><tbody>

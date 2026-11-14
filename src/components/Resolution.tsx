@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { play, stopAll } from '../audio/sfx';
-import type { EventCard } from '../data/types';
+import type { Condition, EventCard } from '../data/types';
 import { completePicks } from '../engine/design';
 import { agencyDesign, agencyForecast, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
@@ -56,6 +56,31 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const byId = new Map(m.options.map((o) => [o.id, o]));
   const standard = completePicks(m, {});
   const text = useCardText(m);
+  // While the scene is up, the game screen behind it can be neither clicked nor reached with Tab.
+  const sceneRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const behind = [...(sceneRef.current?.parentElement?.children ?? [])].filter((e): e is HTMLElement => e !== sceneRef.current && e instanceof HTMLElement && !e.inert);
+    behind.forEach((e) => { e.inert = true; });
+    return () => behind.forEach((e) => { e.inert = false; });
+  }, []);
+  // When everyone was protected: only the picks that did it (from all agencies, no repeats, two at most), not the
+  // whole condition; the full condition is in the event library.
+  const condOptions = (c: Condition): string[] => {
+    switch (c.kind) {
+      case 'hasTag': return m.options.filter((o) => o.tags?.includes(c.tag)).map((o) => o.id);
+      case 'setting': return m.options.filter((o) => o.kind === 'choice' && (o.settings?.[c.key]?.value ?? -Infinity) >= c.atLeast).map((o) => o.id);
+      case 'settingAtMost': return m.options.filter((o) => o.kind === 'choice' && o.settings?.[c.key] !== undefined && o.settings[c.key]!.value <= c.atMost).map((o) => o.id);
+      case 'all': case 'any': return c.of.flatMap(condOptions);
+      default: return [];
+    }
+  };
+  const protectedBy = (card: EventCard): string => {
+    const useful = new Set([...(card.protectedIf ? condOptions(card.protectedIf) : [])]);
+    const used = [...new Set(game.agencies.flatMap((a) => Object.values(a.picks).flat().filter((id): id is string => !!id && useful.has(id))))];
+    if (!used.length) return text.resultLine(card, 'protected');
+    const names = used.slice(0, 2).map((id) => fmt(t.quoted, { x: L(byId.get(id)!.name) })).join(t.quotedSep);
+    return fmt(t.protectedByPicks, { names: used.length > 2 ? `${names}${t.andOthers}` : names });
+  };
   const names = useAgencyName();
   const slots = m.slots.filter((s) => s.phase === phase);
   // Playing together: who met a split card how, in words with names.
@@ -139,7 +164,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const title = flightOn ? t.flightTitle : fmt(t.resolutionTitle, { n: phase, name: tk(t, `phase${phase}`) });
 
   return (
-    <div className={`modal resolution ${done || (cardsEnded && !flightOn) ? 'instant' : ''}`} role="dialog" aria-label={title}>
+    <div ref={sceneRef} className={`modal resolution ${done || (cardsEnded && !flightOn) ? 'instant' : ''}`} role="dialog" aria-label={title}>
       <div className="modal-body res-body">
         <div className="modal-head">
           <h2>{title}</h2>
@@ -159,15 +184,14 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
           {game.agencies.map((a, i) => {
             const d = agencyDesign(game, a);
             const used = Math.round((d.gauges.budget.used / Math.max(m.budgetKUSD.value, 1)) * 100);
-            const picks = slots.flatMap((s) => (a.picks[s.id] ?? []).map((id) => ({ id, slot: s.id, changed: !(standard[s.id] ?? []).includes(id) })));
-            // With an event to show, unchanged picks give way to it (only enough to say what stayed).
-            const changed = picks.filter((p) => p.changed), same = picks.filter((p) => !p.changed).slice(0, cards.length ? Math.max(0, 2 - changed.length) : 3);
+            const picks = slots.flatMap((s) => [...(a.picks[s.id] ?? [])].sort((x, y) => s.options.indexOf(x) - s.options.indexOf(y)).map((id) => ({ id, slot: s.id, changed: !(standard[s.id] ?? []).includes(id) })));
+            // Every pick of the phase, never cut: if the scene runs out of height, it scrolls.
             return (
               <div key={a.id} className={`res-col appear ${a.id === 'player' && game.mode !== 'multi' ? 'me' : ''} ${cards.length === 0 ? 'roomy' : ''}`} style={{ animationDelay: `${i * 0.2}s`, borderTopColor: AGENCY_COLOR[a.id] }}>
                 <AgencyLabel id={a.id} />
                 {/* Every agency lists its picks in the items' order (as in the middle column), so they line up. */}
                 <ul className="res-picks">
-                  {picks.filter((p) => changed.includes(p) || same.includes(p)).map((p) => p.changed
+                  {picks.map((p) => p.changed
                     ? <li key={`${p.slot}-${p.id}`} className="changed" title={t.changedFromStandard}>{L(byId.get(p.id)!.name)}</li>
                     : <li key={`${p.slot}-${p.id}`}>{L(byId.get(p.id)!.name)}</li>)}
                 </ul>
@@ -204,7 +228,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
               </div>
               {same ? (
                 <p className={`res-same stamp ${RESULT_CLASS[same]}`} style={{ animationDelay: `${start + 0.7}s` }}>
-                  <b>{RESULT_MARK[same]} {fmt(tk(t, `allSame_${same}`), { n: game.agencies.length })}</b>{t.colonSep}{text.resultLine(card, same)}
+                  <b>{RESULT_MARK[same]} {fmt(tk(t, `allSame_${same}`), { n: game.agencies.length })}</b>{t.colonSep}{same === 'protected' ? protectedBy(card) : text.resultLine(card, same)}
                 </p>
               ) : <>
               <div className="res-split">
@@ -229,7 +253,8 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
         {!game.final && (
           <div className="res-standing appear" style={{ animationDelay: `${eventsEnd}s` }}>
             <span className="note">{t.standingTitle}</span>
-            {standing.map((s, i) => <span key={s.id} className="res-rank"><b>{i + 1}</b> <AgencyLabel id={s.id} /> {Math.round(s.score * 10) / 10}</span>)}
+            {/* Equal scores (to one decimal) share a place: 1, 2, 2, 4. */}
+            {standing.map((s) => <span key={s.id} className="res-rank"><b>{1 + standing.filter((x) => Math.round(x.score * 10) > Math.round(s.score * 10)).length}</b> <AgencyLabel id={s.id} /> {Math.round(s.score * 10) / 10}</span>)}
           </div>
         )}
         </AutoFit>}
