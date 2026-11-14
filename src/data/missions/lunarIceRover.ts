@@ -406,9 +406,9 @@ export const lunarIceRover: Mission = {
     {
       id: 'lsolar-storm', phase: 5, name: tx('Solar storm', '太陽嵐'),
       story: tx('High-energy particles from a solar flare reach the Moon, which has no magnetic field to shield it.', '太陽フレアの高エネルギー粒子が月に届いた。月には守ってくれる磁場がない。'),
-      probability: est(0.62, ['nasa-donki'], tx(
-        'Share of 100-day periods in 2014–2025 with at least one solar energetic particle episode in DONKI (378 of 612). See data/donki-sep-2014-2025.json.',
-        '2014〜2025年の100日の期間のうち、DONKIに太陽高エネルギー粒子の記録が1回以上ある期間の割合（612のうち378）。data/donki-sep-2014-2025.json を参照。',
+      probability: est(0.55, ['nasa-donki'], tx(
+        'Share of 100-day periods in 2014–2025 with at least one solar energetic particle episode seen near Earth (GOES or SOHO) in DONKI: 339 of 613. The Moon is near Earth, so far-away spacecraft records are left out. See data/donki-sep-2014-2025.json (nearEarth).',
+        '2014〜2025年の100日の期間のうち、DONKIに地球近傍（GOESかSOHO）で観測された太陽高エネルギー粒子の記録が1回以上ある期間の割合：613のうち339。月は地球の近くにあるので、遠くの探査機の記録は除いた。data/donki-sep-2014-2025.json（nearEarth）を参照。',
       )),
       protectedIf: { kind: 'hasTag', tag: 'opsRehearsed' },
       unprotected: [{ kind: 'scienceFactor', factor: 0.85 }, { kind: 'failChance', subsystem: 'cdh', add: 0.1 }],

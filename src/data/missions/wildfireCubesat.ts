@@ -470,9 +470,9 @@ export const wildfireCubesat: Mission = {
         'A solar flare sends a burst of high-energy particles. They can upset or damage the spacecraft computer.',
         '太陽フレアに伴って高エネルギーの粒子が降り注いだ。機体の計算機が誤動作したり壊れたりするおそれがある。',
       ),
-      probability: est(0.78, ['nasa-donki'], tx(
-        'Share of 12-month periods in 2014–2025 with at least one solar energetic particle (SEP) episode in DONKI (104 of 133). Records within 3 days are one episode. See data/donki-sep-2014-2025.json.',
-        '2014〜2025年の12か月の期間のうち、DONKIに太陽高エネルギー粒子（SEP）の記録が1回以上ある期間の割合（133のうち104）。3日以内の記録は1回とまとめた。data/donki-sep-2014-2025.json を参照。',
+      probability: est(0.71, ['nasa-donki'], tx(
+        'Share of 12-month periods in 2014–2025 with at least one solar energetic particle (SEP) episode seen near Earth (GOES or SOHO) in DONKI: 95 of 133. Records within 3 days are one episode. See data/donki-sep-2014-2025.json (nearEarth).',
+        '2014〜2025年の12か月の期間のうち、DONKIに地球近傍（GOESかSOHO）で観測された太陽高エネルギー粒子（SEP）の記録が1回以上ある期間の割合：133のうち95。3日以内の記録は1回とまとめた。data/donki-sep-2014-2025.json（nearEarth）を参照。',
       )),
       protectedIf: { kind: 'hasTag', tag: 'radHard' },
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.5 }],
