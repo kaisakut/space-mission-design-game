@@ -35,6 +35,10 @@ export interface RunResult {
    * '<event id>:<result>' for drawn cards, 'launchFailure', 'earlyFailure', 'blocked:<issue>', 'fail:<subsystem>'.
    */
   phaseLog: string[][];
+  /** For display only: share of the mission the spacecraft kept operating (0 if it never got there). */
+  opsFraction: number;
+  /** For display only: part failures in operations and when they happened (share of the mission, 0–1). */
+  failures: { sub: Subsystem; at: number }[];
 }
 
 export interface SimulateOptions {
@@ -124,6 +128,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
 
   // Phase 5: operations.
   let opsFraction = 0;
+  let failList: { sub: Subsystem; at: number }[] = [];
   let fatalAt = 1;
   let instrumentShare = 1;
   if (!lost) {
@@ -144,6 +149,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
     }
     for (const f of failures.sort((a, b) => a.at - b.at)) { causes.push(`fail:${f.sub}`); phaseLog[4]!.push(`fail:${f.sub}`); }
     opsFraction = Math.min(fatalAt, instrumentShare) * Math.min(durationFactor, 1);
+    failList = failures;
   }
 
   // Science delivered.
@@ -207,7 +213,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   // A spacecraft lost late in operations that already met the primary objective still counts as a success.
   const endedEarly = outcome === 'lostInOps' || outcome === 'noLaunch' || outcome === 'launchFailure' || outcome === 'orbitFailure';
   states.push(endedEarly ? 'lost' : primaryMet === 0 ? 'critical' : hits > 0 || fatalAt < 1 || primaryMet < 1 ? 'atRisk' : 'nominal');
-  return { states, outcome, score, delivered: Math.round(delivered), causes, events, launchDay, phaseLog };
+  return { states, outcome, score, delivered: Math.round(delivered), causes, events, launchDay, phaseLog, opsFraction, failures: failList };
 }
 
 /** A result decided earlier in the real game, with the effects it carries. */

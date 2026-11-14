@@ -4,7 +4,8 @@ import type { EventCard } from '../data/types';
 import { completePicks } from '../engine/design';
 import { agencyDesign, agencyForecast, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
-import { AGENCY_COLOR, RESULT_MARK, useCardText, useOutcomeName } from './labels';
+import { Flight, FLIGHT_SECONDS } from './Flight';
+import { AGENCY_COLOR, RESULT_MARK, useCardText } from './labels';
 
 const RESULT_CLASS: Record<string, string> = { protected: 'good', ready: 'good', partial: 'warn', hit: 'bad', missed: 'warn' };
 
@@ -48,11 +49,12 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const byId = new Map(m.options.map((o) => [o.id, o]));
   const standard = completePicks(m, {});
   const text = useCardText(m);
-  const outcomeName = useOutcomeName(m);
   const slots = m.slots.filter((s) => s.phase === phase);
   const cards = report?.cards ?? [];
-  const total = cards.length ? 1.2 + cards.length * 1.4 : 1.8;
+  const eventsEnd = cards.length ? 1.2 + cards.length * 1.4 : 1.8;
   const [done, setDone] = useState(false);
+  // After the last phase the cards give way to the flight scene (its own page, so nothing scrolls).
+  const [flightOn, setFlightOn] = useState(false);
 
   // Standing: each agency's forecast median now (not shown after the last phase).
   const standing = useMemo(() => (game.final ? [] : game.agencies.map((a) => ({ id: a.id, score: agencyForecast(game, a, a.picks, 60, 'standing').score.p50 })).sort((x, y) => y.score - x.score)), [game]);
@@ -67,17 +69,29 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
         if (r) play(r === 'protected' || r === 'ready' ? 'markGood' : r === 'partial' ? 'markPartial' : 'markBad', start + 0.7 + i * 0.3);
       });
     });
-    if (game.final) {
-      if (game.agencies.some((a) => game.final![a.id].outcome !== 'noLaunch')) play('launch', 0.3);
-      if (game.agencies.some((a) => game.final![a.id].outcome === 'launchFailure')) play('launchFail', 1.5);
-      play(game.agencies.some((a) => game.final![a.id].outcome === 'orbitFailure') ? 'noContact' : 'contact', 1.8);
-    }
-    const id = window.setTimeout(() => setDone(true), total * 1000 + 400);
+    const id = window.setTimeout(() => (game.final ? setFlightOn(true) : setDone(true)), eventsEnd * 1000 + 400);
     return () => { clearTimeout(id); stopAll(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const advance = useCallback(() => { if (!done) { stopAll(); setDone(true); } else onClose(); }, [done, onClose]);
+  useEffect(() => {
+    if (!flightOn || !game.final) return;
+    const f = game.final;
+    if (game.agencies.some((a) => f[a.id].outcome !== 'noLaunch')) play('launch', 0.6);
+    if (game.agencies.some((a) => f[a.id].outcome === 'launchFailure')) play('launchFail', 2);
+    play(game.agencies.some((a) => f[a.id].outcome === 'orbitFailure') ? 'noContact' : 'contact', 3);
+    for (let k = 0; k < 12; k++) play('tick', 4.3 + k * 0.42);
+    const id = window.setTimeout(() => setDone(true), FLIGHT_SECONDS * 1000 + 400);
+    return () => { clearTimeout(id); stopAll(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flightOn]);
+
+  const advance = useCallback(() => {
+    stopAll();
+    if (game.final && !flightOn) setFlightOn(true);
+    else if (!done) setDone(true);
+    else onClose();
+  }, [done, flightOn, game.final, onClose]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); advance(); } };
     window.addEventListener('keydown', k);
@@ -86,15 +100,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
 
   if (!report) return null;
   const possible = m.events.filter((e) => e.phase === phase && e.probability.value > 0);
-  const flight = (id: AgencyKind) => {
-    const o = game.final?.[id].outcome;
-    if (!o) return null;
-    const launch = o === 'noLaunch' ? ['bad', t.flightNotLaunched] : o === 'launchFailure' ? ['bad', t.flightFailed] : ['good', t.flightOk];
-    const contact = o === 'noLaunch' || o === 'launchFailure' ? ['none', '—'] : o === 'orbitFailure' ? ['bad', t.flightNoSignal] : ['good', t.flightOk];
-    const ops = ['noLaunch', 'launchFailure', 'orbitFailure'].includes(o) ? ['none', '—'] : o === 'lostInOps' ? ['bad', t.flightLost] : ['good', t.flightDone];
-    return [[t.flight_launch, ...launch], [t.flight_contact, ...contact], [t.flight_ops, ...ops]] as [string, string, string][];
-  };
-  const title = fmt(t.resolutionTitle, { n: phase, name: tk(t, `phase${phase}`) });
+  const title = flightOn ? t.flightTitle : fmt(t.resolutionTitle, { n: phase, name: tk(t, `phase${phase}`) });
 
   return (
     <div className={`modal resolution ${done ? 'instant' : ''}`} role="dialog" aria-label={title}>
@@ -106,6 +112,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
           </button>
         </div>
 
+        {flightOn && game.final ? <Flight game={game} start={0} instant={done} /> : <>
         <div className="res-grid">
           {game.agencies.map((a, i) => {
             const d = agencyDesign(game, a);
@@ -121,12 +128,6 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
                 </ul>
                 <div className="res-budget"><span style={{ width: `${Math.min(100, used)}%` }} /></div>
                 <div className="note small">{fmt(t.rivalBudget, { n: used })}</div>
-                {flight(a.id) && (
-                  <dl className="res-flight">
-                    {flight(a.id)!.map(([k, cls, v]) => <div key={k}><dt>{k}</dt><dd className={cls}>{v}</dd></div>)}
-                    <div><dt>{t.outcome}</dt><dd>{outcomeName(game.final![a.id].outcome)}</dd></div>
-                  </dl>
-                )}
               </div>
             );
           })}
@@ -169,8 +170,10 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
           );
         })}
 
+        </>}
+
         {!game.final && (
-          <div className="res-standing appear" style={{ animationDelay: `${total}s` }}>
+          <div className="res-standing appear" style={{ animationDelay: `${eventsEnd}s` }}>
             <span className="note">{t.standingTitle}</span>
             {standing.map((s, i) => <span key={s.id} className="res-rank"><b>{i + 1}</b> <AgencyLabel id={s.id} /> {Math.round(s.score * 10) / 10}</span>)}
           </div>

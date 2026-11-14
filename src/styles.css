@@ -190,7 +190,6 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 
 /* Title */
 .tagline { font-size: 1.25rem; margin: 0.5em 0 0.75em; }
-.howto { color: #c8d0e0; font-size: 1rem; line-height: 1.7; padding-left: 1.5em; }
 .title h2 { font-size: 1.15rem; margin: 1.5em 0 0.6em; }
 .title .title-row h2 { margin: 1.2em 0 0.6em; }
 .missions { display: grid; grid-template-columns: repeat(auto-fill, minmax(20em, 1fr)); gap: 0.9em; }
@@ -366,6 +365,7 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .mission-view.big { height: 70vh; }
 .mv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .mv-info { position: absolute; left: 0.5em; bottom: 0.4em; font-size: 0.72rem; color: #b8c3da; text-shadow: 0 1px 2px #000; pointer-events: none; }
+.mv-src { color: #ffb38a; }
 .mv-buttons { position: absolute; right: 0.4em; bottom: 0.4em; display: flex; gap: 0.3em; }
 .mv-buttons button { font-size: 0.72rem; padding: 0.15em 0.5em; background: rgba(11, 16, 32, 0.7); }
 .mv-meter { position: absolute; right: 0.6em; top: 0.6em; width: 0.5em; height: 3em; border: 1px solid #3a4a6e; border-radius: 3px; background: rgba(11, 16, 32, 0.6); display: flex; align-items: flex-end; }
@@ -401,3 +401,54 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .res-grid { overflow: hidden; }
 .resolution.instant .appear, .resolution.instant .res-flipcard, .resolution.instant .stamp { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .res-flipcard, .stamp { animation: none !important; } }
+
+/* Flight: launches, first contact and the operating time (step 4). */
+.flight { padding-top: 0.5em; font-size: 1.12em; }
+.pad-sky::after { content: ''; position: absolute; left: -10%; right: -10%; bottom: -2.2em; height: 3em; border-radius: 50%; background: radial-gradient(ellipse at 50% 0%, #2a5a8a, #10243f 70%); }
+.flight h3 { margin: 0 0 0.4em; font-size: 1.05em; }
+.launch-pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5em; }
+.pad { display: flex; flex-direction: column; align-items: center; gap: 0.3em; font-size: 0.9em; }
+.pad-sky { position: relative; width: 100%; height: 15em; background: linear-gradient(#070b17, #0f1a36); border-radius: 6px 6px 0 0; overflow: hidden; }
+.pad-orbit { position: absolute; left: 8%; right: 8%; top: 1.1em; border-top: 1px dashed #7fd1ff; opacity: 0.6; }
+.rocket { position: absolute; z-index: 1; left: 50%; bottom: 0.4em; width: 1.6em; margin-left: -0.8em; }
+.rocket svg { width: 100%; display: block; }
+.rocket.ok { animation: rise-ok 1s ease-in both; }
+.rocket.fail { animation: rise-fail 0.8s ease-in both; }
+@keyframes rise-ok { from { transform: translateY(0); } to { transform: translateY(-12.4em) scale(0.6); } }
+@keyframes rise-fail { 0% { transform: translateY(0); } 80% { transform: translateY(-6.4em) rotate(18deg); opacity: 1; } 100% { transform: translateY(-6em) rotate(40deg); opacity: 0.2; } }
+.pad-x { position: absolute; left: 50%; top: 8.5em; margin-left: -0.5em; color: var(--bad); font-weight: 700; font-size: 1.4em; }
+.pad-contact { position: absolute; left: 50%; top: 0.55em; width: 1.2em; height: 1.2em; margin-left: -0.6em; border: 2px solid; border-radius: 50%; animation: appear 0.4s ease-out both, ping 1.2s ease-out 3 both; }
+.pad-contact.dark { border-color: #3a4a6e !important; animation: appear 0.4s ease-out both; }
+@keyframes ping { from { box-shadow: 0 0 0 0 rgba(127, 209, 255, 0.6); } to { box-shadow: 0 0 0 0.8em rgba(127, 209, 255, 0); } }
+.pad-sign { position: absolute; z-index: 2; left: 6%; right: 6%; bottom: 2.6em; text-align: center; font-size: 0.75em; color: #f0b3b3; background: #2a1420; border: 1px solid #6b2a35; border-radius: 4px; padding: 0.15em 0.3em; }
+.ops { margin-top: 0.7em; }
+.ops-axis { display: flex; justify-content: space-between; margin-left: 11.5em; margin-right: 19em; font-size: 0.75em; color: var(--muted); }
+.ops-events { position: relative; height: 2.8em; margin-left: 11.5em; margin-right: 19em; }
+.ops-event.lane1 { top: 1.35em; }
+.ops-outcome { font-size: 0.85em; color: var(--muted); }
+.ops { margin-top: 1.2em; }
+.ops-row { padding: 0.35em 0 !important; }
+.ops-event { position: absolute; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 0.2em; font-size: 0.75em; white-space: nowrap; color: #ffd27f; }
+.ops-event .card-icon { width: 1.2em; height: 1.2em; }
+.ops-row { display: grid; grid-template-columns: 11em minmax(0, 1fr) 6em 12em; gap: 0.5em; align-items: center; padding: 0.15em 0; }
+.ops-track { position: relative; height: 0.9em; background: #141b30; border-radius: 4px; }
+.ops-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; transform-origin: left; animation-name: grow; animation-timing-function: linear; animation-fill-mode: both; }
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.ops-lost { position: absolute; top: -0.25em; margin-left: 0.3em; white-space: nowrap; font-size: 0.8em; color: var(--bad); }
+.ops-none { position: absolute; left: 0.4em; top: -0.2em; }
+.ops-count { text-align: right; font-variant-numeric: tabular-nums; }
+.flight.instant .rocket, .flight.instant .ops-bar, .flight.instant .appear, .flight.instant .pad-contact { animation: none !important; }
+.flight.instant .rocket.ok { transform: translateY(-12.4em) scale(0.6); }
+.flight.instant .rocket.fail { transform: translateY(-6em) rotate(40deg); opacity: 0.2; }
+@media (prefers-reduced-motion: reduce) {
+  .rocket, .ops-bar, .pad-contact { animation: none !important; }
+  .rocket.ok { transform: translateY(-12.4em) scale(0.6); }
+  .rocket.fail { transform: translateY(-6em) rotate(40deg); opacity: 0.2; }
+}
+
+/* Title (step 4): a slowly turning Earth beside the tagline, and art on each mission card. */
+.title-hero { display: grid; grid-template-columns: 22rem minmax(0, 1fr); gap: 1.5em; align-items: center; }
+.title-globe { position: relative; height: 15rem; border-radius: 12px; overflow: hidden; background: radial-gradient(circle at 50% 50%, #0d1830, #050811 70%); }
+.title-globe .mv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.title-hero .tagline { font-size: 1.35rem; margin: 0 0 0.6em; }
+.mission-art { width: 100%; height: 5.5rem; background: #070b17; border-radius: 6px; }

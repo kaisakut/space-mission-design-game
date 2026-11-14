@@ -43,7 +43,7 @@ export const SOURCES: Source[] = [
   },
   {
     id: 'nasa-firms',
-    title: 'Fire Information for Resource Management System (FIRMS): MODIS and VIIRS active fire archive',
+    title: 'Fire Information for Resource Management System (FIRMS): MODIS and VIIRS active fire archive (2024; fire counts per orbit and the fire map)',
     publisher: 'NASA LANCE / Earthdata',
     url: 'https://firms.modaps.eosdis.nasa.gov/download/',
     nasa: true,

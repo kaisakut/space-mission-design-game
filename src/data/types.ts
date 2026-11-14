@@ -313,4 +313,6 @@ export type MissionViewConfig = {
   };
   /** Options whose solar panels unfold (drawn as wings). */
   wings: string[];
+  /** Draw the real 2024 fires (data/firms-cells-2024.json) and light the ones the camera passes over. */
+  fires?: boolean;
 };

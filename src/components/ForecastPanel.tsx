@@ -15,21 +15,21 @@ export const RUNS = 100;
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** A number that counts up to its value (0.6 s), or appears at once when the player prefers less motion. */
-export function CountUp({ value, suffix = '' }: { value: number; suffix?: string }) {
-  const [shown, setShown] = useState(value);
+export function CountUp({ value, suffix = '', ms = 600, delayMs = 0, instant = false }: { value: number; suffix?: string; ms?: number; delayMs?: number; instant?: boolean }) {
+  const [shown, setShown] = useState(instant ? value : 0);
   useEffect(() => {
-    if (reduceMotion()) { setShown(value); return; }
-    const start = performance.now();
+    if (instant || reduceMotion()) { setShown(value); return; }
+    const start = performance.now() + delayMs;
     let raf = 0;
     const step = (now: number) => {
-      const k = Math.min(1, (now - start) / 600);
+      const k = Math.max(0, Math.min(1, (now - start) / ms));
       setShown(Math.round(value * (1 - (1 - k) ** 3)));
       if (k < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [value]);
-  return <>{shown}{suffix}</>;
+  }, [value, ms, delayMs, instant]);
+  return <>{shown.toLocaleString()}{suffix}</>;
 }
 
 /** Success chance as a ring. */

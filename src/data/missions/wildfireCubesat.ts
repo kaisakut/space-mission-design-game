@@ -74,6 +74,7 @@ export const wildfireCubesat: Mission = {
       network: [{ lat: 64, lon: -147 }, { lat: -33, lon: 18 }, { lat: 13, lon: 77 }, { lat: -45, lon: 169 }, { lat: 78, lon: 15 }, { lat: 37, lon: -122 }],
     },
     wings: ['pwr-deploy'],
+    fires: true,
   },
   primary: {
     id: 'detect-and-deliver',

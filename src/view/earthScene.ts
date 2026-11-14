@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import firesDoc from '../../data/firms-cells-2024.json';
 import { angleBetween, coverageLat, footprintAngle, latLonToVec, orbitPos, periodSec, RE_KM, vecToLatLon, type Vec3 } from './orbit';
 
 /** What the Earth scene draws: built from the design state, never from slot ids. */
@@ -17,6 +18,10 @@ export interface EarthModel {
   rings: number;
   /** Share of each orbit the camera observes. */
   duty: number;
+  /** The camera, for lighting the fire dots: daytime only or day and night, and the share it detects. */
+  camera: { dayOnly: boolean; share: number } | null;
+  /** Draw the real fires. */
+  fires: boolean;
 }
 
 export interface EarthScene {
@@ -153,6 +158,29 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
   const covTex = new THREE.CanvasTexture(cov);
   earth.add(new THREE.Mesh(new THREE.SphereGeometry(1.004, 48, 32), new THREE.MeshBasicMaterial({ map: covTex, transparent: true, depthWrite: false })));
 
+  // Real 2024 fires (NASA FIRMS), one dot per 1-degree cell; dots light up when the camera passes over them.
+  const cells = (firesDoc as unknown as { cells: [number, number, number, number][] }).cells;
+  const fireDirs = cells.map(([lat, lon]) => latLonToVec(lat + 0.5, lon + 0.5));
+  const lit = new Float32Array(cells.length);
+  const fireColors = new Float32Array(cells.length * 3);
+  const fireGeo = new THREE.BufferGeometry();
+  fireGeo.setAttribute('position', new THREE.Float32BufferAttribute(fireDirs.flatMap((v) => v.map((x) => x * 1.008)), 3));
+  fireGeo.setAttribute('color', new THREE.BufferAttribute(fireColors, 3));
+  const firePoints = new THREE.Points(fireGeo, new THREE.PointsMaterial({ size: 0.011, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false }));
+  firePoints.visible = false;
+  earth.add(firePoints);
+  const paintFires = () => {
+    for (let k = 0; k < cells.length; k++) {
+      const lv = (Math.max(cells[k]![2], cells[k]![3]) / 9) ** 3;
+      const l = lit[k]!;
+      fireColors[k * 3] = 0.015 + 0.2 * lv + 0.8 * l;
+      fireColors[k * 3 + 1] = 0.006 + 0.02 * lv + 0.6 * l;
+      fireColors[k * 3 + 2] = 0.01 + 0.15 * l;
+    }
+    (fireGeo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+  };
+  paintFires();
+
   let model: EarthModel | null = null;
   let parts: THREE.Object3D[] = [];
   let stationDirs: Vec3[] = [];
@@ -191,6 +219,7 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
       const extra = ghost.stations.filter((g) => !m.stations.some((s) => s.lat === g.lat && s.lon === g.lon));
       addStations(extra, ghost.altKm, 0.4);
     }
+    firePoints.visible = m.fires;
     sat = satellite(m);
     pivot.add(sat); parts.push(sat);
     if (orbitChanged) { covCtx.clearRect(0, 0, cov.width, cov.height); covTex.needsUpdate = true; }
@@ -250,6 +279,23 @@ export function createEarthScene(host: HTMLElement, opts: { reduceMotion: boolea
         covCtx.arc(((lon + 180) / 360) * cov.width, ((90 - lat) / 180) * cov.height, 5, 0, Math.PI * 2);
         covCtx.fill();
         covTex.needsUpdate = true;
+      }
+      // Fires under the camera light up: day side only for daytime cameras, a share set by the camera.
+      if (model.fires) {
+        for (let k = 0; k < lit.length; k++) lit[k] = Math.max(0, lit[k]! - dt * 0.6);
+        if (observing && model.camera) {
+          const sunLocal = SUN.clone().applyQuaternion(earth.getWorldQuaternion(new THREE.Quaternion()).invert());
+          const reach = 0.07;
+          for (let k = 0; k < fireDirs.length; k++) {
+            const f = fireDirs[k]!;
+            if (angleBetween(f, sub) > reach) continue;
+            const day = f[0] * sunLocal.x + f[1] * sunLocal.y + f[2] * sunLocal.z > 0;
+            const level = day ? cells[k]![2] : cells[k]![3];
+            if (!level || (model.camera.dayOnly && !day)) continue;
+            if (((k * 2654435761) % 1000) / 1000 < model.camera.share) lit[k] = 1;
+          }
+        }
+        paintFires();
       }
       // Link to a station in view; thickness follows the radio rate.
       const lam = footprintAngle(model.altKm);

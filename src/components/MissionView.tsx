@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Mission } from '../data/types';
-import type { DesignState } from '../engine/design';
+import { defaultPicks, evaluate, type DesignState } from '../engine/design';
 import { fmt, useLang } from '../i18n';
 import type { EarthModel, EarthScene } from '../view/earthScene';
 import { coverageLat } from '../view/orbit';
@@ -32,6 +32,11 @@ export function earthModel(m: Mission, d: DesignState): EarthModel | null {
     wings: d.options.some((o) => v.wings.includes(o.id)),
     rings: d.tags.has('spareWheel') ? 2 : d.tags.has('radHard') ? 1 : 0,
     duty: d.settings.dutyCycle ?? 0.5,
+    camera: (() => {
+      const cam = d.options.find((o) => o.kind === 'part' && o.subsystem === 'payload' && o.observes);
+      return cam && cam.kind === 'part' ? { dayOnly: cam.observes !== 'dayNight', share: cam.detectShare?.value ?? 1 } : null;
+    })(),
+    fires: !!v.fires,
   };
 }
 
@@ -75,6 +80,13 @@ function StaticEarth({ model }: { model: EarthModel }) {
   );
 }
 
+/** Title screen: the wildfire mission's auto-plan spacecraft circling the Earth, no controls. */
+export function TitleGlobe({ mission }: { mission: Mission }) {
+  const model = useMemo(() => earthModel(mission, evaluate(mission, defaultPicks(mission))), [mission]);
+  if (!model) return null;
+  return <div className="title-globe" aria-hidden="true"><Scene model={model} ghost={null} fast={false} onMeter={() => {}} /></div>;
+}
+
 /** The mission view: the destination and the spacecraft, redrawn as the design changes. */
 export function MissionView({ mission, state, ghost }: { mission: Mission; state: DesignState; ghost: DesignState | null }) {
   const { t } = useLang();
@@ -97,6 +109,7 @@ export function MissionView({ mission, state, ghost }: { mission: Mission; state
       <div className="mv-info">
         <div>{fmt(t.viewContact, { n: Math.round(state.contactMin) })}</div>
         <div>{fmt(t.viewCoverage, { a: coverageLat(model.incDeg).toFixed(1) })}</div>
+        {model.fires && <div className="mv-src">{t.firesSourceShort}</div>}
       </div>
       <div className={`mv-meter ${meter.o ? 'over' : ''}`} title={t.viewData}><span style={{ height: `${Math.round(meter.l * 100)}%` }} /></div>
       <div className="mv-buttons">
