@@ -8,7 +8,7 @@ import type { FlightModel } from '../view/flightScene';
 import type { JupiterFlightModel } from '../view/flightJupiter';
 import type { MoonFlightModel } from '../view/flightMoon';
 import { CountUp } from './ForecastPanel';
-import { AGENCY_COLOR, RESULT_MARK, useCauseName, useOutcomeName } from './labels';
+import { AGENCY_COLOR, RESULT_MARK, useAgencyName, useCauseName, useOutcomeName } from './labels';
 import { EARTH_TEXTURE, earthModel, viewModel, webglOk } from './MissionView';
 import { AgencyLabel, CardIcon } from './Resolution';
 
@@ -97,6 +97,7 @@ function LaunchPads({ order, game, start }: { order: Agency[]; game: Game; start
  */
 export function Flight({ game, start, instant }: { game: Game; start: number; instant: boolean }) {
   const { t, L, lang } = useLang();
+  const names = useAgencyName();
   const m = game.mission;
   const final = game.final!;
   const causeName = useCauseName(m);
@@ -179,7 +180,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
       opsAt, opsSeconds: OPS, fires: !!v.fires,
       sats: order.map((a, i) => {
         const e = earthModel(m, designs.get(a.id)!);
-        return { ...base(a, i), tag: a.id === 'player' ? t.flightYou : undefined, altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [] };
+        return { ...base(a, i), tag: names.multi ? (a.control === 'human' ? names.short(a.id) : undefined) : a.id === 'player' ? t.flightYou : undefined, altKm: e?.altKm ?? 500, incDeg: e?.incDeg ?? 98, duty: e?.duty ?? 0.5, camera: e?.camera ?? null, stations: e?.stations ?? [] };
       }),
     } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,7 +215,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
           const why = gapReason(a);
           const launchedAt = start + 0.6 + order.indexOf(a) * 0.5;
           return (
-            <div key={a.id} className={`fl-row ${a.id === 'player' ? 'me' : ''}`}>
+            <div key={a.id} className={`fl-row ${a.id === 'player' && !names.multi ? 'me' : ''}`}>
               <div className="fl-head">
                 <AgencyLabel id={a.id} />
                 <b className="fl-count">{flew ? <CountUp value={r.delivered} ms={OPS * 1000 * Math.max(0.05, r.opsFraction)} delayMs={opsAt * 1000} instant={instant} /> : '—'}</b>

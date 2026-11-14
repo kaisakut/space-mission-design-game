@@ -8,7 +8,7 @@ import { agencyDesign, type AgencyKind, type Game } from '../engine/game';
 import { Rng } from '../engine/rng';
 import { firstFailure, simulate } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { OUTCOME_COLOR, RESULT_MARK, useAgencyName, useCardText, useCauseName, useOutcomeName } from './labels';
 import { Modal } from './Modal';
 import { AgencyLabel, Resolution } from './Resolution';
@@ -77,28 +77,31 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
   const text = useCardText(m);
   const order = [...game.agencies].sort((a, b) => final[b.id].score.total - final[a.id].score.total);
   const agencyName = useAgencyName();
+  const multi = agencyName.multi;
   const name = (id: AgencyKind) => agencyName.name(id);
-  // Inside a sentence the player is "you", not "Your agency".
-  const nameIn = (id: AgencyKind, start = false) => (id === 'player' ? (start ? t.youStart : t.youIn) : name(id));
+  // Inside a sentence the player is "you", not "Your agency". Playing together: always the name ("Balanced (AI)").
+  const nameIn = (id: AgencyKind, start = false) => (multi ? agencyName.spaced(agencyName.inText(id)) : id === 'player' ? (start ? t.youStart : t.youIn) : name(id));
+  const tidy = agencyName.tidy;
   const lessonFor = (card: EventCard, id: AgencyKind) => {
     const raw = L(card.lesson);
+    if (multi) return tidy(fmt(raw, { agency: nameIn(id) }));
     if (id !== 'player') return fmt(raw, { agency: name(id) });
     return raw.replace(/^\{agency\}/, t.youStart).replace(/\{agency\}[’']s/g, t.yourIn).replace(/\{agency\}/g, t.youIn);
   };
   // "A and B"; three or more: "A, B and C" (Japanese: 「A、B、C」).
-  const names = (ids: AgencyKind[], start = true) => {
-    const n = ids.map((id, i) => nameIn(id, start && i === 0));
-    return n.length <= 2 ? n.join(t.andSep) : `${n.slice(0, -1).join(t.commaSep)}${t.andLastSep}${n[n.length - 1]}`;
-  };
+  const names = (ids: AgencyKind[], start = true) => agencyName.list(ids, (id) => nameIn(id, start && id === ids[0]));
+  // Whose result the analysis explains: always seat 1 when playing solo; together, any agency (the winner first).
+  const [sel, setSel] = useState<AgencyKind>(() => (multi ? order[0]!.id : 'player'));
   const causeName = useCauseName(m);
   const outcomeName = useOutcomeName(m);
-  const rank = order.findIndex((a) => a.id === 'player') + 1;
+  const rank = order.findIndex((a) => a.id === sel) + 1;
+  const top = order.filter((a) => final[a.id].score.total === final[order[0]!.id].score.total).map((a) => a.id);
   const ord = (n: number) => tk(t, `ord${n}`);
   const step = 0.5;
   const rankAt = order.length * step + 0.2;
   useEffect(() => {
     order.forEach((_, i) => play('barRise', (order.length - 1 - i) * step));
-    play(rank === 1 ? 'rankFirst' : 'rank', rankAt);
+    play(multi || rank === 1 ? 'rankFirst' : 'rank', rankAt);
     return () => stopAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -125,7 +128,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
 
   // What the rival compared with picked differently, the options most related to the biggest gap first.
   const differently = (rival: AgencyKind, gapParts: Part[]) => {
-    const me = game.agencies.find((a) => a.id === 'player')!, other = game.agencies.find((a) => a.id === rival)!;
+    const me = game.agencies.find((a) => a.id === sel)!, other = game.agencies.find((a) => a.id === rival)!;
     const byId = new Map(m.options.map((o) => [o.id, o]));
     const rows = m.slots.flatMap((s) => (other.picks[s.id] ?? []).filter((id) => !(me.picks[s.id] ?? []).includes(id)).map((id) => {
       const o = byId.get(id)!;
@@ -142,14 +145,14 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
     return rows.sort((p, q) => p.rel - q.rel || q.costGap - p.costGap).slice(0, 2).map((r) => L(r.o.name));
   };
 
-  // The auto-plan flown through the same cards and the same failure draws as the player.
+  // The auto-plan flown through the same cards and the same failure draws as the agency explained.
   const standard = useMemo(() => {
     const d = evaluate(m, {});
     const all = new Set(game.reports.flatMap((r) => r.cards));
     const results = new Map<string, EventResult>();
     for (const id of all) results.set(id, resolveEvent(m.events.find((e) => e.id === id)!, d).result);
-    return { d, r: simulate(m, d, new Rng(game.seed, 'failures:player'), { drawn: all, results }), results };
-  }, [game, m]);
+    return { d, r: simulate(m, d, new Rng(game.seed, `failures:${sel}`), { drawn: all, results }), results };
+  }, [game, m, sel]);
 
   // Cards that hit some agencies but not others: where the decisions made the difference.
   const flew = (a: AgencyKind, phase: number) => phase < 5 || !['noLaunch', 'launchFailure', 'orbitFailure'].includes(final[a].outcome);
@@ -171,23 +174,23 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
     return text.resultLine(card, res);
   };
 
-  const leader = order[0]!.id === 'player' ? order[1]!.id : order[0]!.id;
-  const why = gaps('player', leader);
-  const me = final.player;
+  const leader = order[0]!.id === sel ? order[1]!.id : order[0]!.id;
+  const why = gaps(sel, leader);
+  const me = final[sel];
   const std = standard.r;
   const stdGaps = PARTS.map((k) => ({ k, x: me.score[k] - std.score[k] })).filter((g) => Math.abs(g.x) >= 0.05).sort((p, q) => Math.abs(q.x) - Math.abs(p.x)).slice(0, 2);
   const stdDiff = Math.round((me.score.total - std.score.total) * 10) / 10;
   // Cards that the auto-plan took but the player avoided, where only a failure risk rose and nothing failed.
   const stdLucky = game.reports.flatMap((r) => r.cards).map((id) => m.events.find((e) => e.id === id)!).filter((card) => {
-    const sr = standard.results.get(card.id), mr = game.reports.find((r) => r.cards.includes(card.id))!.results.player[card.id];
+    const sr = standard.results.get(card.id), mr = game.reports.find((r) => r.cards.includes(card.id))!.results[sel][card.id];
     if (!sr || !BAD.has(sr) || (mr && BAD.has(mr))) return false;
     const es = (sr === 'partial' ? card.partial : card.unprotected) ?? [];
     const subs = es.filter((e) => e.kind === 'failChance').map((e) => (e as { subsystem: string }).subsystem);
     return es.length > 0 && subs.length === es.length && !std.failures.some((f) => subs.includes(f.sub));
   });
-  const extraK = Math.round(designs.get('player')!.totalSpentKUSD - standard.d.totalSpentKUSD);
+  const extraK = Math.round(designs.get(sel)!.totalSpentKUSD - standard.d.totalSpentKUSD);
   const stdReason = [
-    extraK > 0 && me.score.budget < std.score.budget ? fmt(t.stdCostMore, { k: extraK.toLocaleString(), x: sign(me.score.budget - std.score.budget) }) : '',
+    extraK > 0 && me.score.budget < std.score.budget ? tidy(fmt(multi ? t.stdCostMoreOf : t.stdCostMore, { name: nameIn(sel), k: extraK.toLocaleString(), x: sign(me.score.budget - std.score.budget) })) : '',
     stdLucky.length ? fmt(t.stdLucky, { cards: stdLucky.map((c) => L(c.name)).join(t.listSep) }) : '',
   ].filter(Boolean).join(' ');
 
@@ -200,15 +203,16 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
           {game.practice && <span className="tag-practice">{t.tagPractice}</span>}
           <span className="tag-setting">{game.hints ? t.tagHintsOn : t.tagHintsOff}</span>
         </span>
-        <b className="final-rank appear" style={d(rankAt)}>{fmt(t.resultsRank, { n: ord(rank) })}</b>
+        <b className="final-rank appear" style={d(rankAt)}>{multi ? (top.length > 1 ? fmt(t.winnersTied, { names: tidy(agencyName.list(top, (id) => agencyName.spaced(agencyName.inText(id)))) }) : fmt(t.winner, { name: agencyName.inText(top[0]!) })) : fmt(t.resultsRank, { n: ord(rank) })}</b>
       </div>
-      {game.mode !== 'multi' && game.hintsUsed.player > 0 && <p className="note small final-hints">{fmt(t.hintsUsed, { n: game.hintsUsed.player })}</p>}
+      {!multi && game.hintsUsed.player > 0 && <p className="note small final-hints">{fmt(t.hintsUsed, { n: game.hintsUsed.player })}</p>}
       <div className="final-bars">
         {order.map((a, i) => {
           const r = final[a.id];
           const at = (order.length - 1 - i) * step;
           return (
-            <div key={a.id} className={`fb-row appear ${a.id === 'player' ? 'me' : ''}`} style={d(at)}>
+            <div key={a.id} className={`fb-row appear ${a.id === 'player' && !multi ? 'me' : ''} ${multi ? 'pickable' : ''}`} style={d(at)}
+              {...(multi ? { role: 'button', tabIndex: 0, 'aria-pressed': sel === a.id, onClick: () => setSel(a.id), onKeyDown: (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(a.id); } } } : {})}>
               <span className="fb-rank">{i + 1}</span>
               <span className="fb-name"><AgencyLabel id={a.id} /></span>
               <span className="fb-bar grow" style={d(at)} title={fmt(t.breakdownLine, { p: r.score.primary, s: r.score.secondary, sc: Math.round(r.score.science * 10) / 10, b: Math.round(r.score.budget * 10) / 10, d: r.score.schedule })}>
@@ -226,36 +230,43 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
         })}
         <div className="fb-legend">{PARTS.map((k) => <span key={k}><span className={`fb-part fb-${k}`} />{tk(t, `part_${k}`)}</span>)}</div>
       </div>
+      {multi && (
+        <div className="whose appear" role="radiogroup" aria-label={t.whoseResult} style={d(rankAt + 0.2)}>
+          <span className="note">{t.whoseResult}</span>
+          {order.map((a) => <button key={a.id} type="button" role="radio" aria-checked={sel === a.id} className={sel === a.id ? 'on' : ''} onClick={() => setSel(a.id)}><AgencyLabel id={a.id} /></button>)}
+        </div>
+      )}
+      {multi && game.hintsUsed[sel] > 0 && <p className="note small final-hints">{tidy(fmt(t.hintsUsedBy, { name: nameIn(sel), n: game.hintsUsed[sel] }))}</p>}
 
       <div className="why-row appear" style={d(rankAt + 0.4)}>
         <div className="why-box">
-          <h3>{rank === 1 ? t.whyWon : fmt(t.whyRank, { n: ord(rank) })}</h3>
+          <h3>{multi ? tidy(rank === 1 ? fmt(t.whyWonOf, { name: nameIn(sel) }) : fmt(t.whyRankOf, { name: nameIn(sel), n: ord(rank) })) : rank === 1 ? t.whyWon : fmt(t.whyRank, { n: ord(rank) })}</h3>
           {!['fullSuccess', 'partialSuccess'].includes(me.outcome) && me.causes[0] && <p className="why-cause">✕ {outcomeName(me.outcome)}: {causeName(me.causes[0])}</p>}
-          <p><b>{fmt(rank === 1 ? t.leadOverSecond : t.gapToFirst, { x: sign(me.score.total - final[leader].score.total) })}</b> <span className="note small">({name(leader)})</span></p>
+          <p><b>{fmt(rank === 1 ? t.leadOverSecond : t.gapToFirst, { x: sign(me.score.total - final[leader].score.total) })}</b> <span className="note small">({multi ? agencyName.inText(leader) : name(leader)})</span></p>
           <table className="why-table"><tbody>
             {why.map((g) => (
               <tr key={g.k}>
                 <th><span className={`fb-part fb-${g.k}`} />{tk(t, `part_${g.k}`)}</th>
                 <td className={g.x < 0 ? 'bad' : 'good'}>{sign(g.x)}</td>
-                <td className="note small">{fmt(t.whyVs, { a: detail('player', g.k), b: detail(leader, g.k) })}</td>
+                <td className="note small">{fmt(t.whyVs, { a: detail(sel, g.k), b: detail(leader, g.k) })}</td>
               </tr>
             ))}
           </tbody></table>
-          {(() => { const list = differently(leader, why.filter((g) => (rank === 1 ? g.x > 0 : g.x < 0)).map((g) => g.k)); return list.length > 0 && <p className="small"><span className="note">{fmt(t.didDifferently, { agency: name(leader) })}</span> {list.join(' · ')}</p>; })()}
+          {(() => { const list = differently(leader, why.filter((g) => (rank === 1 ? g.x > 0 : g.x < 0)).map((g) => g.k)); return list.length > 0 && <p className="small"><span className="note">{multi ? tidy(fmt(t.didDifferently, { agency: nameIn(leader) })) : fmt(t.didDifferently, { agency: name(leader) })}</span> {list.join(' · ')}</p>; })()}
         </div>
         <div className="why-box">
-          <h3>{t.vsAutoPlan}</h3>
-          <p>{fmt(t.standardWouldScore, { s: std.score.total })} → <b>{name('player')} {me.score.total}</b> <span className={stdDiff < 0 ? 'bad' : 'good'}>({sign(stdDiff)})</span></p>
+          <h3>{multi ? tidy(fmt(t.changesOf, { name: nameIn(sel) })) : t.vsAutoPlan}</h3>
+          <p>{fmt(t.standardWouldScore, { s: std.score.total })} → <b>{multi ? agencyName.inText(sel) : name(sel)} {me.score.total}</b> <span className={stdDiff < 0 ? 'bad' : 'good'}>({sign(stdDiff)})</span></p>
           <table className="why-table"><tbody>
             {stdGaps.map((g) => (
               <tr key={g.k}>
                 <th><span className={`fb-part fb-${g.k}`} />{tk(t, `part_${g.k}`)}</th>
                 <td className={g.x < 0 ? 'bad' : 'good'}>{sign(g.x)}</td>
-                <td className="note small">{fmt(t.whyVs, { a: detail('player', g.k), b: detail('standard', g.k, std, standard.d) })}</td>
+                <td className="note small">{fmt(t.whyVs, { a: detail(sel, g.k), b: detail('standard', g.k, std, standard.d) })}</td>
               </tr>
             ))}
           </tbody></table>
-          {stdGaps.length === 0 && <p className="note small">{t.vsAutoSame}</p>}
+          {stdGaps.length === 0 && <p className="note small">{multi ? tidy(fmt(t.vsAutoSameOf, { name: nameIn(sel) })) : t.vsAutoSame}</p>}
           {stdReason && <p className="small">{stdReason}</p>}
         </div>
       </div>
@@ -269,7 +280,11 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
               const good = who.filter((a) => !BAD.has(r.results[a][card.id] ?? ''));
               const bad = who.filter((a) => BAD.has(r.results[a][card.id] ?? ''));
               const why1 = (a: AgencyKind) => text.resultLine(card, r.results[a][card.id]!) || '—';
-              const summary = good.length === 1
+              const summary = multi
+                ? tidy(good.length === 1 ? fmt(t.onlyOneProtected, { agency: nameIn(good[0]!), why: why1(good[0]!) })
+                  : bad.length === 1 ? `${fmt(t.onlyOneHit, { agency: nameIn(bad[0]!) })} ${lessonFor(card, bad[0]!)}`
+                  : fmt(t.splitResult, { good: names(good), bad: names(bad, false) }))
+                : good.length === 1
                 ? good[0] === 'player' ? fmt(t.onlyYouProtected, { why: why1('player') }) : fmt(t.onlyOneProtected, { agency: name(good[0]!), why: why1(good[0]!) })
                 : bad.length === 1 ? `${bad[0] === 'player' ? t.onlyYouHit : fmt(t.onlyOneHit, { agency: name(bad[0]!) })} ${lessonFor(card, bad[0]!)}`
                 : fmt(t.splitResult, { good: names(good), bad: names(bad, false) });
@@ -286,7 +301,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
                     })}
                   </div>
                   <div className="small">{summary}</div>
-                  {[...harms].map(([h, ids]) => h && <div key={h} className="note small">→ {names(ids)}: {h}</div>)}
+                  {[...harms].map(([h, ids]) => h && <div key={h} className="note small">→ {multi ? tidy(names(ids)) : names(ids)}: {h}</div>)}
                 </div>
               );
             })}

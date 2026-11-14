@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { play } from '../audio/sfx';
 import type { AgencyKind } from '../engine/game';
-import { fmt, useLang } from '../i18n';
+import { fmt, tk, useLang } from '../i18n';
 import { AGENCY_COLOR, useAgencyName } from './labels';
 import { AgencyLabel } from './Resolution';
 
@@ -13,8 +13,9 @@ import { AgencyLabel } from './Resolution';
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** The order of this phase: the name tags shuffle for about a second, then settle in order. */
-export function OrderScreen({ phase, order, ais, ready, onGo }: { phase: number; order: AgencyKind[]; ais: AgencyKind[]; ready: boolean; onGo: () => void }) {
+export function OrderScreen({ phase, order, ais, ready, onGo, ranks }: { phase: number; order: AgencyKind[]; ais: AgencyKind[]; ready: boolean; onGo: () => void; ranks?: Record<AgencyKind, number> | null }) {
   const { t } = useLang();
+  const rank = (id: AgencyKind) => (ranks ? <span className="note small order-rank">― {fmt(t.forecastRank, { n: tk(t, `ord${ranks[id]}`) })}</span> : null);
   const [shown, setShown] = useState<AgencyKind[]>(order);
   const [settled, setSettled] = useState(false);
   const go = useRef<HTMLButtonElement>(null);
@@ -32,12 +33,12 @@ export function OrderScreen({ phase, order, ais, ready, onGo }: { phase: number;
     <section className="turn-screen order-screen" aria-live="polite">
       <h2>{fmt(t.orderTitle, { n: phase })}</h2>
       <ol className={`order-list ${settled ? 'settled' : ''}`}>
-        {shown.map((id, i) => <li key={`${id}-${i}`}><b>{i + 1}</b><AgencyLabel id={id} /></li>)}
+        {shown.map((id, i) => <li key={`${id}-${i}`}><b>{i + 1}</b><AgencyLabel id={id} />{settled && rank(id)}</li>)}
       </ol>
       {ais.length > 0 && (
         <div className="order-ai">
           <p className="note">{t.orderAiNote}</p>
-          <p>{ais.map((id) => <span key={id} className="order-ai-one"><AgencyLabel id={id} /></span>)}</p>
+          <p>{ais.map((id) => <span key={id} className="order-ai-one"><AgencyLabel id={id} />{rank(id)}</span>)}</p>
         </div>
       )}
       <button ref={go} type="button" className="primary" disabled={!settled} onClick={onGo}>{t.orderGo} ▶</button>

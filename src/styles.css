@@ -804,3 +804,17 @@ button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
 .handover-sub { font-size: 1.15rem; color: #c9d3e6; margin: 0; }
 .turn-screen .primary { font-size: 1.1rem; padding: 0.5em 1.4em; }
 @media (prefers-reduced-motion: reduce) { .order-list li { transition: none; } }
+/* Step 19: shared scenes when playing together. */
+.res-shared { margin: 0.2em 0 0.4em; color: var(--warn); font-weight: 600; }
+.whose { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4em 0.5em; margin: 0.4em 0 0.6em; }
+.whose button { background: #0c1324; color: inherit; border: 1px solid var(--line); border-radius: 999px; padding: 0.15em 0.7em 0.15em 0.3em; font: inherit; cursor: pointer; }
+.whose button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.fb-row.pickable { cursor: pointer; }
+.fb-row.pickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.turn-pos { margin-left: 0.5em; font-weight: 400; }
+.order-rank { margin-left: 0.6em; }
+.brief-multi { margin: 0.2em 0 0; padding-left: 1.2em; }
+/* A 12-character name fits the results rows; longer text ends with an ellipsis instead of running under the bar. */
+.fb-row.pickable { grid-template-columns: 1.5em 15em minmax(0, 1fr) 3.5em minmax(0, 16em); }
+.fb-name { min-width: 0; overflow: hidden; }
+.fb-name .agency-label { display: inline-flex; align-items: center; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

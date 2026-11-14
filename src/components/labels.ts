@@ -119,5 +119,17 @@ export function useAgencyName() {
     name: (id: AgencyKind) => { const a = seat(id); return a?.control === 'human' ? a.name ?? fmt(t.defaultPlayerName, { n: AGENCIES.indexOf(id) + 1 }) : tk(t, `agency_${id}`); },
     short: (id: AgencyKind) => { const a = seat(id); return a?.control === 'human' ? marks[id] ?? '?' : tk(t, `agencyShort_${id}`); },
     isAi: (id: AgencyKind) => seat(id)?.control === 'ai',
+    /** Playing together (names everywhere, no "you"). */
+    multi: !!seats,
+    /** A name inside a sentence: a human's name, or "Balanced (AI)" for an AI seat. */
+    inText: (id: AgencyKind) => { const a = seat(id); return a?.control === 'human' ? a.name ?? fmt(t.defaultPlayerName, { n: AGENCIES.indexOf(id) + 1 }) : seats ? tk(t, `aiName_${id}`) : tk(t, `agency_${id}`); },
+    /** "A and B", "A, B and C" (Japanese 「A、B、C」), with half-width spaces around names in Japanese. */
+    list: (ids: AgencyKind[], name: (id: AgencyKind) => string) => {
+      const n = ids.map(name);
+      return n.length <= 2 ? n.join(t.andSep) : `${n.slice(0, -1).join(t.commaSep)}${t.andLastSep}${n[n.length - 1]}`;
+    },
+    /** Japanese: a name in a sentence gets half-width spaces around it, but not next to punctuation. */
+    spaced: (name: string) => (t.nameSpace ? ` ${name} ` : name),
+    tidy: (text: string) => (t.nameSpace ? text.replace(/ +/g, ' ').replace(/ ?([、。：「」（）]) ?/g, '$1').trim() : text),
   };
 }

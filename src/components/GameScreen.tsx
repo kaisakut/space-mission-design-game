@@ -348,6 +348,13 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
     [hover, game, draft]);
 
   const lastReport = game.reports[game.reports.length - 1];
+  // Playing together, from phase 2: each agency's forecast rank (as in the last results scene) beside the order.
+  const forecastRanks = useMemo(() => {
+    if (!multi || game.phase < 2 || game.final) return null;
+    const st = game.agencies.map((a) => ({ id: a.id, score: agencyForecast(game, a, a.picks, 60, 'standing').score.p50 })).sort((x, y) => y.score - x.score);
+    return Object.fromEntries(st.map((x, i) => [x.id, i + 1])) as Record<AgencyKind, number>;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.phase, game.agencies]);
   // Names for labels: the seats when playing together (solo keeps the dictionary names).
   const seats = multi ? game.agencies : null;
   const agencyName = (id: AgencyKind) => { const a = game.agencies.find((x) => x.id === id); return multi && a?.control === 'human' ? a.name ?? fmt(t.defaultPlayerName, { n: game.agencies.indexOf(a) + 1 }) : tk(t, `agency_${id}`); };
@@ -393,7 +400,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
         <div className="game">
           {resolved !== null
             ? <Resolution game={game} phase={resolved} onClose={() => { setResolved(null); setStage('order'); setTurnIndex(0); }} />
-            : stage === 'order' ? <OrderScreen phase={game.phase} order={game.order} ais={game.agencies.filter((a) => a.control === 'ai').map((a) => a.id)} ready={!brief} onGo={() => { setTurnIndex(0); setStage('handover'); }} />
+            : stage === 'order' ? <OrderScreen phase={game.phase} order={game.order} ranks={forecastRanks} ais={game.agencies.filter((a) => a.control === 'ai').map((a) => a.id)} ready={!brief} onGo={() => { setTurnIndex(0); setStage('handover'); }} />
               : stage === 'handover' ? <HandoverScreen id={viewerId} i={turnIndex + 1} n={game.order.length} onStart={beginTurn} />
                 : <GatherScreen ready={!!gathered} onGo={showGathered} />}
           {brief && <Briefing mission={mission} game={game} onClose={() => setBrief(false)} />}
@@ -409,7 +416,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
         <div className="turn-title" title={L(mission.summary)}>
           <button type="button" className="link-btn turn-name" title={t.briefOpen} onClick={() => setBrief(true)}><b>{L(mission.name)}</b> <span className="info-btn" aria-hidden>i</span></button>
           {game.practice && <span className="tag-practice">{t.tagPractice}</span>}
-          {multi && <span className="turn-of"><span className="seat-dot" style={{ background: AGENCY_COLOR[player.id] }} aria-hidden />{fmt(t.turnOf, { name: agencyName(player.id) })}</span>}
+          {multi && <span className="turn-of"><span className="seat-dot" style={{ background: AGENCY_COLOR[player.id] }} aria-hidden />{fmt(t.turnOf, { name: agencyName(player.id) })}<span className="note small turn-pos">{fmt(t.turnPosition, { i: turnIndex + 1, n: game.order.length })}</span></span>}
           <span className="note">{fmt(t.turnTitle, { n: game.phase, total: PHASE_COUNT, name: tk(t, `phase${game.phase}`) })}</span>
         </div>
         <ol className="progress" role="tablist">

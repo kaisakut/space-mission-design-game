@@ -12,7 +12,12 @@ A turn-based space mission design wargame built for the **NASA Space Apps Challe
 
 ## What it is
 
-_To be written._
+_The full description is being written._
+
+Play solo or together:
+
+- **Solo:** you against three rule-based AI agencies.
+- **Together (2–4 players):** players take turns on one screen, competing as rival agencies. There are always four seats; seats without a player are taken by the AI. Nobody sees what the others chose until everyone has decided for the phase.
 
 ## NASA data and resources used
 

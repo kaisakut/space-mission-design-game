@@ -7,6 +7,7 @@ import { fmt, tk, useLang } from '../i18n';
 import { AutoFit } from './AutoFit';
 import { Flight, FLIGHT_SECONDS } from './Flight';
 import { AGENCY_COLOR, RESULT_MARK, useAgencyName, useCardText } from './labels';
+import type { AgencyKind as Seat } from '../engine/game';
 
 const RESULT_CLASS: Record<string, string> = { protected: 'good', ready: 'good', partial: 'warn', hit: 'bad', missed: 'warn' };
 
@@ -52,7 +53,20 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   const byId = new Map(m.options.map((o) => [o.id, o]));
   const standard = completePicks(m, {});
   const text = useCardText(m);
+  const names = useAgencyName();
   const slots = m.slots.filter((s) => s.phase === phase);
+  // Playing together: who met a split card how, in words with names; and secondary objectives several chose.
+  const nameList = (ids: Seat[]) => names.list(ids, (id) => names.spaced(names.inText(id)));
+  const splitText = (id: string) => {
+    if (!report) return '';
+    const groups = new Map<string, Seat[]>();
+    for (const a of game.agencies) { const r = report.results[a.id][id]; if (r) groups.set(r, [...(groups.get(r) ?? []), a.id]); }
+    return names.tidy([...groups].map(([r, ids]) => fmt(tk(t, `split_${r}`), { names: nameList(ids) })).join(' '));
+  };
+  const shared = names.multi && phase === 1 ? m.secondary.filter((o) => o.chosenBy).map((o) => {
+    const ids = game.agencies.filter((a) => Object.values(a.picks).flat().some((pid) => byId.get(pid)?.tags?.includes(o.chosenBy!))).map((a) => a.id);
+    return ids.length >= 2 ? names.tidy(fmt(t.sharedSecondary, { names: nameList(ids), goal: L(o.name) })) : '';
+  }).filter(Boolean) : [];
   const cards = report?.cards ?? [];
   // A card every agency met the same way is shown as one line and takes less time; a split result gets
   // its four boxes, one after another, and more time.
@@ -158,6 +172,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
             );
           })}
         </div>
+        {shared.map((x) => <p key={x} className="res-shared appear">{x}</p>)}
 
         {cards.length === 0 ? (
           <div className="res-none">
@@ -189,7 +204,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
                 </p>
               ) : <>
               <div className="res-split">
-              <p className="res-split-note stamp" style={{ animationDelay: `${start + 0.6}s` }}>{t.resultsSplit}</p>
+              <p className="res-split-note stamp" style={{ animationDelay: `${start + 0.6}s` }}>{names.multi ? splitText(id) : t.resultsSplit}</p>
               <div className="res-grid">
                 {game.agencies.map((a, i) => {
                   const r = report.results[a.id][id];

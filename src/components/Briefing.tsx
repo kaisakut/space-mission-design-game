@@ -49,6 +49,16 @@ export function Briefing({ mission, game, onClose }: { mission: Mission; game: G
             <li><b>{t.briefWatch3}</b> {game.hints ? t.briefWatch3Text : t.briefWatch3TextNoHint}</li>
           </ol>
         </section>
+        {game.mode === 'multi' && (
+          <section>
+            <h3><Icon name="route" size="1.1em" /> {t.modeMulti}</h3>
+            <ul className="brief-multi">
+              <li>{t.briefMulti1}</li>
+              <li>{t.briefMulti2}</li>
+              <li>{t.briefMulti3}</li>
+            </ul>
+          </section>
+        )}
         <p className="note brief-settings">{fmt(t.briefSettings, { s: settingsText(t, game) })}</p>
         <div className="mission-actions">
           <button type="button" className="primary" onClick={onClose}>{t.briefStart} ▶</button>
