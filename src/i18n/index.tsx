@@ -21,6 +21,8 @@ interface LangContextValue {
   lang: Lang;
   t: Messages;
   toggle: () => void;
+  /** Pick the current language from a data text. */
+  L: (x: { en: string; ja: string }) => string;
 }
 
 const LangContext = createContext<LangContextValue | null>(null);
@@ -29,7 +31,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>('en');
   const toggle = () => setLang((l) => (l === 'en' ? 'ja' : 'en'));
   return (
-    <LangContext.Provider value={{ lang, t: dictionaries[lang], toggle }}>
+    <LangContext.Provider value={{ lang, t: dictionaries[lang], toggle, L: (x) => x[lang] }}>
       {children}
     </LangContext.Provider>
   );

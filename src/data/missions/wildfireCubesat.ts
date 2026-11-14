@@ -39,6 +39,16 @@ export const wildfireCubesat: Mission = {
   playable: true,
   budgetKUSD: rule(1500, tx('Game value for a small university-class 6U mission; CubeSat 101 notes there is no standard price.', '大学規模の6Uミッションを想定したゲームの値。CubeSat 101 にも決まった価格はないとある。')),
   opsDays: rule(365),
+  bus: {
+    massKg: rule(4.0, tx(
+      'Game value for a 6U bus without payload (structure, power system, battery, computer, attitude control); an integrated attitude control unit alone is 0.885 kg in NASA’s table.',
+      '搭載機器を除く6Uの本体（構体・電源・電池・計算機・姿勢制御）のゲームの値。NASAの表では姿勢制御ユニットだけで0.885 kg。',
+    )),
+    powerW: rule(4, tx('Game value for the bus electronics and heaters.', '本体の電子機器とヒーターのゲームの値。')),
+    cost: rule(400, tx('Game value; the sources list no prices.', 'ゲームの値（資料に価格の記載なし）。')),
+    devDays: est(270, ['nasa-cubesat101'], tx('A CubeSat can be designed, built and tested in as little as 9 months (typically 18–24); the game uses the shortest.', 'CubeSatは最短9か月で設計・製造・試験できる（通常18〜24か月）。ゲームでは最短を使う。')),
+    maxMassKg: est(8, ['nasa-cubesat101'], MASS_NOTE),
+  },
   primary: {
     id: 'detect-and-deliver',
     name: tx('Detect and deliver', '検知して届ける'),
@@ -83,7 +93,7 @@ export const wildfireCubesat: Mission = {
       options: ['sec-none', 'sec-night', 'sec-fast', 'sec-life'], multi: { min: 0, max: 2 },
     },
     {
-      id: 'orbit', phase: 1, role: 'lead', changeKind: 'hardware',
+      id: 'orbit', default: 'orbit-sso-500', phase: 1, role: 'lead', changeKind: 'hardware',
       label: tx('Target orbit', '目標の軌道'),
       help: tx('Decides revisit, ground contact and how long the satellite lasts. Changing it later is expensive.', '観測の頻度、地上局との通信時間、衛星の寿命が決まります。後から変えると高くつきます。'),
       options: ['orbit-iss', 'orbit-sso-500', 'orbit-sso-600'],
@@ -96,7 +106,7 @@ export const wildfireCubesat: Mission = {
     },
     // Phase 2: spacecraft design
     {
-      id: 'camera', phase: 2, role: 'science', changeKind: 'hardware',
+      id: 'camera', default: 'cam-swir', phase: 2, role: 'science', changeKind: 'hardware',
       label: tx('Fire camera', '火災用カメラ'),
       help: tx('What the satellite sees. Thermal infrared sees fires at night too.', '衛星が何を見られるか。熱赤外なら夜の火災も見えます。'),
       options: ['cam-vis', 'cam-swir', 'cam-tir'],
@@ -108,7 +118,7 @@ export const wildfireCubesat: Mission = {
       options: ['pwr-body', 'pwr-deploy'],
     },
     {
-      id: 'radio', phase: 2, role: 'powerComms', changeKind: 'hardware',
+      id: 'radio', default: 'radio-sband', phase: 2, role: 'powerComms', changeKind: 'hardware',
       label: tx('Radio', '無線機'),
       help: tx('How fast data reaches the ground.', 'データを地上へ送る速さ。'),
       options: ['radio-uhf', 'radio-sband', 'radio-xband'],
@@ -121,14 +131,14 @@ export const wildfireCubesat: Mission = {
     },
     // Phase 3: launch
     {
-      id: 'launch', phase: 3, role: 'lead', changeKind: 'plan',
+      id: 'launch', default: 'lv-rideshare', phase: 3, role: 'lead', changeKind: 'plan',
       label: tx('Launch', '打ち上げ'),
       help: tx('The launch must reach the orbit you chose in phase 1.', 'フェーズ1で選んだ軌道に行ける打ち上げでなければなりません。'),
       options: ['lv-iss-deploy', 'lv-rideshare'],
     },
     // Phase 4: test and launch
     {
-      id: 'testing', phase: 4, role: 'spacecraft', changeKind: 'plan',
+      id: 'testing', default: 'test-standard', phase: 4, role: 'spacecraft', changeKind: 'plan',
       label: tx('Test campaign', '試験の深さ'),
       help: tx('Deeper testing finds faults before launch but uses time and money.', '試験を厚くすると打ち上げ前に不具合を見つけられますが、時間と費用を使います。'),
       options: ['test-basic', 'test-standard', 'test-full'],
@@ -156,6 +166,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: nasa(51.6, ['nasa-soa-launch']),
       deltaVms: rule(0),
       contactMinPerDay: est(21, ['nasa-orbits-catalog'], CONTACT_NOTE),
+      coverageTable: 'firms-coverage-2024',
     },
     {
       kind: 'orbit', id: 'orbit-sso-500', name: tx('Sun-synchronous, 500 km', '太陽同期軌道 500 km'),
@@ -165,6 +176,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: est(97.4, ['nasa-orbits-catalog'], SSO_NOTE),
       deltaVms: rule(0),
       contactMinPerDay: est(17, ['nasa-orbits-catalog'], CONTACT_NOTE),
+      coverageTable: 'firms-coverage-2024',
     },
     {
       kind: 'orbit', id: 'orbit-sso-600', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
@@ -174,6 +186,7 @@ export const wildfireCubesat: Mission = {
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
       deltaVms: rule(0),
       contactMinPerDay: est(22, ['nasa-orbits-catalog'], CONTACT_NOTE),
+      coverageTable: 'firms-coverage-2024',
       tags: ['orbit:high'],
     },
 
@@ -273,7 +286,7 @@ export const wildfireCubesat: Mission = {
       cost: est(600, ['nasa-cubesat101'], tx('Up to $300k is typically enough to launch a 3U to low Earth orbit; doubled for a 6U.', '3Uを低軌道に上げるには通常30万ドルまでで足りる。6Uなので2倍。')),
       capacityKg: { 'orbit-iss': est(8, ['nasa-cubesat101'], MASS_NOTE) },
       reliability: rule(0.97),
-      windowsDay: rule([120, 240]),
+      windowsDay: rule([300, 420]),
       leadDays: est(60, ['nasa-soa-launch'], tx('Deployed 1–3 months after the cargo craft berths; about 2 months.', '補給船の係留から1〜3か月後に放出。約2か月とした。')),
     },
     {
@@ -285,7 +298,7 @@ export const wildfireCubesat: Mission = {
         'orbit-sso-600': est(8, ['nasa-cubesat101'], MASS_NOTE),
       },
       reliability: rule(0.97),
-      windowsDay: rule([150, 300]),
+      windowsDay: rule([330, 480]),
     },
 
     { kind: 'choice', id: 'test-basic', name: tx('Basic', '最小限'), description: tx('Functional tests only.', '動作確認のみ。'), cost: rule(20), leadDays: rule(15), settings: { testDepth: rule(1) } },
@@ -363,7 +376,7 @@ export const wildfireCubesat: Mission = {
       id: 'station-cut', phase: 5, name: tx('Ground station time cut', '地上局の割り当て減'),
       story: tx('Your ground station time is halved for a month.', '地上局の使用時間が1か月半分になった。'),
       probability: rule(0.25),
-      protectedIf: { kind: 'margin', resource: 'comms', atLeast: 0.5 },
+      protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
       lesson: tx('{agency} could not downlink everything when station time was cut.', '{agency}は、地上局の時間が減ったときにデータを送りきれなかった。'),
     },

@@ -46,8 +46,12 @@ export interface Source {
   challengeResource?: boolean;
 }
 
-/** The six resource gauges. */
-export type Resource = 'mass' | 'power' | 'budget' | 'data' | 'comms' | 'schedule';
+/**
+ * The five resource gauges. Data produced and radio capacity are one gauge ("downlink"):
+ * both answer the same question, whether the data gets to the ground.
+ */
+export type Resource = 'mass' | 'power' | 'budget' | 'downlink' | 'schedule';
+export const RESOURCES: Resource[] = ['mass', 'power', 'budget', 'downlink', 'schedule'];
 
 /** Subsystem a part belongs to; also decides which role tab shows it. */
 export type Subsystem = 'payload' | 'power' | 'comms' | 'adcs' | 'cdh' | 'structure' | 'propulsion' | 'thermal' | 'protection';
@@ -130,8 +134,10 @@ export interface DecisionSlot {
   role: Role;
   label: Text;
   help: Text;
-  /** Option ids; the first one is the default used to fill undecided slots in a forecast. */
+  /** Option ids, in the order shown. */
   options: string[];
+  /** Standard choice, used to fill undecided slots in a forecast. Defaults to the first option. */
+  default?: string;
   /** Several options can be picked (e.g. instruments). */
   multi?: { min: number; max: number };
   /** Kind of change this is, for the change-cost rule. 'hardware' cannot change after launch. */
@@ -199,6 +205,18 @@ export interface Rubric {
   schedule: Sourced;
 }
 
+/** The spacecraft bus (structure, power system, computer, attitude control) the player does not choose. */
+export interface Bus {
+  massKg: Sourced;
+  /** Average power the bus itself uses, W. */
+  powerW: Sourced;
+  cost: Sourced;
+  /** Days of development before the satellite can be shipped, before options add their own time. */
+  devDays: Sourced;
+  /** Mass limit of the satellite itself, kg (a launch may allow less). */
+  maxMassKg: Sourced;
+}
+
 export interface Mission {
   id: string;
   name: Text;
@@ -207,6 +225,7 @@ export interface Mission {
   /** Only the first mission is playable during the hackathon. */
   playable: boolean;
   budgetKUSD: Sourced;
+  bus: Bus;
   /** Mission length in operation, days. */
   opsDays: Sourced;
   primary: Objective;

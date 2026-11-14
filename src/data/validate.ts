@@ -58,6 +58,7 @@ export function validateMission(m: Mission): DataIssue[] {
   const used = new Set<string>();
   for (const s of m.slots) {
     if (!s.options.length) err(`${m.id}.slots.${s.id}`, 'no options');
+    if (s.default && !s.options.includes(s.default)) err(`${m.id}.slots.${s.id}`, `default '${s.default}' is not one of the options`);
     for (const id of s.options) { if (!optionIds.has(id)) err(`${m.id}.slots.${s.id}`, `unknown option '${id}'`); used.add(id); }
     if (s.multi && (s.multi.min < 0 || s.multi.max < s.multi.min || s.multi.max > s.options.length)) err(`${m.id}.slots.${s.id}`, 'bad multi range');
   }
