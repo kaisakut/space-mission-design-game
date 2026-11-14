@@ -1,3 +1,4 @@
+import { ForecastDemo } from './components/ForecastDemo';
 import { useLang } from './i18n';
 
 export function App() {
@@ -13,6 +14,7 @@ export function App() {
       <main className="app-main">
         <p className="tagline">{t.tagline}</p>
         <p className="note">{t.comingSoon}</p>
+        <ForecastDemo />
       </main>
     </div>
   );
