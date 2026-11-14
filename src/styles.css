@@ -372,3 +372,32 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .mv-meter span { display: block; width: 100%; background: #7fd1ff; transition: height 0.15s linear; }
 .mv-meter.over { border-color: var(--bad); }
 .mv-meter.over span { background: var(--bad); }
+
+/* Resolution scene, full screen (step 3). */
+.modal.resolution { align-items: stretch; justify-content: stretch; padding: 0.6rem; top: 2.6rem; background: rgba(5, 8, 18, 0.94); }
+.res-body { max-width: none !important; width: 100%; max-height: none !important; height: 100%; font-size: 1.1rem; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6em; }
+.res-body .modal-head h2 { font-size: 1.3em; }
+.res-col.me { background: #13203f; }
+.res-col.roomy { font-size: 1.1em; padding: 0.8em 0.9em; }
+.res-picks li:not(.changed) { opacity: 0.6; }
+.res-card { display: flex; flex-direction: column; align-items: center; gap: 0.5em; }
+.res-card > .res-grid { width: 100%; }
+.res-flipcard { position: relative; width: 17em; min-height: 11em; transform-style: preserve-3d; animation: card-flip 0.6s ease-out both; }
+.res-flipcard .face { backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 10px; }
+.res-flipcard .front { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.25em; padding: 0.7em 0.9em; border: 2px solid; background: #101c38; min-height: 11em; }
+.res-flipcard.bad .front { border-color: #b8494a; color: #f0b3b3; }
+.res-flipcard.good .front { border-color: #3f9a4c; color: #b9e6bf; }
+.res-flipcard .front b { color: #e8ecf4; font-size: 1.1em; }
+.res-story { color: #c8d0e0; font-size: 0.9em; }
+.res-flipcard .back { position: absolute; inset: 0; transform: rotateY(180deg); background: repeating-linear-gradient(45deg, #1a2a52, #1a2a52 8px, #13203f 8px, #13203f 16px); border: 2px solid #3a4a6e; }
+.res-flipcard.idle { width: 8em; min-height: 11em; animation: card-idle 1.4s ease-in-out both; }
+.res-flipcard.idle .back { transform: none; }
+.card-icon { width: 2.6em; height: 2.6em; }
+@keyframes card-flip { from { transform: rotateY(180deg) scale(0.9); opacity: 0.2; } 30% { opacity: 1; } to { transform: rotateY(0) scale(1); opacity: 1; } }
+@keyframes card-idle { 0% { opacity: 0; transform: translateY(-10px); } 25% { opacity: 1; transform: none; } 40% { transform: rotate(-3deg); } 55% { transform: rotate(3deg); } 70% { transform: none; } 100% { transform: translateY(14px); opacity: 0.35; } }
+.stamp { animation: stamp 0.3s ease-out both; }
+@keyframes stamp { from { opacity: 0; transform: scale(1.25); } to { opacity: 1; transform: none; } }
+.res-none { display: flex; align-items: center; gap: 1.2em; padding: 0.8em 1em; border: 1px dashed #3a4a6e; border-radius: 8px; }
+.res-grid { overflow: hidden; }
+.resolution.instant .appear, .resolution.instant .res-flipcard, .resolution.instant .stamp { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .res-flipcard, .stamp { animation: none !important; } }
