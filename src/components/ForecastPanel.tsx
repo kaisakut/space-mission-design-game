@@ -5,33 +5,11 @@ import type { BranchNode } from '../engine/branchTree';
 import { OUTCOMES } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
 import { BranchMap } from './BranchMap';
+import { OUTCOME_COLOR, useCauseName, useOutcomeName } from './labels';
 import { Term } from './Glossary';
-
-export const OUTCOME_COLOR: Record<Outcome, string> = {
-  fullSuccess: '#4caf50',
-  partialSuccess: '#9ccc65',
-  objectiveMissed: '#ffb300',
-  lostInOps: '#ff7043',
-  orbitFailure: '#ef5350',
-  launchFailure: '#c62828',
-  noLaunch: '#78909c',
-};
 
 /** Runs per forecast: enough for stable percentages, and still instant in the browser. */
 const RUNS = 100;
-
-/** Readable name of a cause key from a run ('solar-flare', 'fail:cdh', 'blocked:overBudget', ...). */
-export function useCauseName(mission: Mission) {
-  const { t, L } = useLang();
-  return (c: string) => {
-    const card = mission.events.find((e) => e.id === c);
-    if (card) return L(card.name);
-    if (c.startsWith('fail:')) return tk(t, `cause_fail_${c.slice(5)}`);
-    if (c.startsWith('warn:')) return tk(t, `cause_warn_${c.slice(5)}`);
-    if (c.startsWith('blocked:')) { const k = `cause_blocked_${c.slice(8)}`; return tk(t, k) === k ? t.cause_blocked : tk(t, k); }
-    return tk(t, `cause_${c}`);
-  };
-}
 
 /**
  * Forecast: run the current design to the end many times and show where it tends to end up.
@@ -62,7 +40,8 @@ export function ForecastPanel({ mission, designKey, run, left }: {
       detail: fmt(t.reason_share, { a: Math.round(r.shareIn * 100), b: Math.round(r.shareOut * 100) }),
     };
   };
-  const nameOf = (k: string) => (OUTCOMES as string[]).includes(k) ? tk(t, `outcome_${k}`) : tk(t, `state_${k}`);
+  const outcomeName = useOutcomeName(mission);
+  const nameOf = (k: string) => (OUTCOMES as string[]).includes(k) ? outcomeName(k as Outcome) : tk(t, `state_${k}`);
 
   return (
     <section className="panel forecast">

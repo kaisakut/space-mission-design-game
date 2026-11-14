@@ -33,8 +33,8 @@ if (failed) process.exit(1);
 import { aiPicks } from '../src/engine/ai';
 import { confirmPhase, newGame, type AgencyKind } from '../src/engine/game';
 import type { Picks } from '../src/engine/design';
-const play = (seed: number) => {
-  let g = newGame(MISSIONS[0]!, seed);
+const play = (seed: number, mission = MISSIONS[0]!) => {
+  let g = newGame(mission, seed);
   while (g.phase <= 5) {
     const picks = {} as Record<AgencyKind, Picks>;
     for (const a of g.agencies) picks[a.id] = a.id === 'player' ? {} : aiPicks(g, a);
@@ -42,9 +42,12 @@ const play = (seed: number) => {
   }
   return g;
 };
-const g1 = play(9), g2 = play(9);
-check(!!g1.final && Object.keys(g1.final).length === 4, 'a full game ends with results for all four agencies');
-check(JSON.stringify(g1.final) === JSON.stringify(g2.final), 'the same seed gives the same game');
+for (const mission of MISSIONS) {
+const g1 = play(9, mission), g2 = play(9, mission);
+check(!!g1.final && Object.keys(g1.final).length === 4, `${mission.id}: a full game ends with results for all four agencies`);
+check(JSON.stringify(g1.final) === JSON.stringify(g2.final), `${mission.id}: the same seed gives the same game`);
 const sameCards = g1.reports.every((r) => Object.values(r.results).every((x) => Object.keys(x).length === r.cards.length));
-check(sameCards, 'every agency faces the same cards each phase');
+check(sameCards, `${mission.id}: every agency faces the same cards each phase`);
+console.log('     final:', g1.agencies.map((a) => `${a.id} ${g1.final![a.id].score.total} (${g1.final![a.id].outcome})`).join(', '));
+}
 if (failed) process.exit(1);

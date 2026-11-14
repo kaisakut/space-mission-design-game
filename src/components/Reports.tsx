@@ -1,7 +1,7 @@
 import type { EventResult } from '../engine/events';
 import { agencyDesign, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
-import { OUTCOME_COLOR, useCauseName } from './ForecastPanel';
+import { OUTCOME_COLOR, useCauseName, useOutcomeName } from './labels';
 
 const RESULT_CLASS: Record<EventResult, string> = { protected: 'good', ready: 'good', partial: 'warn', hit: 'bad', missed: 'warn' };
 
@@ -54,6 +54,7 @@ export function FinalResults({ game, onRestart }: { game: Game; onRestart: () =>
   const order = [...game.agencies].sort((a, b) => final[b.id].score.total - final[a.id].score.total);
   const name = (id: AgencyKind) => tk(t, `agency_${id}`);
   const causeName = useCauseName(m);
+  const outcomeName = useOutcomeName(m);
 
   // Lessons: cards that hit some agencies but not others.
   const lessons: string[] = [];
@@ -80,8 +81,8 @@ export function FinalResults({ game, onRestart }: { game: Game; onRestart: () =>
                 <td>{i + 1}</td>
                 <td>{name(a.id)}</td>
                 <td>
-                  <span className="swatch" style={{ background: OUTCOME_COLOR[r.outcome] }} />{tk(t, `outcome_${r.outcome}`)}
-                  {r.outcome !== 'fullSuccess' && r.causes[0] && <div className="note small">{causeName(r.causes[0])}</div>}
+                  <span className="swatch" style={{ background: OUTCOME_COLOR[r.outcome] }} />{outcomeName(r.outcome)}
+                  {r.outcome !== 'fullSuccess' && r.causes[0] && causeName(r.causes[0]) !== outcomeName(r.outcome) && <div className="note small">{causeName(r.causes[0])}</div>}
                 </td>
                 <td><b>{s.total}</b></td>
                 <td className="note">{fmt(t.breakdownLine, { p: s.primary, s: s.secondary, sc: Math.round(s.science * 10) / 10, b: Math.round(s.budget * 10) / 10, d: s.schedule })}</td>

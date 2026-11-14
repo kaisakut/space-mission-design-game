@@ -2,13 +2,16 @@
  "source": "NASA CCMC DONKI web service, https://ccmc.gsfc.nasa.gov/DONKI-API/get/ (FLR and SEP, queried month by month)",
  "retrieved": "2026-11-14",
  "period": "2014-01-01 to 2025-12-31",
- "method": "SEP records (any instrument in DONKI) whose start times are within 3 days of each other are merged into one episode. For every 12-month window starting on the first of a month (Jan 2014 to Jan 2025), we check whether at least one episode starts inside it.",
+ "method": "SEP records (any instrument in DONKI) whose start times are within 3 days of each other are merged into one episode. For every 12-month window starting on the first of a month (Jan 2014 to Jan 2025), we check whether at least one episode starts inside it. For 100-day missions, 100-day windows starting every 7 days (Jan 2014 to Sep 2025) are checked the same way.",
  "summary": {
   "sepRecords": 361,
   "sepEpisodes": 81,
   "windows12m": 133,
   "windowsWithEpisode": 104,
-  "chanceOfEpisodeInOneYear": 0.782
+  "chanceOfEpisodeInOneYear": 0.782,
+  "windows100d": 612,
+  "windows100dWithEpisode": 378,
+  "chanceOfEpisodeIn100Days": 0.618
  },
  "sepEpisodeStarts": [
   "2014-01-06",

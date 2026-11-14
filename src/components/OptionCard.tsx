@@ -9,7 +9,7 @@ const n = (v: Sourced | undefined) => v?.value ?? 0;
 
 /** The 2–3 numbers worth seeing at a glance for each kind of option. Everything else is under "Details". */
 function headline(o: Option, t: ReturnType<typeof useLang>['t'], orbitId: string | null): Stat[] {
-  const cost = { key: 'stat_cost', text: `${n(o.cost)} ${t.unit_kUSD}` };
+  const cost = { key: 'stat_cost', text: `${n(o.cost).toLocaleString()} ${t.unit_kUSD}` };
   const days = o.leadDays ? [{ key: 'stat_days', text: `+${n(o.leadDays)} ${t.unit_days}` }] : [];
   switch (o.kind) {
     case 'part':
@@ -18,7 +18,11 @@ function headline(o: Option, t: ReturnType<typeof useLang>['t'], orbitId: string
       if (o.subsystem === 'comms') return [{ key: 'stat_downlink', text: fmt(t.val_MBmin, { n: n(o.downlinkMBPerMin) }) }, { key: 'stat_power', text: `${n(o.powerW)} W` }, cost];
       return [{ key: 'stat_mass', text: `${n(o.massKg)} kg` }, cost];
     case 'orbit':
-      return [{ key: 'stat_altitude', text: `${n(o.altitudeKm)} km` }, { key: 'stat_contact', text: fmt(t.val_minPerDay, { n: n(o.contactMinPerDay) }) }];
+      return [
+        ...(o.altitudeKm ? [{ key: 'stat_altitude', text: `${n(o.altitudeKm)} km` }] : []),
+        ...(o.solarFactor ? [{ key: 'stat_sunlight', text: `×${n(o.solarFactor)}` }] : []),
+        { key: 'stat_contact', text: fmt(t.val_minPerDay, { n: n(o.contactMinPerDay) }) },
+      ];
     case 'launch': {
       const cap = orbitId && o.capacityKg[orbitId] ? `${o.capacityKg[orbitId]!.value} kg` : '—';
       return [cost, { key: 'stat_capacity', text: cap }, { key: 'stat_windows', text: o.windowsDay.value.map((d) => fmt(t.val_day, { n: d })).join(', ') }];

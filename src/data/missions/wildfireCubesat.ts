@@ -107,7 +107,7 @@ export const wildfireCubesat: Mission = {
       id: 'secondary', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       help: tx('Each one adds points but also requirements. Agencies chasing the same one split its points.', '1つごとに加点されますが、要求も増えます。同じ副目的を狙う機関が多いと得点が割れます。'),
-      options: ['sec-none', 'sec-night', 'sec-fast', 'sec-life'], multi: { min: 0, max: 2 },
+      options: ['sec-none', 'sec-night', 'sec-fast', 'sec-life'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
       id: 'orbit', default: 'orbit-sso-500', phase: 1, role: 'lead', changeKind: 'hardware',
@@ -144,7 +144,7 @@ export const wildfireCubesat: Mission = {
       id: 'protection', phase: 2, role: 'spacecraft', changeKind: 'hardware',
       label: tx('Redundancy and radiation protection', '冗長化と放射線対策'),
       help: tx('Spares and shielding make faults survivable but cost mass and money.', '予備や遮へいがあれば故障に耐えられますが、質量と費用がかかります。'),
-      options: ['prot-none', 'prot-rad', 'prot-full'], multi: { min: 1, max: 1 },
+      options: ['prot-none', 'prot-rad', 'prot-full'],
     },
     // Phase 3: launch
     {

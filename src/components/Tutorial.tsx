@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { tk, useLang } from '../i18n';
+import { fmt, tk, useLang } from '../i18n';
 
 /** Steps of the first-time guide: each points at a part of the screen marked with data-tour. */
 const STEPS = [
@@ -12,8 +12,8 @@ const STEPS = [
 ] as const;
 
 /** A small guide card that walks through one turn; the highlighted part of the screen gets an outline. */
-export function Tutorial({ onClose }: { onClose: () => void }) {
-  const { t } = useLang();
+export function Tutorial({ onClose, summary }: { onClose: () => void; summary: { en: string; ja: string } }) {
+  const { t, L } = useLang();
   const [i, setI] = useState(0);
   const step = STEPS[i]!;
   useEffect(() => {
@@ -27,7 +27,7 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
   return (
     <div className="tour" role="dialog" aria-label={t.tourTitle}>
       <div className="tour-head"><b>{t.tourTitle}</b><span className="note">{i + 1} / {STEPS.length}</span></div>
-      <p>{tk(t, step.key)}</p>
+      <p>{fmt(tk(t, step.key), { summary: L(summary) })}</p>
       <div className="tour-actions">
         <button type="button" className="secondary" onClick={onClose}>{t.tourSkip}</button>
         <span>

@@ -96,12 +96,13 @@ export interface Part extends OptionBase {
   observes?: string;
 }
 
+/** Where the mission goes: an orbit, or a landing site for surface missions. */
 export interface Orbit extends OptionBase {
   kind: 'orbit';
-  altitudeKm: Sourced;
-  inclinationDeg: Sourced;
+  altitudeKm?: Sourced;
+  inclinationDeg?: Sourced;
   /** Δv the spacecraft itself must supply after separation, m/s (station keeping, deorbit). */
-  deltaVms: Sourced;
+  deltaVms?: Sourced;
   /** Average contact per day with the mission's own mid-latitude ground station, minutes. */
   contactMinPerDay: Sourced;
   /** Extra contact per day when a high-latitude station is added, minutes. */
@@ -147,8 +148,8 @@ export interface DecisionSlot {
   options: string[];
   /** Standard choice, used to fill undecided slots in a forecast. Defaults to the first option. */
   default?: string;
-  /** Several options can be picked (e.g. instruments). */
-  multi?: { min: number; max: number };
+  /** Several options can be picked (e.g. instruments). With noneFirst, the first option means "none" and clears the others. */
+  multi?: { min: number; max: number; noneFirst?: boolean };
   /** Kind of change this is, for the change-cost rule. 'hardware' cannot change after launch. */
   changeKind: 'plan' | 'hardware';
 }
@@ -277,4 +278,6 @@ export interface Mission {
   /** All options used by the slots, by id. */
   options: Option[];
   events: EventCard[];
+  /** Wording that differs from the default for this mission (e.g. "landing failure" instead of "launch failure"). */
+  outcomeLabels?: Partial<Record<Outcome, Text>>;
 }

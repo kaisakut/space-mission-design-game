@@ -1,9 +1,10 @@
 import { tx } from '../helpers';
 import type { Mission, Text } from '../types';
+import { lunarIceRover } from './lunarIceRover';
 import { wildfireCubesat } from './wildfireCubesat';
 
 /** All playable missions, in the order shown on the selection screen. */
-export const MISSIONS: Mission[] = [wildfireCubesat];
+export const MISSIONS: Mission[] = [wildfireCubesat, lunarIceRover];
 
 /** Missions being built: shown on the selection screen as "coming soon". */
 export interface MissionPreview {
@@ -14,12 +15,6 @@ export interface MissionPreview {
 }
 
 export const UPCOMING: MissionPreview[] = [
-  {
-    id: 'lunar-ice-rover',
-    name: tx('Lunar South Pole Ice Rover', '月南極の水氷探査ローバー'),
-    summary: tx('Search for water ice near permanently shadowed craters, with little sunlight and short contact with Earth.', '永久影のクレーターの近くで水氷を探す。日射は弱く、地球との通信も限られる。'),
-    difficulty: 'intermediate',
-  },
   {
     id: 'jupiter-icy-moon-flyby',
     name: tx('Icy Moon Flyby at Jupiter', '木星の氷衛星フライバイ'),

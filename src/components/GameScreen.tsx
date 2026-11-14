@@ -28,19 +28,19 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const optionById = useMemo(() => new Map(mission.options.map((o) => [o.id, o])), [mission]);
   const over = game.phase > PHASE_COUNT;
 
-  const pick = (slotId: string, optionId: string, multi?: { min: number; max: number }) => {
+  const pick = (slotId: string, optionId: string, multi?: { min: number; max: number; noneFirst?: boolean }) => {
     const slot = mission.slots.find((s) => s.id === slotId)!;
     const cur = state.picks[slotId] ?? [];
     let ids: string[];
     if (!multi) ids = [optionId];
     else {
-      // In a multi-choice slot the first option means "none" and clears the others.
-      const none = slot.options[0]!;
+      // With noneFirst, the first option means "none" and clears the others.
+      const none = multi.noneFirst ? slot.options[0]! : null;
       if (optionId === none) ids = [none];
       else {
         const without = cur.filter((x) => x !== none);
         const next = without.includes(optionId) ? without.filter((x) => x !== optionId) : [...without, optionId].slice(-multi.max);
-        ids = next.length ? next : [none];
+        ids = next.length >= Math.max(multi.min, 1) ? next : none ? [none] : cur;
       }
     }
     const next: Picks = { ...draft, [slotId]: ids };
@@ -69,7 +69,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const restart = () => { setGame(newGame(mission, newSeed(), game.practice)); setDraft({}); setTab(1); };
 
   const issueText = (i: Issue) => {
-    const values = { ...i.values };
+    const values: Record<string, string | number> = { ...i.values, res: i.resource ? tk(t, `res_${i.resource}`) : '' };
     for (const k of ['launch', 'orbit'] as const) { const o = optionById.get(String(values[k] ?? '')); if (o) values[k] = L(o.name); }
     return fmt(tk(t, `issue_${i.code}`), values);
   };
@@ -104,8 +104,8 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
           <h2>{L(mission.name)}</h2>
           <p className="note">{L(mission.summary)}</p>
           <div data-tour="gauges"><Gauges gauges={state.gauges} /></div>
-          {pending.kUSD > 0 && <p className="warn small">{fmt(t.pendingChange, { k: pending.kUSD, d: pending.days })}</p>}
-          {player.changeKUSD > 0 && <p className="note small">{fmt(t.paidChanges, { k: player.changeKUSD })}</p>}
+          {pending.kUSD > 0 && <p className="warn small">{fmt(t.pendingChange, { k: pending.kUSD.toLocaleString(), d: pending.days })}</p>}
+          {player.changeKUSD > 0 && <p className="note small">{fmt(t.paidChanges, { k: player.changeKUSD.toLocaleString() })}</p>}
           <div className="issues">
             {!blockers.length && !warnings.length && <p className="ok">{t.noIssues}</p>}
             {blockers.length > 0 && <><h3 className="bad">{t.blockers}</h3><ul>{blockers.map((i, k) => <li key={k}>{issueText(i)}</li>)}</ul></>}
@@ -141,7 +141,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                           type={s.multi ? 'checkbox' : 'radio'} name={s.id} orbitId={state.orbit?.id ?? null}
                           onPick={() => pick(s.id, id, s.multi)}
                         />
-                        {c && c.kUSD > 0 && !locked && <p className="change-cost">{fmt(t.changeCostHint, { k: c.kUSD, d: c.days })}</p>}
+                        {c && c.kUSD > 0 && !locked && <p className="change-cost">{fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days })}</p>}
                       </div>
                     );
                   })}
@@ -169,7 +169,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       />
       </div>
       {lower === 'reports' && <TurnReports game={game} />}
-      {guide && <Tutorial onClose={() => setGuide(false)} />}
+      {guide && <Tutorial summary={mission.summary} onClose={() => setGuide(false)} />}
     </>
   );
 }
