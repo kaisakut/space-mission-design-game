@@ -13,7 +13,7 @@ type Shape = string | ['c', number, number, number] | ['e', number, number, numb
 const ICONS = {
   // nothing chosen
   none: [["c", 12, 12, 8.5], "M6 6l12 12"],
-  // generic choice; dust analyser
+  // fallback when an option has no icon of its own
   dot: [["c", 12, 12, 3.5]],
   // daytime
   sun: [["c", 12, 12, 4], "M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"],
@@ -38,11 +38,11 @@ const ICONS = {
   // radio
   antenna: ["M12 21V11M9 21h6", ["c", 12, 9, 1.6], "M8.6 12.4a4.8 4.8 0 0 1 0-6.8M15.4 5.6a4.8 4.8 0 0 1 0 6.8", "M6 15a8.5 8.5 0 0 1 0-12M18 3a8.5 8.5 0 0 1 0 12"],
   // ground station; high-gain antenna
-  dish: ["M5.5 7.5 15 17a6.7 6.7 0 0 1-9.5-9.5z", "M10.2 12.3l4-4", ["c", 15.2, 7.3, 1.3], "M9 17.9V21M6 21h9"],
+  dish: ["M4 8l12 12A8.5 8.5 0 0 1 4 8z", "M10 14l4.6-4.6", ["c", 15.8, 8.2, 1.6], "M15 3a6 6 0 0 1 6 6"],
   // radiation protection
   shield: ["M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"],
-  // spare reaction wheel
-  wheel: [["c", 12, 12, 8.5], ["c", 12, 12, 2], "M12 10V3.5M13.7 13l5.7 3.3M10.3 13l-5.7 3.3"],
+  // spare reaction wheel (a spinning wheel)
+  wheel: [["c", 12, 12, 4.2], ["c", 12, 12, 1.2], "M4.6 7A9 9 0 0 1 20.8 10.2", "M21 5.6v4.8h-4.8", "M19.4 17A9 9 0 0 1 3.2 13.8", "M3 18.4v-4.8h4.8"],
   // deploy from the ISS
   station: [["c", 12, 12, 2.6], "M4.75 12h4.65M14.6 12h4.65", ["r", 2.5, 4.5, 4.5, 6, 0.6], ["r", 2.5, 13.5, 4.5, 6, 0.6], ["r", 17, 4.5, 4.5, 6, 0.6], ["r", 17, 13.5, 4.5, 6, 0.6], "M4.75 10.5v3M19.25 10.5v3"],
   // launch
@@ -79,6 +79,8 @@ const ICONS = {
   flask: ["M9.5 3h5", "M10 3v6.5L4.8 18.3A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.7L14 9.5V3", "M7.5 15h9"],
   // magnetometer
   magnet: ["M5 4h4.5v8a2.5 2.5 0 0 0 5 0V4H19v8a7 7 0 0 1-14 0z", "M5 8h4.5M14.5 8H19"],
+  // dust analyser
+  dust: [["c", 7, 8, 2.2], ["c", 15.5, 5.5, 1.2], ["c", 17, 13.5, 2.6], ["c", 8.5, 16.5, 1.5], ["c", 13, 20, 1]],
   // orbit
   orbit: [["c", 12, 12, 2.6], ["e", 12, 12, 10, 5.6, -30], ["c", 17.2, 5.6, 1.3]],
 } satisfies Record<string, Shape[]>;

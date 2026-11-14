@@ -61,8 +61,12 @@ export type Role = 'lead' | 'spacecraft' | 'science' | 'powerComms';
 export type Tag = string;
 
 /** One option the player can pick for a decision slot. Parts, orbits and rockets are all options. */
+import type { IconName } from '../components/icons';
+
 export interface OptionBase {
   id: string;
+  /** Line icon on the card (src/components/icons.tsx). Without one, the kind of option decides. */
+  icon?: IconName;
   name: Text;
   description: Text;
   tags?: Tag[];
@@ -158,6 +162,14 @@ export interface DecisionSlot {
   multi?: { min: number; max: number; noneFirst?: boolean };
   /** Kind of change this is, for the change-cost rule. 'hardware' cannot change after launch. */
   changeKind: 'plan' | 'hardware';
+  /** Line icon beside the box's heading. */
+  icon?: IconName;
+  /**
+   * "How much" marks on each card: options are ranked by `by` (a number field such as downlinkMBPerMin,
+   * settings.<key>, 'tags' for the number of tags, 'costed' for paid or not; several joined with '+').
+   * 'arc' draws the value as a share of a circle instead of dots.
+   */
+  level?: { by: string; label: Text; style?: 'dots' | 'arc' };
 }
 
 /** Conditions an event card tests on the design or the run so far. */

@@ -504,3 +504,27 @@ button.secondary { background: transparent; color: inherit; border: 1px solid #3
 .mv-legend i { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; margin-right: 0.3em; vertical-align: -0.05em; }
 .mv-place { position: absolute; left: 0.5em; top: 0.4em; font-size: 0.75rem; color: #dbe3f3; text-shadow: 0 1px 2px #000; pointer-events: none; }
 .mv-meter { width: 0.8em !important; height: 5em !important; }
+
+/* Step 9: icons, level marks and comparison bars on option cards */
+.opt-ico { color: var(--muted); flex: none; align-self: center; }
+.opt.on .opt-ico { color: #fff; }
+.opt-ico.diag { display: inline-flex; margin: -0.3em 0; }
+.opt-main { align-items: center; }
+.lg-ico { color: var(--muted); vertical-align: -0.2em; margin-right: 0.3em; }
+.opt-level { display: flex; align-items: center; gap: 0.4em; font-size: 0.78em; color: var(--muted); margin: 0.15em 0 0 1.5em; }
+.opt.on .opt-level { color: #e8eefc; }
+.lv-dots { display: inline-flex; gap: 0.27em; }
+.lv-dots i { width: 0.55em; height: 0.55em; border-radius: 50%; border: 1px solid currentColor; box-sizing: border-box; opacity: 0.7; }
+.lv-dots i.f { background: currentColor; opacity: 1; }
+.lv-arc, .lv-time { flex: none; display: inline-flex; gap: 2px; }
+.opt-bars { display: grid; grid-template-columns: auto 1fr auto; gap: 0.05em 0.5em; align-items: center; font-size: 0.82em; margin: 0.2em 0 0.1em 1.5em; font-variant-numeric: tabular-nums; }
+.opt-bars .field { color: var(--muted); }
+.bar-row { display: contents; }
+.bar { height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; min-width: 2em; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--muted); border-radius: 2px; }
+.opt.on .bar i { background: #fff; }
+.bar-val { text-align: right; white-space: nowrap; }
+/* Phases with many boxes: tighter cards */
+.slots.dense .opt-bars { font-size: 0.76em; line-height: 1.15; margin-top: 0.1em; }
+.slots.dense .opt-level { font-size: 0.72em; margin-top: 0; }
+.slots.dense .opt-ico:not(.diag) { width: 1.35em; height: 1.35em; }

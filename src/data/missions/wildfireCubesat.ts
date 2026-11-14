@@ -118,89 +118,89 @@ export const wildfireCubesat: Mission = {
   slots: [
     // Phase 1: concept
     {
-      id: 'secondary', phase: 1, role: 'lead', changeKind: 'plan',
+      id: 'secondary', icon: 'target', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Secondary objectives', '副目的'),
       help: tx('Each one adds points but also requirements. Agencies chasing the same one split its points.', '1つごとに加点されますが、要求も増えます。同じ副目的を狙う機関が多いと得点が割れます。'),
       options: ['sec-none', 'sec-night', 'sec-fast', 'sec-life'], multi: { min: 0, max: 2, noneFirst: true },
     },
     {
-      id: 'orbit', default: 'orbit-sso-500', phase: 1, role: 'lead', changeKind: 'hardware',
+      id: 'orbit', icon: 'globe', default: 'orbit-sso-500', phase: 1, role: 'lead', changeKind: 'hardware',
       label: tx('Target orbit', '目標の軌道'),
       help: tx('Decides what you can observe and how long you can talk to the ground. Changing it later is expensive.', '観測できる量と、地上局と通信できる時間が決まります。後から変えると高くつきます。'),
       options: ['orbit-iss', 'orbit-sso-500', 'orbit-sso-600'],
     },
     {
-      id: 'budget-split', phase: 1, role: 'lead', changeKind: 'plan',
+      id: 'budget-split', icon: 'coins', level: { by: 'settings.reserveShare', label: tx('Reserve', '予備費') }, phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Budget split', '予算の配分'),
       help: tx('How much to keep in reserve for surprises.', '想定外に備えて、予備費をどれだけ残すか。'),
       options: ['split-balanced', 'split-lean', 'split-safe'],
     },
     // Phase 2: spacecraft design
     {
-      id: 'camera', default: 'cam-swir', phase: 2, role: 'science', changeKind: 'hardware',
+      id: 'camera', icon: 'eye', default: 'cam-swir', phase: 2, role: 'science', changeKind: 'hardware',
       label: tx('Fire camera', '火災用カメラ'),
       help: tx('What the satellite sees. Thermal infrared sees fires at night too.', '衛星が何を見られるか。熱赤外なら夜の火災も見えます。'),
       options: ['cam-vis', 'cam-swir', 'cam-tir'],
     },
     {
-      id: 'power', phase: 2, role: 'powerComms', changeKind: 'hardware',
+      id: 'power', icon: 'panel', level: { by: 'generatesW+rtgW', label: tx('Power', '発電') }, phase: 2, role: 'powerComms', changeKind: 'hardware',
       label: tx('Solar arrays', '太陽電池'),
       help: tx('Power for the camera and radio. Deployable arrays give more power but add mass and a failure point.', 'カメラと無線の電力です。展開式は電力が多い分、質量と故障の要因が増えます。'),
       options: ['pwr-body', 'pwr-deploy'],
     },
     {
-      id: 'radio', default: 'radio-sband', phase: 2, role: 'powerComms', changeKind: 'hardware',
+      id: 'radio', icon: 'antenna', level: { by: 'downlinkMBPerMin', label: tx('Speed', '速さ') }, default: 'radio-sband', phase: 2, role: 'powerComms', changeKind: 'hardware',
       label: tx('Radio', '無線機'),
       help: tx('How fast data reaches the ground.', 'データを地上へ送る速さ。'),
       options: ['radio-sband', 'radio-xband'],
     },
     {
-      id: 'protection', phase: 2, role: 'spacecraft', changeKind: 'hardware',
+      id: 'protection', icon: 'shield', level: { by: 'tags', label: tx('Protection', '防護') }, phase: 2, role: 'spacecraft', changeKind: 'hardware',
       label: tx('Redundancy and radiation protection', '冗長化と放射線対策'),
       help: tx('Spares and shielding make faults survivable but cost mass and money.', '予備や遮へいがあれば故障に耐えられますが、質量と費用がかかります。'),
       options: ['prot-none', 'prot-rad', 'prot-full'],
     },
     // Phase 3: launch
     {
-      id: 'launch', default: 'lv-rideshare', phase: 3, role: 'lead', changeKind: 'plan',
+      id: 'launch', icon: 'rocket', default: 'lv-rideshare', phase: 3, role: 'lead', changeKind: 'plan',
       label: tx('Launch', '打ち上げ'),
       help: tx('The launch must reach the orbit you chose in phase 1.', 'フェーズ1で選んだ軌道に行ける打ち上げでなければなりません。'),
       options: ['lv-iss-deploy', 'lv-rideshare'],
     },
     {
-      id: 'window', default: 'window-first', phase: 3, role: 'lead', changeKind: 'plan',
+      id: 'window', icon: 'calendar', level: { by: 'settings.targetWindow', label: tx('Time in hand', '余裕') }, default: 'window-first', phase: 3, role: 'lead', changeKind: 'plan',
       label: tx('Rideshare flight', '打ち上げの便'),
       help: tx('CubeSats ride along on scheduled rideshare flights (day 300 and day 420 here). Take the first for the best schedule score, or book the next one to keep time in hand.', 'キューブサットは、決まった日に飛ぶ相乗りロケットの便に乗ります（ここでは300日目と420日目）。最初の便なら日程の点が高く、次の便を予約すれば時間に余裕ができます。'),
       options: ['window-first', 'window-second'],
     },
     {
-      id: 'ground', default: 'gs-own', phase: 3, role: 'powerComms', changeKind: 'plan',
+      id: 'ground', icon: 'dish', level: { by: 'settings.networkFactor+settings.highLatStation', label: tx('Contact', '通信') }, default: 'gs-own', phase: 3, role: 'powerComms', changeKind: 'plan',
       label: tx('Ground stations', '地上局'),
       help: tx('More stations mean more contact time, so more of your data gets down.', '局が多いほど通信時間が増え、より多くのデータを降ろせます。'),
       options: ['gs-own', 'gs-highlat', 'gs-network'],
     },
     // Phase 4: test and launch
     {
-      id: 'testing', default: 'test-basic', phase: 4, role: 'spacecraft', changeKind: 'plan',
+      id: 'testing', icon: 'clipboard', level: { by: 'settings.testDepth', label: tx('Depth', '深さ') }, default: 'test-basic', phase: 4, role: 'spacecraft', changeKind: 'plan',
       label: tx('Test campaign', '試験の深さ'),
       help: tx('Deeper testing finds faults before launch but uses time and money.', '試験を厚くすると打ち上げ前に不具合を見つけられますが、時間と費用を使います。'),
       options: ['test-basic', 'test-standard', 'test-full'],
     },
     {
-      id: 'ops-prep', default: 'prep-minimal', phase: 4, role: 'lead', changeKind: 'plan',
+      id: 'ops-prep', icon: 'headset', level: { by: 'costed', label: tx('Preparation', '準備') }, default: 'prep-minimal', phase: 4, role: 'lead', changeKind: 'plan',
       label: tx('Operations readiness', '運用の準備'),
       help: tx('Rehearse the first days in orbit with the ground station before launch.', '打ち上げ前に、地上局と一緒に軌道上の最初の数日を通しで練習します。'),
       options: ['prep-minimal', 'prep-rehearsal'],
     },
     {
-      id: 'model', default: 'em-none', phase: 4, role: 'spacecraft', changeKind: 'hardware',
+      id: 'model', icon: 'box', level: { by: 'costed', label: tx('Preparation', '準備') }, default: 'em-none', phase: 4, role: 'spacecraft', changeKind: 'hardware',
       label: tx('Engineering model', '試験用の予備機'),
       help: tx('A second unit for testing lets you find and fix faults without risking the flight unit.', '試験専用の2台目があれば、本番の機体を傷めずに不具合を探して直せます。'),
       options: ['em-none', 'em-build'],
     },
     // Phase 5: operations
     {
-      id: 'ops-plan', default: 'ops-conservative', phase: 5, role: 'science', changeKind: 'plan',
+      id: 'ops-plan', icon: 'eye', level: { by: 'settings.dutyCycle', label: tx('Observing', '観測'), style: 'arc' }, default: 'ops-conservative', phase: 5, role: 'science', changeKind: 'plan',
       label: tx('Observation plan', '観測計画'),
       help: tx('Observing more finds more fires but needs more power and downlink.', '多く観測するほど火災を見つけられますが、電力と通信が多く要ります。'),
       options: ['ops-steady', 'ops-aggressive', 'ops-conservative'],
@@ -208,13 +208,13 @@ export const wildfireCubesat: Mission = {
   ],
 
   options: [
-    { kind: 'choice', id: 'sec-none', name: tx('None', 'なし'), description: tx('Focus on the primary objective.', '主目的に集中する。'), cost: rule(0) },
-    { kind: 'choice', id: 'sec-night', name: tx('Night-time fires', '夜間の火災'), description: tx('Needs a thermal infrared camera.', '熱赤外カメラが必要。'), cost: rule(0), tags: ['goal:night'] },
-    { kind: 'choice', id: 'sec-fast', name: tx('Fast alert', '速報'), description: tx('Needs frequent ground contact.', '地上局との頻繁な通信が必要。'), cost: rule(0), tags: ['goal:fast'] },
-    { kind: 'choice', id: 'sec-life', name: tx('Long life', '長寿命'), description: tx('Keep working to the end of the mission; protection against failures helps.', 'ミッションの最後まで動き続ける必要がある。故障への備えが効く。'), cost: rule(0), tags: ['goal:life'] },
+    { kind: 'choice', id: 'sec-none', icon: 'none', name: tx('None', 'なし'), description: tx('Focus on the primary objective.', '主目的に集中する。'), cost: rule(0) },
+    { kind: 'choice', id: 'sec-night', icon: 'moon', name: tx('Night-time fires', '夜間の火災'), description: tx('Needs a thermal infrared camera.', '熱赤外カメラが必要。'), cost: rule(0), tags: ['goal:night'] },
+    { kind: 'choice', id: 'sec-fast', icon: 'bolt', name: tx('Fast alert', '速報'), description: tx('Needs frequent ground contact.', '地上局との頻繁な通信が必要。'), cost: rule(0), tags: ['goal:fast'] },
+    { kind: 'choice', id: 'sec-life', icon: 'hourglass', name: tx('Long life', '長寿命'), description: tx('Keep working to the end of the mission; protection against failures helps.', 'ミッションの最後まで動き続ける必要がある。故障への備えが効く。'), cost: rule(0), tags: ['goal:life'] },
 
     {
-      kind: 'orbit', id: 'orbit-iss', name: tx('ISS orbit (about 410 km, 51.6°)', 'ISS軌道（約410 km、51.6°）'),
+      kind: 'orbit', id: 'orbit-iss', icon: 'orbit', name: tx('ISS orbit (about 410 km, 51.6°)', 'ISS軌道（約410 km、51.6°）'),
       description: tx('Deployed from the Space Station. Never passes over the polar regions.', '宇宙ステーションから放出される。北極・南極の近くは通らない。'),
       cost: rule(0),
       altitudeKm: est(410, ['nasa-soa-launch'], tx('Middle of the 400–420 km deployment orbit given for ISS CubeSat deployment.', 'ISSからの放出軌道 400〜420 km の中央。')),
@@ -224,7 +224,7 @@ export const wildfireCubesat: Mission = {
       science: { day: est(198436, ['nasa-firms'], FIRMS_NOTE), dayNight: est(387362, ['nasa-firms'], FIRMS_NOTE) },
     },
     {
-      kind: 'orbit', id: 'orbit-sso-500', name: tx('Sun-synchronous, 500 km', '太陽同期軌道 500 km'),
+      kind: 'orbit', id: 'orbit-sso-500', icon: 'orbit', name: tx('Sun-synchronous, 500 km', '太陽同期軌道 500 km'),
       description: tx('Passes over each place at the same local time, and covers the whole globe.', '毎回同じ地方時に通過し、全球を見られる。'),
       cost: rule(0),
       altitudeKm: rule(500, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
@@ -234,7 +234,7 @@ export const wildfireCubesat: Mission = {
       science: { day: est(158040, ['nasa-firms'], FIRMS_NOTE), dayNight: est(304111, ['nasa-firms'], FIRMS_NOTE) },
     },
     {
-      kind: 'orbit', id: 'orbit-sso-600', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
+      kind: 'orbit', id: 'orbit-sso-600', icon: 'orbit', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
       description: tx('Higher: longer passes over each ground station and less air drag in solar storms, but needs a device to come down at the end.', '高い分、地上局の上を通る時間が長く、磁気嵐で大気の抵抗も受けにくい。ただし最後に降ろす装置が要る。'),
       cost: est(40, ['fcc-5-year-rule'], tx('Game value for buying, fitting and testing a drag sail. The US FCC requires disposal within 5 years of mission end; from 600 km a CubeSat takes far longer on its own. No public price was found, so the cost stays modest.', '抵抗帆の購入・取り付け・試験のゲームの値。米国FCCはミッション終了から5年以内の処分を求めており、600 kmからでは自然に落ちるまでずっと長くかかる。公開された価格は見つからなかったため、費用は控えめにした。')),
       addsMassKg: pub(0.21, ['npc-artica'], tx('A commercial CubeSat drag sail (210 g) that brings a satellite down from 650 km in under 5 years.', '市販のCubeSat用抵抗帆（210 g）。650 kmから5年以内に降ろせる。')),
@@ -246,12 +246,12 @@ export const wildfireCubesat: Mission = {
       tags: ['orbit:high'],
     },
 
-    { kind: 'choice', id: 'split-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
-    { kind: 'choice', id: 'split-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'split-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
+    { kind: 'choice', id: 'split-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'split-lean', icon: 'coins', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
+    { kind: 'choice', id: 'split-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
 
     {
-      kind: 'part', id: 'cam-vis', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'),
+      kind: 'part', id: 'cam-vis', icon: 'eye', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'),
       description: tx('Cheap; sees smoke in daylight only.', '安いが、昼の煙しか見えない。'),
       cost: rule(60),
       massKg: pub(0.5, ['dragonfly-gecko'], tx('Off-the-shelf CubeSat RGB imager, including electronics.', '市販のCubeSat用RGBカメラ（電子回路込み）。')),
@@ -260,7 +260,7 @@ export const wildfireCubesat: Mission = {
       detectShare: rule(0.3, tx('Game value: it sees the smoke of large fires by day, but FIRMS counts fires found in infrared, many of them small or hidden by smoke.', 'ゲームの値：昼の大きな火災の煙は見えるが、FIRMSが数えるのは赤外で見つけた火災で、その多くは小さいか煙に隠れている。')),
     },
     {
-      kind: 'part', id: 'cam-swir', subsystem: 'payload', name: tx('Short-wave infrared camera', '短波赤外カメラ'),
+      kind: 'part', id: 'cam-swir', icon: 'flame', subsystem: 'payload', name: tx('Short-wave infrared camera', '短波赤外カメラ'),
       description: tx('Sees active flames through smoke in daylight.', '昼なら煙越しに炎を見られる。'),
       cost: rule(250),
       massKg: pub(0.82, ['skylabs-nanoimager'], tx('CubeSat InGaAs short-wave infrared imager.', 'CubeSat用のInGaAs短波赤外カメラ。')),
@@ -268,7 +268,7 @@ export const wildfireCubesat: Mission = {
       dataMBPerDay: rule(500, DATA_NOTE), scienceWeight: rule(1), observes: 'day',
     },
     {
-      kind: 'part', id: 'cam-tir', subsystem: 'payload', name: tx('Thermal infrared camera', '熱赤外カメラ'),
+      kind: 'part', id: 'cam-tir', icon: 'thermo', subsystem: 'payload', name: tx('Thermal infrared camera', '熱赤外カメラ'),
       description: tx('Sees heat day and night; heavy and power-hungry.', '昼も夜も熱を見られるが、重く電力を食う。'),
       cost: rule(450),
       massKg: est(2.0, ['eoportal-prefire', 'nasa-cubesat101'], tx('A CubeSat thermal infrared spectrometer fills about 1.5U (PREFIRE); 1.5U × 1.33 kg per U.', 'CubeSat用の熱赤外分光計は約1.5U（PREFIRE）。1.5U × 1Uあたり1.33 kg。')),
@@ -277,7 +277,7 @@ export const wildfireCubesat: Mission = {
     },
 
     {
-      kind: 'part', id: 'pwr-body', subsystem: 'power', name: tx('Body-mounted panels', '機体貼り付けパネル'),
+      kind: 'part', id: 'pwr-body', icon: 'panel', subsystem: 'power', name: tx('Body-mounted panels', '機体貼り付けパネル'),
       description: tx('Simple and reliable, limited power.', '単純で壊れにくいが、電力は少ない。'),
       cost: rule(40),
       massKg: est(0.45, ['nasa-soa-power'], tx('27.8 W peak at 62 W/kg (6U body-mounted panel, Table 3-2).', 'ピーク27.8 W、62 W/kg（6U機体貼り付けパネル、表3-2）から。')),
@@ -285,7 +285,7 @@ export const wildfireCubesat: Mission = {
       failPerYear: rule(0.01),
     },
     {
-      kind: 'part', id: 'pwr-deploy', subsystem: 'power', name: tx('Deployable panels', '展開式パネル'),
+      kind: 'part', id: 'pwr-deploy', icon: 'wings', subsystem: 'power', name: tx('Deployable panels', '展開式パネル'),
       description: tx('Much more power, one more thing to deploy.', '電力は大きいが、展開という失敗要因が増える。'),
       cost: rule(120),
       massKg: est(0.82, ['nasa-soa-power'], tx('55 W peak at 67 W/kg (6U double deployable wing, Table 3-2).', 'ピーク55 W、67 W/kg（6U両翼展開、表3-2）から。')),
@@ -294,7 +294,7 @@ export const wildfireCubesat: Mission = {
     },
 
     {
-      kind: 'part', id: 'radio-sband', subsystem: 'comms', name: tx('S-band transmitter (6 Mbps)', 'Sバンド送信機（6 Mbps）'),
+      kind: 'part', id: 'radio-sband', icon: 'antenna', subsystem: 'comms', name: tx('S-band transmitter (6 Mbps)', 'Sバンド送信機（6 Mbps）'),
       description: tx('The common choice for science data.', '科学データでよく使われる選択。'),
       cost: rule(60),
       massKg: nasa(0.07, ['nasa-soa-comms']),
@@ -302,7 +302,7 @@ export const wildfireCubesat: Mission = {
       downlinkMBPerMin: est(45, ['nasa-soa-comms'], tx('6,000 kbps (Table 9-3) × 60 s ÷ 8 bits.', '6,000 kbps（表9-3）× 60秒 ÷ 8ビット。')),
     },
     {
-      kind: 'part', id: 'radio-xband', subsystem: 'comms', name: tx('X-band transmitter (50 Mbps)', 'Xバンド送信機（50 Mbps）'),
+      kind: 'part', id: 'radio-xband', icon: 'antenna', subsystem: 'comms', name: tx('X-band transmitter (50 Mbps)', 'Xバンド送信機（50 Mbps）'),
       description: tx('Fast, but the licence takes extra time.', '速いが、免許の手続きに時間がかかる。'),
       cost: rule(150),
       massKg: nasa(0.13, ['nasa-soa-comms']),
@@ -311,9 +311,9 @@ export const wildfireCubesat: Mission = {
       leadDays: rule(60, tx('Extra time for the X-band licence.', 'Xバンドの免許の分だけ時間がかかる。')),
     },
 
-    { kind: 'part', id: 'prot-none', subsystem: 'protection', name: tx('None', 'なし'), description: tx('Lightest and cheapest.', '最も軽く安い。'), cost: rule(0), massKg: rule(0) },
+    { kind: 'part', id: 'prot-none', icon: 'none', subsystem: 'protection', name: tx('None', 'なし'), description: tx('Lightest and cheapest.', '最も軽く安い。'), cost: rule(0), massKg: rule(0) },
     {
-      kind: 'part', id: 'prot-rad', subsystem: 'protection', name: tx('Radiation-tolerant computer', '耐放射線の計算機'),
+      kind: 'part', id: 'prot-rad', icon: 'shield', subsystem: 'protection', name: tx('Radiation-tolerant computer', '耐放射線の計算機'),
       description: tx('Off-the-shelf parts are highly susceptible to radiation; a tested computer survives most solar storms.', '市販の部品は放射線に弱い。試験済みの計算機なら、たいていの太陽嵐に耐える。'),
       cost: rule(80),
       massKg: rule(0.2, COMPUTER_MASS_NOTE),
@@ -321,7 +321,7 @@ export const wildfireCubesat: Mission = {
       tags: ['radHard'],
     },
     {
-      kind: 'part', id: 'prot-full', subsystem: 'protection', name: tx('Radiation-tolerant computer + spare reaction wheel', '耐放射線の計算機＋予備のホイール'),
+      kind: 'part', id: 'prot-full', icon: 'wheel', subsystem: 'protection', name: tx('Radiation-tolerant computer + spare reaction wheel', '耐放射線の計算機＋予備のホイール'),
       description: tx('A fourth wheel keeps pointing if one fails, a common failure in small satellites.', '4つ目のホイールで、1つ壊れても向きを保てる（小型衛星でよくある故障）。'),
       cost: rule(110),
       massKg: est(0.26, ['nasa-soa-gnc'], tx('Computer (0.2 kg, game value) + one small reaction wheel 0.06 kg (Table 5-3).', '計算機（0.2 kg、ゲームの値）＋ 小型ホイール1個 0.06 kg（表5-3）。')),
@@ -330,7 +330,7 @@ export const wildfireCubesat: Mission = {
     },
 
     {
-      kind: 'launch', id: 'lv-iss-deploy', name: tx('Deploy from the ISS', 'ISSから放出'),
+      kind: 'launch', id: 'lv-iss-deploy', icon: 'station', name: tx('Deploy from the ISS', 'ISSから放出'),
       description: tx('Ride to the Space Station on a cargo flight, then deployed 1–3 months later. ISS orbit only.', '補給船で宇宙ステーションへ運ばれ、1〜3か月後に放出される。ISS軌道にしか行けない。'),
       cost: est(600, ['nasa-cubesat101'], tx('Up to $300k is typically enough to launch a 3U to low Earth orbit; doubled for a 6U.', '3Uを低軌道に上げるには通常30万ドルまでで足りる。6Uなので2倍。')),
       capacityKg: { 'orbit-iss': est(8, ['nasa-cubesat101'], MASS_NOTE) },
@@ -338,7 +338,7 @@ export const wildfireCubesat: Mission = {
       windowsDay: rule([300, 420]),
     },
     {
-      kind: 'launch', id: 'lv-rideshare', name: tx('Rideshare to sun-synchronous orbit', '太陽同期軌道への相乗り'),
+      kind: 'launch', id: 'lv-rideshare', icon: 'rocket', name: tx('Rideshare to sun-synchronous orbit', '太陽同期軌道への相乗り'),
       description: tx('Shares a large rocket going to sun-synchronous orbit.', '太陽同期軌道へ行く大型ロケットに相乗りする。'),
       cost: est(350, ['nasa-soa-launch'], tx('Rideshare prices start at $350k for about 50 kg; the game uses this starting price for the 6U, as a minimum.', '相乗りは約50 kgで35万ドルから。ゲームではこの最低料金を6Uにそのまま使う。')),
       capacityKg: {
@@ -350,27 +350,27 @@ export const wildfireCubesat: Mission = {
     },
 
     {
-      kind: 'choice', id: 'window-first', name: tx('Take the first flight', '最初の便に乗る'),
+      kind: 'choice', id: 'window-first', icon: 'calendar', name: tx('Take the first flight', '最初の便に乗る'),
       description: tx('Full schedule score. If the satellite is late, it waits for the next flight 120 days later; after that there is none.', '日程の点は満点。完成が遅れると120日後の次の便を待つ。その次はない。'),
       cost: rule(0), settings: { targetWindow: rule(0) },
     },
     {
-      kind: 'choice', id: 'window-second', name: tx('Book the next flight', '次の便を予約する'),
+      kind: 'choice', id: 'window-second', icon: 'calendar', name: tx('Book the next flight', '次の便を予約する'),
       description: tx('Plan for the flight 120 days later: half the schedule score, but 120 more days for surprises.', '120日後の便に合わせて計画する。日程の点は半分だが、想定外に備える時間が120日増える。'),
       cost: rule(0), settings: { targetWindow: rule(1) },
     },
     {
-      kind: 'choice', id: 'gs-own', name: tx('Own station (35°N)', '自前の地上局（北緯35度）'),
+      kind: 'choice', id: 'gs-own', icon: 'dish', name: tx('Own station (35°N)', '自前の地上局（北緯35度）'),
       description: tx('A university-style station built from amateur radio parts.', 'アマチュア無線の部品で作る、大学によくある地上局。'),
       cost: rule(20), settings: { highLatStation: rule(0), networkFactor: rule(1) },
     },
     {
-      kind: 'choice', id: 'gs-highlat', name: tx('Add a high-latitude station (65°N)', '高緯度の局を足す（北緯65度）'),
+      kind: 'choice', id: 'gs-highlat', icon: 'dish', name: tx('Add a high-latitude station (65°N)', '高緯度の局を足す（北緯65度）'),
       description: tx('Polar orbits pass over high latitudes often; useless for the ISS orbit.', '極に近い軌道はよく上空を通る。ISS軌道では見えない。'),
       cost: rule(60), settings: { highLatStation: rule(1), networkFactor: rule(1) },
     },
     {
-      kind: 'choice', id: 'gs-network', name: tx('Commercial station network', '商用の地上局網'),
+      kind: 'choice', id: 'gs-network', icon: 'globe', name: tx('Commercial station network', '商用の地上局網'),
       description: tx('Pay per pass to stations around the world, including the far north: a station in view on almost every orbit, as fast-alert services such as FireSat use.', '北極圏を含む世界中の局を、1回ごとに料金を払って使う。ほぼ毎周回、どこかの局が見える。FireSatのような速報サービスはこの方式。'),
       cost: rule(150),
       tags: ['frequentContact'],
@@ -380,43 +380,43 @@ export const wildfireCubesat: Mission = {
       },
     },
     {
-      kind: 'choice', id: 'prep-minimal', name: tx('Minimal', '最小限'),
+      kind: 'choice', id: 'prep-minimal', icon: 'headset', name: tx('Minimal', '最小限'),
       description: tx('Check the ground station once before launch.', '打ち上げ前に地上局を一度確認するだけ。'),
       cost: rule(0), settings: { earlyFailureFactorOps: rule(1) },
     },
     {
-      kind: 'choice', id: 'prep-rehearsal', name: tx('Full rehearsal', '通しのリハーサル'),
+      kind: 'choice', id: 'prep-rehearsal', icon: 'headset', name: tx('Full rehearsal', '通しのリハーサル'),
       description: tx('Test the ground station early and often, with the satellite in the loop.', '地上局を早くから何度も、衛星とつないで試す。'),
       cost: rule(40), leadDays: rule(15),
       settings: { earlyFailureFactorOps: est(0.6, ['nasa-cubesat101'], tx('CubeSat 101: test the ground station early and often; an inadequate one is a mission killer. Game effect: 40% fewer early failures.', 'CubeSat 101：地上局は早くから何度も試すこと、不備はミッションを失う原因。ゲームでは初期故障を4割減らす。')) },
     },
     {
-      kind: 'choice', id: 'em-none', name: tx('No spare unit', '予備機なし'),
+      kind: 'choice', id: 'em-none', icon: 'none', name: tx('No spare unit', '予備機なし'),
       description: tx('Test the flight unit only.', '本番の機体だけで試験する。'),
       cost: rule(0),
     },
     {
-      kind: 'choice', id: 'em-build', name: tx('Build an engineering model', '予備機を作る'),
+      kind: 'choice', id: 'em-build', icon: 'boxes', name: tx('Build an engineering model', '予備機を作る'),
       description: tx('A ground copy for testing; it does not fly. Integration problems show up on the copy, so fewer satellites die right after launch.', '試験用の地上の複製機。宇宙には行かない。組み立ての問題を複製機で見つけるので、打ち上げ直後に動かなくなる衛星が減る。'),
       cost: rule(80), leadDays: rule(20),
       settings: { earlyFailureFactorEM: rule(0.7, tx('Game value: 30% fewer satellites that never work after launch.', 'ゲームの値：打ち上げ後に動かない確率を3割減らす。')) },
       tags: ['engineeringModel'],
     },
-    { kind: 'choice', id: 'test-basic', name: tx('Basic', '最小限'), description: tx('Functional tests only.', '動作確認のみ。'), cost: rule(20), leadDays: rule(15), settings: { testDepth: rule(1) } },
+    { kind: 'choice', id: 'test-basic', icon: 'clipboard', name: tx('Basic', '最小限'), description: tx('Functional tests only.', '動作確認のみ。'), cost: rule(20), leadDays: rule(15), settings: { testDepth: rule(1) } },
     {
-      kind: 'choice', id: 'test-standard', name: tx('Standard', '標準'),
+      kind: 'choice', id: 'test-standard', icon: 'clipboard', name: tx('Standard', '標準'),
       description: tx('Vibration and thermal vacuum tests, the usual verification for a CubeSat launch.', '振動試験と熱真空試験。CubeSatの打ち上げで通常求められる検証。'),
       cost: rule(60), leadDays: rule(30), settings: { testDepth: rule(2) },
     },
     {
-      kind: 'choice', id: 'test-full', name: tx('Full', '徹底'),
+      kind: 'choice', id: 'test-full', icon: 'clipboard', name: tx('Full', '徹底'),
       description: tx('Adds a "day in the life" rehearsal of the whole mission.', '運用1日分を通して試す試験（DITL）も行う。'),
       cost: rule(120), leadDays: rule(50), settings: { testDepth: rule(3) },
     },
 
-    { kind: 'choice', id: 'ops-steady', name: tx('Steady', '標準'), description: tx('Observe on most passes over land.', '陸上を通るときはたいてい観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
-    { kind: 'choice', id: 'ops-aggressive', name: tx('Aggressive', '積極的'), description: tx('Observe on every pass; strains power and downlink.', '毎回観測する。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
-    { kind: 'choice', id: 'ops-conservative', name: tx('Conservative', '控えめ'), description: tx('Observe fire-season regions only.', '火災の季節の地域だけ観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
+    { kind: 'choice', id: 'ops-steady', icon: 'eye', name: tx('Steady', '標準'), description: tx('Observe on most passes over land.', '陸上を通るときはたいてい観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
+    { kind: 'choice', id: 'ops-aggressive', icon: 'eye', name: tx('Aggressive', '積極的'), description: tx('Observe on every pass; strains power and downlink.', '毎回観測する。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'ops-conservative', icon: 'eye', name: tx('Conservative', '控えめ'), description: tx('Observe fire-season regions only.', '火災の季節の地域だけ観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
   ],
 
   events: [

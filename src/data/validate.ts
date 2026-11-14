@@ -1,3 +1,4 @@
+import { isIconName } from '../components/icons';
 import { SOURCE_BY_ID } from './sources';
 import type { Condition, Effect, Mission, Sourced } from './types';
 
@@ -23,6 +24,11 @@ export function validateMission(m: Mission): DataIssue[] {
   const issues: DataIssue[] = [];
   const err = (where: string, message: string) => issues.push({ level: 'error', where, message });
   const warn = (where: string, message: string) => issues.push({ level: 'warning', where, message });
+
+  // Every box and option carries a line icon that exists (src/components/icons.tsx).
+  for (const sl of m.slots) if (!sl.icon || !isIconName(sl.icon)) err(`slot ${sl.id}`, `missing or unknown icon "${sl.icon ?? ''}"`);
+  for (const o of m.options) if (!o.icon || !isIconName(o.icon)) err(`option ${o.id}`, `missing or unknown icon "${o.icon ?? ''}"`);
+  for (const sl of m.slots) if (sl.level && !sl.options.some((id) => m.options.find((o) => o.id === id))) err(`slot ${sl.id}`, 'level has no options');
 
   const walk = (v: unknown, where: string): void => {
     if (Array.isArray(v)) { v.forEach((x, i) => walk(x, `${where}[${i}]`)); return; }

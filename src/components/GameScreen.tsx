@@ -15,6 +15,7 @@ import { MissionView } from './MissionView';
 import { useCardText, useCauseName } from './labels';
 import { Modal } from './Modal';
 import { OptionCard, type Diff } from './OptionCard';
+import { Icon } from './icons';
 import { FinalScreen, TurnReports } from './Reports';
 import { AgencyLabel, Resolution } from './Resolution';
 import { Tutorial } from './Tutorial';
@@ -278,7 +279,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
               const locked = changeCost(mission, player, s.id, ['__probe__'], game.phase).locked;
               return (
                 <fieldset key={s.id} className={`slot ${s.options.length > 4 ? 'wide' : s.multi && s.options.length > 2 ? 'multi' : ''} ${flashSlot === s.id ? 'flash' : ''}`}>
-                  <legend>{L(s.label)}</legend>
+                  <legend>{s.icon && <Icon name={s.icon} size="1.15em" className="lg-ico" />}{L(s.label)}</legend>
                   <p className="note">{L(s.help)}{s.multi ? ` ${fmt(t.pickUpTo, { n: s.multi.max })}` : ''}</p>
                   {locked && <p className="warn small">{t.lockedAfterLaunch}</p>}
                   <div className="opts">
@@ -294,6 +295,8 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                           option={o} selected={selected} disabled={wrongOrbit || locked}
                           type={s.multi ? 'checkbox' : 'radio'} name={s.id} orbitId={state.orbit?.id ?? null} solar={state.orbit?.solarFactor?.value}
                           standard={(standard[s.id] ?? []).includes(id)}
+                          slot={s} peers={s.options.map((x) => optionById.get(x)!)} view={mission.view}
+                          compact={mission.slots.filter((x) => x.phase === tab).length >= 4}
                           diffs={pv?.diffs} blocks={pv?.blocks}
                           reason={wrongOrbit ? t.cannotReachOrbit : undefined}
                           hint={c && c.kUSD > 0 && !locked ? fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days }) : undefined}
