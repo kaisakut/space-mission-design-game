@@ -1,5 +1,5 @@
 import type { Mission } from '../types';
-import { est, nasa, pub, rule, tx } from '../helpers';
+import { est, nasa, rule, tx } from '../helpers';
 
 /**
  * Mission 3 (playable): a flagship spacecraft that studies Jupiter's icy moon Europa.
@@ -217,7 +217,7 @@ export const jupiterIcyMoon: Mission = {
 
     { kind: 'choice', id: 'jsplit-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('The reserve also covers design surprises, so only half of it can go to a budget cut; the rest is made up by dropping observations.', '予備費は設計の想定外にも使うので、予算削減に回せるのは半分。残りは観測を減らして埋める。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'jsplit-lean', icon: 'coins', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'jsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: pub(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal). JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
+    { kind: 'choice', id: 'jsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 30% of the cost to go as reserve at proposal, 20% up to the start of assembly and test, and 10% at shipment. JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは残りの費用に対して、提案時に30%、組立・試験の開始まで20%、出荷時に10%の予備費を持つ。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
 
     { kind: 'part', id: 'jinst-eis', icon: 'eye', subsystem: 'payload', name: tx('Cameras (EIS)', 'カメラ（EIS）'), description: tx('Wide and narrow cameras map the surface; down to about 1 m per pixel from 100 km.', '広角と狭角のカメラで地表を撮る。100 kmから1画素約1 m。'), cost: rule(60000), massKg: rule(40), powerW: rule(30), dataMBPerDay: rule(800, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
     { kind: 'part', id: 'jinst-mise', icon: 'thermo', subsystem: 'payload', name: tx('Infrared spectrometer (MISE)', '赤外分光計（MISE）'), description: tx('Maps the chemical fingerprints of salts and organics on the surface.', '地表の塩や有機物の化学的な指紋を地図にする。'), cost: rule(60000), massKg: rule(65), powerW: rule(40), dataMBPerDay: rule(600, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
@@ -282,7 +282,7 @@ export const jupiterIcyMoon: Mission = {
     {
       kind: 'launch', id: 'jlv-direct', icon: 'rocket', name: tx('Super-heavy rocket, direct route', '超大型ロケットで直行'),
       description: tx('Much faster to Jupiter, so fewer years of wear on the way, and more mass to spare; very expensive.', '木星までずっと早く、途中で傷む年数が少ない。質量の余裕も大きいが、非常に高い。'),
-      cost: nasa(876000, ['nasa-oig-europa'], tx('NASA’s 2019 estimate: an SLS launch would cost US$876 million, a commercial rocket up to US$450 million (NASA Inspector General IG-19-019, Table 3). The White House said the same year that SLS costs over US$2 billion per launch.', 'NASAの2019年の見積もり：SLSでの打ち上げは8億7600万ドル、商用ロケットは最大4億5000万ドル（NASA監察官室 IG-19-019、表3）。ホワイトハウスは同じ年に、SLSは1回あたり20億ドル超とした。')), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
+      cost: nasa(876000, ['nasa-oig-europa'], tx('NASA’s 2019 estimate: an SLS launch would cost US$876 million, a commercial rocket up to US$450 million (NASA Inspector General IG-19-019, Table 3).', 'NASAの2019年の見積もり：SLSでの打ち上げは8億7600万ドル、商用ロケットは最大4億5000万ドル（NASA監察官室 IG-19-019、表3）。')), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
       reliability: rule(0.95), windowsDay: rule([1700, 2100, 2500]), tags: ['direct'],
     },
 
@@ -552,7 +552,7 @@ export const jupiterIcyMoon: Mission = {
         who: tx('Europa Clipper', 'エウロパ・クリッパー'),
         year: '2024',
         text: tx('Hurricane Milton scrubbed the 10 October launch, but the launch period ran to 6 November and it flew on 14 October.', 'ハリケーン・ミルトンで10月10日の打ち上げを見送ったが、打ち上げ期間は11月6日まであり、10月14日に打ち上げた。'),
-        sources: ['nasa-clipper-milton'],
+        sources: ['nasa-clipper-milton', 'nasa-clipper-launch'],
       },
     },
   ],

@@ -45,7 +45,7 @@ export const lunarIceRover: Mission = {
   budgetKUSD: rule(500000, tx(
     'Game value for the rover, its instruments and a medium lander. For comparison, NASA’s cost commitment for VIPER was $433.5 million without delivery (later estimated at $609.6 million), and the Griffin delivery grew from $199.5 million to $323 million.',
     'ローバー・機器・中型の着陸機を合わせたゲームの値。比較のため：VIPERの費用の約束は輸送を含まず4億3350万ドル（のちの見込みは6億960万ドル）、Griffinによる輸送の契約は1億9950万ドルから3億2300万ドルに増えた。',
-  )),
+  ), ['spacepolicy-viper-blue']),
   opsDays: nasa(100, ['nasa-viper-mission'], tx('Planned mission length: 100 Earth days, about three lunar day–night cycles.', '計画されたミッション期間：地球の100日、月の昼と夜の約3回分。')),
   bus: {
     massKg: est(417, ['nasa-viper-hw-2024', 'nasa-viper-overview-2020'], tx('Roving mass 447 kg minus the four science instruments (about 30 kg).', '走行時の質量447 kgから、4つの科学機器（約30 kg）を除いた値。')),
@@ -231,7 +231,7 @@ export const lunarIceRover: Mission = {
 
     { kind: 'choice', id: 'lsplit-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('The reserve also covers design surprises, so only half of it can go to a budget cut; the rest is made up by dropping observations.', '予備費は設計の想定外にも使うので、予算削減に回せるのは半分。残りは観測を減らして埋める。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'lsplit-lean', icon: 'coins', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'lsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: pub(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal). JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
+    { kind: 'choice', id: 'lsplit-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 30% of the cost to go as reserve at proposal, 20% up to the start of assembly and test, and 10% at shipment. JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは残りの費用に対して、提案時に30%、組立・試験の開始まで20%、出荷時に10%の予備費を持つ。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
 
     {
       kind: 'part', id: 'inst-nss', icon: 'atom', subsystem: 'payload', name: tx('Neutron spectrometer (NSS)', '中性子分光計（NSS）'),
@@ -312,15 +312,15 @@ export const lunarIceRover: Mission = {
     {
       kind: 'launch', id: 'lander-medium', icon: 'lander', name: tx('Medium commercial lander', '中型の民間着陸機'),
       description: tx('The class chosen for VIPER: up to 500 kg to the surface.', 'VIPERに選ばれた級。月面へ最大500 kg。'),
-      cost: pub(199500, ['spacenews-viper-griffin'], tx('VIPER’s delivery task order, including launch and landing.', 'VIPERの輸送契約（打ち上げと着陸を含む）。')),
+      cost: pub(199500, ['spacepolicy-viper-griffin'], tx('VIPER’s delivery task order, including launch and landing.', 'VIPERの輸送契約（打ち上げと着陸を含む）。')),
       capacityKg: {
-        'site-ridge': pub(500, ['astrobotic-griffin'], tx('The value at the time of the VIPER contract; Astrobotic now lists 625 kg.', 'VIPERの契約時の値。現在の公称は625 kg。')),
-        'site-nobile': pub(500, ['astrobotic-griffin'], tx('The value at the time of the VIPER contract; Astrobotic now lists 625 kg.', 'VIPERの契約時の値。現在の公称は625 kg。')),
-        'site-coldtrap': pub(500, ['astrobotic-griffin'], tx('The value at the time of the VIPER contract; Astrobotic now lists 625 kg.', 'VIPERの契約時の値。現在の公称は625 kg。')),
+        'site-ridge': pub(500, ['spacepolicy-viper-griffin', 'astrobotic-pug'], tx('The value at the time of the VIPER contract (2020); Astrobotic’s 2022 user’s guide lists 625 kg to the poles.', 'VIPERの契約時（2020年）の値。Astroboticの2022年の利用者向け資料では、極域へ625 kg。')),
+        'site-nobile': pub(500, ['spacepolicy-viper-griffin', 'astrobotic-pug'], tx('The value at the time of the VIPER contract (2020); Astrobotic’s 2022 user’s guide lists 625 kg to the poles.', 'VIPERの契約時（2020年）の値。Astroboticの2022年の利用者向け資料では、極域へ625 kg。')),
+        'site-coldtrap': pub(500, ['spacepolicy-viper-griffin', 'astrobotic-pug'], tx('The value at the time of the VIPER contract (2020); Astrobotic’s 2022 user’s guide lists 625 kg to the poles.', 'VIPERの契約時（2020年）の値。Astroboticの2022年の利用者向け資料では、極域へ625 kg。')),
       },
-      reliability: est(0.75, ['astrobotic-pm1', 'upi-im1', 'sfn-im2', 'nasa-blue-ghost', 'spacepolicy-clps'], tx(
-        'Chance of reaching the surface. Of NASA’s four commercial lunar deliveries in 2024–2025, three reached the surface (Peregrine did not), but two of those landed on their side; landing on the side is a separate card. NASA called these deliveries “shots on goal” and said a 50-50 success rate would be acceptable.',
-        '月面に届く確率。2024〜2025年のNASAの民間月輸送4回のうち、月面に届いたのは3回（Peregrineは届かず）。ただしそのうち2回は横倒しだった（横倒しは別のカード）。NASAはこの輸送を「シュートの数を打つ」方式と呼び、成功率5割でも受け入れられるとしていた。',
+      reliability: est(0.75, ['astrobotic-pm1', 'upi-im1', 'sfn-im2', 'nasa-blue-ghost', 'spacepolicy-viper-griffin'], tx(
+        'Chance of reaching the surface. Of NASA’s four commercial lunar deliveries in 2024–2025, three reached the surface (Peregrine did not), but two of those landed on their side; landing on the side is a separate card. NASA called these deliveries “shots on goal”, and a 50-50 success rate was reported to be acceptable.',
+        '月面に届く確率。2024〜2025年のNASAの民間月輸送4回のうち、月面に届いたのは3回（Peregrineは届かず）。ただしそのうち2回は横倒しだった（横倒しは別のカード）。NASAはこの輸送を「シュートの数を打つ」方式と呼んだ。成功率が5割でも受け入れる考えだと報じられた。',
       )),
       windowsDay: rule([1000, 1200, 1400]),
       // A firm order for a lander class that has flown commercial deliveries (a game distinction: Griffin itself has not flown yet).
@@ -464,8 +464,8 @@ export const lunarIceRover: Mission = {
       realCase: {
         who: tx('Spirit (Mars)', 'スピリット（火星）'),
         year: '2009',
-        text: tx('Spirit: in May 2009 the rover broke through a crust and sank into soft soil at “Troy”; it never drove out, and the mission ended there.', 'スピリット：2009年5月、表面の固い層を踏み抜いて「トロイ」の柔らかい土に沈んだ。抜け出せないまま、そこで任務を終えた。'),
-        sources: ['nasa-spirit-troy'],
+        text: tx('Spirit: in spring 2009 the rover got stuck in soft soil at “Troy”. It fell silent in March 2010, and NASA ended its attempts to contact it in 2011.', 'スピリット：2009年の春、「トロイ」の柔らかい土にはまった。2010年3月に通信が途絶え、NASAは2011年に交信の試みを終えた。'),
+        sources: ['nasa-spirit-troy', 'jpl-spirit-end'],
       },
     },
     {
@@ -498,7 +498,7 @@ export const lunarIceRover: Mission = {
     {
       id: 'tip-over', icon: 'lander', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
       story: tx('The lander touches down but tips over. The rover may not be able to drive off cleanly, and the solar arrays face the wrong way.', '着陸はできたが横倒しになった。ローバーがうまく降りられず、太陽電池も違う方向を向いている。'),
-      probability: est(0.5, ['nasa-clps-agu-2025', 'nasa-clps-timeline', 'nasa-im2-end', 'sfn-im2'], tx('Of the three CLPS landings that reached the surface (IM-1, Blue Ghost 1, IM-2), two ended on their side. With only three, the game uses 0.5 rather than two thirds.', 'CLPSで月面に着陸できた3回（IM-1、Blue Ghost 1、IM-2）のうち2回が横倒しだった。3回しかないので、3分の2ではなく0.5とした。')),
+      probability: est(0.5, ['nasa-clps-agu-2025', 'nasa-clps-timeline', 'nasa-im2-end', 'sfn-im2', 'upi-im1'], tx('Of the three CLPS landings that reached the surface (IM-1, Blue Ghost 1, IM-2), two ended on their side. With only three, the game uses 0.5 rather than two thirds.', 'CLPSで月面に着陸できた3回（IM-1、Blue Ghost 1、IM-2）のうち2回が横倒しだった。3回しかないので、3分の2ではなく0.5とした。')),
       partialIf: { kind: 'hasTag', tag: 'lander:large' },
       partial: [{ kind: 'scienceFactor', factor: 0.8 }],
       unprotected: [{ kind: 'scienceFactor', factor: 0.5 }, { kind: 'durationFactor', factor: 0.6 }],

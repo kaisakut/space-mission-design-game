@@ -57,8 +57,8 @@ export const wildfireCubesat: Mission = {
     budgetFullLeftShare: rule(0.15, tx('Game value, set so that adding one small safeguard to the standard design still earns full budget points.', 'ゲームの値。標準の設計に小さな備えを1つ足しても満点のままになるように決めた。')),
     scienceFullScore: rule(120000, tx('Science value for the full science score; a standard design earns about 20% of it.', '科学価値の満点の基準。標準の設計でその約2割。')),
     earlyFailureByTestDepth: est([0.18, 0.08, 0.04], ['langer-2016', 'nasa-cubesat101'], tx(
-      'Chance the satellite never works after launch, by test depth. Basic testing: 18% of 178 CubeSats launched by mid-2014 never made contact (Langer 2016). The values for deeper testing are game values. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
-      '試験の深さごとの、打ち上げ後に動かない確率。最小限の試験の値：2014年半ばまでに打ち上げたキューブサット178機のうち18%が一度も通信できなかった（Langer 2016）。それより深い試験の値はゲームの値。CubeSat 101 では打ち上げ前の検証試験（振動・熱真空）を必須としている。',
+      'Chance the satellite never works after launch, by test depth. Basic testing: about 18% (95% range 13–24%) of CubeSats failed right after launch in Langer’s 2016 study of 178 launched CubeSats. The values for deeper testing are game values. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
+      '試験の深さごとの、打ち上げ後に動かない確率。最小限の試験の値：打ち上げたキューブサット178機を調べた Langer（2016）で、打ち上げ直後に動かなかった割合は約18%（95%の幅で13〜24%）。それより深い試験の値はゲームの値。CubeSat 101 では打ち上げ前の検証試験（振動・熱真空）を必須としている。',
     )),
     changeFactors: rule([1.5, 3, 6], tx('Later changes ripple into more redesign and retesting.', '後で変えるほど、設計のやり直しと再試験が広がる。')),
     changeMinKUSD: rule(30, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
@@ -252,7 +252,7 @@ export const wildfireCubesat: Mission = {
     {
       kind: 'orbit', id: 'orbit-sso-600', icon: 'orbit', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
       description: tx('Higher: longer passes over each ground station and less air drag in solar storms, but needs a device to come down at the end.', '高い分、地上局の上を通る時間が長く、磁気嵐で大気の抵抗も受けにくい。ただし最後に降ろす装置が要る。'),
-      cost: rule(40, tx('Game value for buying, fitting and testing a drag sail. The US FCC requires disposal within 5 years of mission end; from 600 km a CubeSat takes far longer on its own. No public price was found, so the cost stays modest.', '抵抗帆の購入・取り付け・試験のゲームの値。米国FCCはミッション終了から5年以内の処分を求めており、600 kmからでは自然に落ちるまでずっと長くかかる。公開された価格は見つからなかったため、費用は控えめにした。')),
+      cost: rule(40, tx('Game value for buying, fitting and testing a drag sail. The US FCC requires disposal within 5 years of mission end; from 600 km a CubeSat takes far longer on its own. No public price was found, so the cost stays modest.', '抵抗帆の購入・取り付け・試験のゲームの値。米国FCCはミッション終了から5年以内の処分を求めており、600 kmからでは自然に落ちるまでずっと長くかかる。公開された価格は見つからなかったため、費用は控えめにした。'), ['fcc-5-year-rule']),
       addsMassKg: pub(0.21, ['npc-artica'], tx('A commercial CubeSat drag sail (210 g) that brings a satellite down from 650 km in under 5 years.', '市販のCubeSat用抵抗帆（210 g）。650 kmから5年以内に降ろせる。')),
       altitudeKm: rule(600, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
@@ -264,14 +264,14 @@ export const wildfireCubesat: Mission = {
 
     { kind: 'choice', id: 'split-balanced', icon: 'coins', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('The reserve also covers design surprises, so only half of it can go to a budget cut; the rest is made up by dropping observations.', '予備費は設計の想定外にも使うので、予算削減に回せるのは半分。残りは観測を減らして埋める。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'split-lean', icon: 'coins', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'split-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: pub(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal). JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
+    { kind: 'choice', id: 'split-safe', icon: 'coins', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full. NASA projects hold 20–30% in reserve during design. Less to spend on hardware.', '予算削減を全部吸収できる。NASAの計画は設計中に20〜30%の予備費を持つ。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 30% of the cost to go as reserve at proposal, 20% up to the start of assembly and test, and 10% at shipment. JPL’s rule is a share of the cost to go; the game applies it to the whole budget. That this reserve absorbs a budget cut in full is the game’s rule.', 'JPLは残りの費用に対して、提案時に30%、組立・試験の開始まで20%、出荷時に10%の予備費を持つ。JPLの基準は残りの費用に対する割合。ゲームでは予算の総額に対する割合として扱う。予算削減を全部吸収できるとしたのはゲームの決めごと。')) } },
 
     {
       kind: 'part', id: 'cam-vis', icon: 'eye', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'),
       description: tx('Cheap; sees smoke in daylight only.', '安いが、昼の煙しか見えない。'),
       cost: rule(60),
-      massKg: pub(0.5, ['dragonfly-gecko'], tx('Off-the-shelf CubeSat RGB imager, including electronics.', '市販のCubeSat用RGBカメラ（電子回路込み）。')),
-      powerW: pub(3.5, ['dragonfly-gecko'], tx('Power while imaging (under 3.5 W).', '撮影中の電力（3.5 W未満）。')),
+      massKg: pub(0.5, ['dragonfly-gecko'], tx('Off-the-shelf CubeSat RGB imager, including electronics (the heavier of its two configurations; the lighter is 390 g).', '市販のCubeSat用RGBカメラ（電子回路込み）。2つある構成の重い方（軽い方は390 g）。')),
+      powerW: pub(3.5, ['dragonfly-gecko'], tx('Power while imaging, heavier configuration (under 3.5 W; the lighter is under 2.7 W).', '撮影中の電力。重い方の構成（3.5 W未満。軽い方は2.7 W未満）。')),
       dataMBPerDay: rule(300, DATA_NOTE), scienceWeight: rule(0.5), observes: 'day',
       detectShare: rule(0.3, tx('Game value: it sees the smoke of large fires by day, but FIRMS counts fires found in infrared, many of them small or hidden by smoke.', 'ゲームの値：昼の大きな火災の煙は見えるが、FIRMSが数えるのは赤外で見つけた火災で、その多くは小さいか煙に隠れている。')),
     },
@@ -279,8 +279,8 @@ export const wildfireCubesat: Mission = {
       kind: 'part', id: 'cam-swir', icon: 'flame', subsystem: 'payload', name: tx('Short-wave infrared camera', '短波赤外カメラ'),
       description: tx('Sees active flames through smoke in daylight.', '昼なら煙越しに炎を見られる。'),
       cost: rule(250),
-      massKg: pub(0.82, ['skylabs-nanoimager'], tx('CubeSat InGaAs short-wave infrared imager.', 'CubeSat用のInGaAs短波赤外カメラ。')),
-      powerW: pub(6.7, ['skylabs-nanoimager'], tx('Average power.', '平均電力。')),
+      massKg: est(0.82, ['skylabs-nanoimager'], tx('CubeSat InGaAs short-wave infrared imager, from the SkyLabs NANOimager listing; the listing could not be opened again in November 2026, so the value is kept as approximate.', 'CubeSat用のInGaAs短波赤外カメラ。SkyLabs NANOimager の掲載値。2026年11月に掲載ページを開き直せなかったので、目安の値として扱う。')),
+      powerW: est(6.7, ['skylabs-nanoimager'], tx('Average power, from the same listing (could not be opened again in November 2026; approximate).', '平均電力。同じ掲載値（2026年11月に開き直せなかったので目安の値）。')),
       dataMBPerDay: rule(500, DATA_NOTE), scienceWeight: rule(1), observes: 'day',
     },
     {
@@ -392,7 +392,7 @@ export const wildfireCubesat: Mission = {
       tags: ['frequentContact'],
       settings: {
         highLatStation: rule(1),
-        networkFactor: rule(3, tx('Pay-per-pass services are one of the ground options NASA lists for small missions; the game counts them as three times your own stations.', 'NASAは小型ミッションの地上局の選択肢として1回ごとの有料サービスを挙げている。ゲームでは自前の局の3倍の通信時間として扱う。')),
+        networkFactor: rule(3, tx('Pay-per-pass services are one of the ground options NASA lists for small missions; the game counts them as three times your own stations. Fast-alert services such as FireSat send their data down within minutes through such a network.', 'NASAは小型ミッションの地上局の選択肢として1回ごとの有料サービスを挙げている。ゲームでは自前の局の3倍の通信時間として扱う。FireSatのような速報サービスは、こうした局網で数分のうちにデータを降ろす。'), ['via-firesat-latency']),
       },
     },
     {
@@ -545,8 +545,8 @@ export const wildfireCubesat: Mission = {
       realCase: {
         who: tx('ICESat-2', 'ICESat-2'),
         year: '2024',
-        text: tx('ICESat-2 (May 2024): during the Gannon storm, extra drag at about 480 km turned the spacecraft and put it into safe hold; Starlink raised about 5,000 satellites at once.', 'ICESat-2（2024年5月）：ガノン嵐のとき、高度約480 kmで想定外の抵抗を受けて姿勢が回り、セーフホールドに入った。Starlinkは約5,000機の軌道を一斉に上げた。'),
-        sources: ['knipp-gannon'],
+        text: tx('ICESat-2 (May 2024): during the strongest solar storm in decades, the spacecraft went into safe mode, most likely because the thicker air increased its drag.', 'ICESat-2（2024年5月）：数十年で最も強い太陽嵐のとき、セーフモードに入った。大気が濃くなって抵抗が増えたためとみられる。'),
+        sources: ['nasa-gannon-storm'],
       },
     },
     {

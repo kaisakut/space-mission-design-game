@@ -23,6 +23,10 @@ Play solo or together:
 
 _To be written. Every value used in the game records its source; the list of sources is [`src/data/sources.ts`](src/data/sources.ts)._
 
+- Sources marked as NASA are written or produced by NASA, wherever they are hosted; the list says where each copy is.
+- Space weather: the game's solar-storm chances count events in the Space Weather Database Of Notifications, Knowledge, Information ([DONKI](https://ccmc.gsfc.nasa.gov/tools/DONKI/)), provided by NASA's Community Coordinated Modeling Center (CCMC) and the Moon to Mars Space Weather Analysis Office. DONKI's information is prototype-quality and intended for research.
+- Read for the game's design (no values taken from them): Design and Develop Science Missions, JPL Concept Maturity Levels, the General Mission Analysis Tool (GMAT), and “The VIPER Mission, a Resource-Mapping Mission on Another Celestial Body” (NASA Ames, 2022).
+
 ## Run locally
 
 Requires Node.js 22 or later.
@@ -45,7 +49,7 @@ _Being written: all libraries, data, code and images used in this project._
 - [React](https://react.dev/) (MIT) — user interface.
 - [three.js](https://threejs.org/) (MIT) — the 3D mission view. Earth uses the NASA Blue Marble image below; Jupiter's bands, the radiation belts and the lunar south-pole disc are drawn in code (no outside images), as explanatory pictures that are not to scale.
 - Sound effects are synthesised in code with the Web Audio API; the game uses no audio files.
-- NASA Visible Earth, [Blue Marble: Land Surface, Shallow Water, and Shaded Topography](https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography) (NASA Goddard Space Flight Center, Reto Stöckli; public domain) — Earth texture, `public/textures/earth_day_2048.jpg` (taken from the Wikimedia Commons copy of the NASA file and resized to 2048 × 1024).
+- NASA Visible Earth, [Blue Marble: Land Surface, Shallow Water, and Shaded Topography](https://web.archive.org/web/20260128022646/https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography) (Internet Archive copy; the NASA page now redirects) (NASA Goddard Space Flight Center, Reto Stöckli; public domain) — Earth texture, `public/textures/earth_day_2048.jpg` (taken from the Wikimedia Commons copy of the NASA file and resized to 2048 × 1024).
 
 ## AI usage
 

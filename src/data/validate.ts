@@ -35,11 +35,17 @@ export function validateMission(m: Mission): DataIssue[] {
     if (Array.isArray(v)) { v.forEach((x, i) => walk(x, `${where}[${i}]`)); return; }
     if (typeof v !== 'object' || v === null) return;
     if (isSourced(v)) {
+      if (v.basis === 'rule') for (const s of v.sources ?? []) if (!SOURCE_BY_ID.has(s)) err(where, `unknown source id '${s}'`);
       if (v.basis === 'placeholder') issues.push({ level: 'placeholder', where, message: `placeholder value ${JSON.stringify(v.value)}` });
       else if (v.basis !== 'rule') {
         if (!v.sources?.length) err(where, `basis '${v.basis}' needs at least one source`);
         for (const s of v.sources ?? []) if (!SOURCE_BY_ID.has(s)) err(where, `unknown source id '${s}'`);
         if (v.basis === 'estimate' && !v.note) err(where, 'an estimate needs a note saying how it was derived');
+        // The basis must match the sources' NASA mark: a NASA value cites something NASA wrote, a public value
+        // cites at least one source NASA did not write (otherwise it is a NASA value).
+        const marks = (v.sources ?? []).map((s) => SOURCE_BY_ID.get(s)?.nasa);
+        if (v.basis === 'nasa' && !marks.some((x) => x === true)) err(where, "basis 'nasa' needs at least one source written by NASA");
+        if (v.basis === 'public' && marks.length && marks.every((x) => x === true)) err(where, "basis 'public' cites only NASA sources (use 'nasa')");
       }
       if (v.note) walk(v.note, `${where}.note`);
       return;

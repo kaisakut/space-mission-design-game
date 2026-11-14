@@ -7,7 +7,8 @@ export const tx = (en: string, ja: string): Text => ({ en, ja });
 export const ph = <T = number>(value: T): Sourced<T> => ({ value, basis: 'placeholder' });
 
 /** Game-balance rule (not a real-world value). */
-export const rule = <T = number>(value: T, note?: Text): Sourced<T> => ({ value, basis: 'rule', ...(note ? { note } : {}) });
+/** A game rule. `sources` back real-world facts mentioned in the note (the value itself is the game's). */
+export const rule = <T = number>(value: T, note?: Text, sources?: string[]): Sourced<T> => ({ value, basis: 'rule', ...(note ? { note } : {}), ...(sources?.length ? { sources } : {}) });
 
 /** Value taken from NASA data or documents. */
 export const nasa = <T = number>(value: T, sources: string[], note?: Text): Sourced<T> => ({ value, basis: 'nasa', sources, ...(note ? { note } : {}) });

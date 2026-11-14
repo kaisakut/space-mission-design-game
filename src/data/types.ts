@@ -16,7 +16,7 @@ export interface Text {
 
 /**
  * Where a value comes from.
- * - `nasa`: taken from NASA data or a NASA document (shown with the NASA mark in the game)
+ * - `nasa`: taken from NASA data or a document NASA wrote (shown with the NASA mark in the game)
  * - `public`: taken from another public source (agency, manufacturer, paper)
  * - `estimate`: derived from sources by a stated calculation or rounding (note says how)
  * - `rule`: a game-balance rule, not a real-world value (no source needed; shown as "game rule")
@@ -38,7 +38,11 @@ export interface Source {
   title: string;
   publisher: string;
   url: string;
-  /** NASA data or document (counts toward the NASA data requirement). */
+  /**
+   * Written or produced by NASA (headquarters, centres, JPL, the Inspector General), wherever it is hosted; say in
+   * publisher when the copy is not on a NASA site. Not for reporting about NASA or for other agencies (GAO, CRS).
+   * Counts toward the NASA data requirement.
+   */
   nasa: boolean;
   /** Date the source was read or downloaded, YYYY-MM-DD. */
   accessed: string;
