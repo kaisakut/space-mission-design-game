@@ -1,5 +1,14 @@
 import type { Mission } from '../types';
-import { est, nasa, ph, rule, tx } from '../helpers';
+import { est, nasa, pub, rule, tx } from '../helpers';
+
+const DATA_NOTE = tx(
+  'Game value for the standard observation plan; the plan you pick scales it.',
+  '標準の観測計画でのゲームの値。選んだ観測計画に応じて増減する。',
+);
+const COMPUTER_MASS_NOTE = tx(
+  'NASA’s computer table lists no masses; game value for a single CubeSat computer board.',
+  'NASAの計算機の表には質量がないため、CubeSat用計算機1枚分のゲームの値とした。',
+);
 
 const CONTACT_NOTE = tx(
   'Minutes per day above 10° elevation from one ground station at 35°N, averaged over 30 days (scripts/orbit-contact.py: circular orbit with J2 drift).',
@@ -16,8 +25,8 @@ const MASS_NOTE = tx('6U × 1.33 kg per U (the CubeSat unit mass in CubeSat 101)
  *
  * A 6U CubeSat: thermal infrared imagers for CubeSats fly on 6U platforms (PREFIRE, HyTI).
  * Part values come from NASA's State-of-the-Art Small Spacecraft Technology report and CubeSat 101.
- * Prices are game values (the sources list no prices). Camera figures and the solar flare chance are still
- * placeholders: the flare chance comes next from NASA DONKI (`npm run check:data -- --list`).
+ * Prices are game values (the sources list no prices).
+ * The solar storm chance comes from NASA DONKI records (data/donki-sep-2014-2025.json).
  */
 export const wildfireCubesat: Mission = {
   id: 'wildfire-cubesat',
@@ -172,14 +181,29 @@ export const wildfireCubesat: Mission = {
     { kind: 'choice', id: 'split-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
     { kind: 'choice', id: 'split-safe', name: tx('Safe (25% reserve)', '安全重視（予備費25%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.25) } },
 
-    { kind: 'part', id: 'cam-vis', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'), description: tx('Cheap; sees smoke in daylight only.', '安いが、昼の煙しか見えない。'), cost: ph(60), massKg: ph(0.4), powerW: ph(2), dataMBPerDay: ph(300), scienceWeight: rule(0.5) },
-    { kind: 'part', id: 'cam-swir', subsystem: 'payload', name: tx('Short-wave infrared camera', '短波赤外カメラ'), description: tx('Sees active flames through smoke in daylight.', '昼なら煙越しに炎を見られる。'), cost: ph(250), massKg: ph(1.0), powerW: ph(5), dataMBPerDay: ph(500), scienceWeight: rule(1) },
+    {
+      kind: 'part', id: 'cam-vis', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'),
+      description: tx('Cheap; sees smoke in daylight only.', '安いが、昼の煙しか見えない。'),
+      cost: rule(60),
+      massKg: pub(0.5, ['dragonfly-gecko'], tx('Off-the-shelf CubeSat RGB imager, including electronics.', '市販のCubeSat用RGBカメラ（電子回路込み）。')),
+      powerW: pub(3.5, ['dragonfly-gecko'], tx('Power while imaging (under 3.5 W).', '撮影中の電力（3.5 W未満）。')),
+      dataMBPerDay: rule(300, DATA_NOTE), scienceWeight: rule(0.5),
+    },
+    {
+      kind: 'part', id: 'cam-swir', subsystem: 'payload', name: tx('Short-wave infrared camera', '短波赤外カメラ'),
+      description: tx('Sees active flames through smoke in daylight.', '昼なら煙越しに炎を見られる。'),
+      cost: rule(250),
+      massKg: pub(0.82, ['skylabs-nanoimager'], tx('CubeSat InGaAs short-wave infrared imager.', 'CubeSat用のInGaAs短波赤外カメラ。')),
+      powerW: pub(6.7, ['skylabs-nanoimager'], tx('Average power.', '平均電力。')),
+      dataMBPerDay: rule(500, DATA_NOTE), scienceWeight: rule(1),
+    },
     {
       kind: 'part', id: 'cam-tir', subsystem: 'payload', name: tx('Thermal infrared camera', '熱赤外カメラ'),
       description: tx('Sees heat day and night; heavy and power-hungry.', '昼も夜も熱を見られるが、重く電力を食う。'),
-      cost: ph(450),
+      cost: rule(450),
       massKg: est(2.0, ['eoportal-prefire', 'nasa-cubesat101'], tx('A CubeSat thermal infrared spectrometer fills about 1.5U (PREFIRE); 1.5U × 1.33 kg per U.', 'CubeSat用の熱赤外分光計は約1.5U（PREFIRE）。1.5U × 1Uあたり1.33 kg。')),
-      powerW: ph(9), dataMBPerDay: ph(700), scienceWeight: rule(1.2), tags: ['night'],
+      powerW: rule(9, tx('No public figure found for a CubeSat thermal infrared imager; game value above the other two cameras.', 'CubeSat用熱赤外カメラの電力の公表値が見つからないため、他の2つより大きいゲームの値とした。')),
+      dataMBPerDay: rule(700, DATA_NOTE), scienceWeight: rule(1.2), tags: ['night'],
     },
 
     {
@@ -226,13 +250,20 @@ export const wildfireCubesat: Mission = {
     },
 
     { kind: 'part', id: 'prot-none', subsystem: 'protection', name: tx('None', 'なし'), description: tx('Lightest and cheapest.', '最も軽く安い。'), cost: rule(0), massKg: rule(0) },
-    { kind: 'part', id: 'prot-rad', subsystem: 'protection', name: tx('Radiation-tolerant computer', '耐放射線の計算機'), description: tx('Survives most solar storms.', 'たいていの太陽フレアに耐える。'), cost: rule(80), massKg: ph(0.2), tags: ['radHard'] },
+    {
+      kind: 'part', id: 'prot-rad', subsystem: 'protection', name: tx('Radiation-tolerant computer', '耐放射線の計算機'),
+      description: tx('Off-the-shelf parts are highly susceptible to radiation; a tested computer survives most solar storms.', '市販の部品は放射線に弱い。試験済みの計算機なら、たいていの太陽嵐に耐える。'),
+      cost: rule(80),
+      massKg: rule(0.2, COMPUTER_MASS_NOTE),
+      powerW: nasa(2, ['nasa-soa-avionics'], tx('A CubeSat computer rated for 25 krad total dose (Table 8-4).', '総線量25 kradのCubeSat用計算機（表8-4）。')),
+      tags: ['radHard'],
+    },
     {
       kind: 'part', id: 'prot-full', subsystem: 'protection', name: tx('Radiation-tolerant computer + spare reaction wheel', '耐放射線の計算機＋予備のホイール'),
       description: tx('A fourth wheel keeps pointing if one fails, a common failure in small satellites.', '4つ目のホイールで、1つ壊れても向きを保てる（小型衛星でよくある故障）。'),
       cost: rule(110),
-      massKg: est(0.26, ['nasa-soa-gnc'], tx('Computer (0.2 kg, placeholder) + one small reaction wheel 0.06 kg (Table 5-3).', '計算機（0.2 kg、仮）＋ 小型ホイール1個 0.06 kg（表5-3）。')),
-      powerW: nasa(0.85, ['nasa-soa-gnc']),
+      massKg: est(0.26, ['nasa-soa-gnc'], tx('Computer (0.2 kg, game value) + one small reaction wheel 0.06 kg (Table 5-3).', '計算機（0.2 kg、ゲームの値）＋ 小型ホイール1個 0.06 kg（表5-3）。')),
+      powerW: est(2.85, ['nasa-soa-avionics', 'nasa-soa-gnc'], tx('Computer 2 W (Table 8-4) + wheel 0.85 W (Table 5-3).', '計算機 2 W（表8-4）＋ ホイール 0.85 W（表5-3）。')),
       tags: ['radHard', 'spareWheel'],
     },
 
@@ -307,12 +338,18 @@ export const wildfireCubesat: Mission = {
       lesson: tx('{agency} lost its satellite at launch.', '{agency}は、打ち上げで衛星を失った。'),
     },
     {
-      id: 'solar-flare', phase: 5, name: tx('Solar flare', '太陽フレア'),
-      story: tx('A strong solar flare hits the spacecraft electronics.', '強い太陽フレアが機体の電子機器を襲った。'),
-      probability: ph(0.3),
+      id: 'solar-flare', phase: 5, name: tx('Solar storm', '太陽嵐'),
+      story: tx(
+        'A solar flare sends a burst of high-energy particles. They can upset or damage the spacecraft computer.',
+        '太陽フレアに伴って高エネルギーの粒子が降り注いだ。機体の計算機が誤動作したり壊れたりするおそれがある。',
+      ),
+      probability: est(0.78, ['nasa-donki'], tx(
+        'Share of 12-month periods in 2014–2025 with at least one solar energetic particle (SEP) episode in DONKI (104 of 133). Records within 3 days are one episode. See data/donki-sep-2014-2025.json.',
+        '2014〜2025年の12か月の期間のうち、DONKIに太陽高エネルギー粒子（SEP）の記録が1回以上ある期間の割合（133のうち104）。3日以内の記録は1回とまとめた。data/donki-sep-2014-2025.json を参照。',
+      )),
       protectedIf: { kind: 'hasTag', tag: 'radHard' },
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.5 }],
-      lesson: tx('The same flare hit everyone; {agency} had no radiation protection.', '同じフレアが全機関を襲った。{agency}には放射線対策がなかった。'),
+      lesson: tx('The same solar storm hit everyone; {agency} had no radiation protection.', '同じ太陽嵐が全機関を襲った。{agency}には放射線対策がなかった。'),
     },
     {
       id: 'wheel-failure', phase: 5, name: tx('Reaction wheel failure', 'ホイールの故障'),

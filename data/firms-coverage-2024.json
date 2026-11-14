@@ -1,0 +1,33 @@
+{
+ "source": "NASA FIRMS, MODIS Collection 6.1 standard processing, country yearly summary 2024 (https://firms.modaps.eosdis.nasa.gov/country/)",
+ "retrieved": "2026-11-14",
+ "method": "Science value data for the Wildfire Watch CubeSat: how many real 2024 fires each orbit could have seen.\n\nInput : NASA FIRMS MODIS 2024 country yearly summary (data/raw/modis_2024_all_countries.zip, not committed).\nOutput: data/firms-coverage-2024.json\n\nMethod (kept simple on purpose, and stated in the output file):\n- Fires: every MODIS active-fire detection of 2024 with type 0 (presumed vegetation fire),\n  grouped by 1-degree latitude/longitude cell and calendar day (UTC).\n- Satellite: circular orbit with J2 drift of the orbit plane, sampled every 20 s over the year\n  (the same model as scripts/orbit-contact.py). A cell counts as observed on a day when the\n  ground track passes through it that day; one 1-degree cell is about the width of a CubeSat\n  camera swath (about 80-100 km).\n- Day or night: local solar time from longitude; 06:00-18:00 is day. Visible and short-wave\n  infrared cameras only count daytime passes; a thermal infrared camera counts both.\n- Sun-synchronous orbits cross the equator southbound at 10:30 local time (as Terra does).",
+ "firesTotal": 4653131,
+ "nightFiresTotal": 753726,
+ "orbits": {
+  "orbit-iss": {
+   "detectionsUnderTrackAnyPass": 387362,
+   "detectionsUnderTrackDayPass": 198436,
+   "nightDetectionsUnderTrackAnyPass": 56943,
+   "cellDaysObserved": 1543481,
+   "visibleSwirShare": 0.0426,
+   "thermalShare": 0.0832
+  },
+  "orbit-sso-500": {
+   "detectionsUnderTrackAnyPass": 304111,
+   "detectionsUnderTrackDayPass": 158040,
+   "nightDetectionsUnderTrackAnyPass": 50148,
+   "cellDaysObserved": 1557013,
+   "visibleSwirShare": 0.034,
+   "thermalShare": 0.0654
+  },
+  "orbit-sso-600": {
+   "detectionsUnderTrackAnyPass": 311631,
+   "detectionsUnderTrackDayPass": 157475,
+   "nightDetectionsUnderTrackAnyPass": 50415,
+   "cellDaysObserved": 1555482,
+   "visibleSwirShare": 0.0338,
+   "thermalShare": 0.067
+  }
+ }
+}
