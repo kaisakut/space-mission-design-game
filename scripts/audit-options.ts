@@ -63,6 +63,12 @@ for (const m of MISSIONS) {
   }
 }
 
+/** Options left never best on purpose, with the reason (see notes/選択肢の点検.md). */
+const NEVER_BEST: Record<string, string> = {
+  'jupiter-icy-moon:jlv-direct': 'about 2 B$, as NASA found when it chose Falcon Heavy for Europa Clipper',
+  'wildfire-cubesat:window-second': 'flights are 120 days apart and the satellite\'s own delays are shorter, so the first flight is rarely missed',
+};
+
 // Best choice share: in each random design, which option of the box gives the highest mean score.
 // An option that is never best (0%) has no design it suits; that is a balance problem unless intended.
 console.log('\n# Best choice share (single-choice boxes)');
@@ -80,5 +86,6 @@ for (const m of MISSIONS) {
       wins[best] = (wins[best] ?? 0) + 1;
     }
     console.log(`${slot.id}: ` + slot.options.map((o) => `${o} ${Math.round((wins[o]! / bases.length) * 100)}%`).join('  '));
+    for (const o of slot.options) if (wins[o] === 0) console.log(`  warn ${o} is never the best choice for its box${NEVER_BEST[`${m.id}:${o}`] ? ` (intended: ${NEVER_BEST[`${m.id}:${o}`]})` : ''}`);
   }
 }

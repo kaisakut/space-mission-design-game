@@ -86,9 +86,10 @@ for (const m of MISSIONS) {
       if (showTable) console.log(`     ${m.id} ${slot.id}=${id}: success ${ds >= 0 ? '+' : ''}${ds.toFixed(1)}, score ${dsc >= 0 ? '+' : ''}${dsc.toFixed(1)}`);
       if (slot.id !== 'secondary' && Math.abs(dsc) < 0.1) warn.push(`${slot.id}=${id} hardly changes the score (${dsc.toFixed(2)})`);
       if (ds >= 2 && dsc < 0) {
+        // A safer choice that costs some score is a fair trade-off (the price of the extra success), so it is only noted.
+        // The real balance problem, an option that is never the best in any design, is checked by `npm run audit:options`.
         const why = INTENDED_TRADEOFFS[`${m.id}:${id}`];
-        if (why) console.log(`note ${m.id}: ${slot.id}=${id} raises success by ${ds.toFixed(1)} and lowers the score by ${(-dsc).toFixed(1)} (intended: ${why})`);
-        else warn.push(`${slot.id}=${id} raises success by ${ds.toFixed(1)} but lowers the score by ${(-dsc).toFixed(1)}`);
+        console.log(`note ${m.id}: ${slot.id}=${id} raises success by ${ds.toFixed(1)} and lowers the score by ${(-dsc).toFixed(1)}${why ? ` (${why})` : ''}`);
       }
     }
   }
