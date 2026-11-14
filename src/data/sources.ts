@@ -393,6 +393,14 @@ export const SOURCES: Source[] = [
     nasa: false,
     accessed: '2026-11-14',
   },
+  {
+    id: 'knipp-gannon',
+    title: 'May 2024 Gannon Storm: Impacts on LEO Spacecraft and Operations (presentation, citing NASA’s ICESat-2 blog)',
+    publisher: 'National Academies (Knipp et al.)',
+    url: 'https://www.nationalacademies.org/event/docs/D5832724565999ACC1C4DB17571C9AD314D2065709E8?noSaveAs=1',
+    nasa: false,
+    accessed: '2026-11-14',
+  },
 ];
 
 export const SOURCE_BY_ID: ReadonlyMap<string, Source> = new Map(SOURCES.map((s) => [s.id, s]));

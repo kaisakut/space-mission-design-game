@@ -213,9 +213,9 @@ export const jupiterIcyMoon: Mission = {
 
     {
       kind: 'part', id: 'jpwr-small', subsystem: 'power', name: tx('Smaller solar arrays', '小さめの太陽電池'),
-      description: tx('Two-thirds of Clipper’s array area: lighter and cheaper, little spare power.', 'クリッパーの3分の2の面積。軽く安いが、電力の余裕は少ない。'),
-      cost: rule(60000), massKg: rule(-150, tx('Lighter than the standard arrays counted in the bus mass.', '本体の質量に含めた標準の太陽電池より軽い分。')),
-      generatesW: est(11700, ['jpl-clipper-spacecraft', 'jpl-clipper-presskit'], tx('Two-thirds of the standard arrays (700 W at Jupiter ÷ 0.04, near Earth).', '標準の太陽電池（木星で700 W ÷ 0.04、地球近くの値）の3分の2。')),
+      description: tx('Four-fifths of Clipper’s array area: lighter and cheaper, little spare power.', 'クリッパーの5分の4の面積。軽く安いが、電力の余裕は少ない。'),
+      cost: rule(70000), massKg: rule(-100, tx('Lighter than the standard arrays counted in the bus mass.', '本体の質量に含めた標準の太陽電池より軽い分。')),
+      generatesW: est(14000, ['jpl-clipper-spacecraft', 'jpl-clipper-presskit'], tx('Four-fifths of the standard arrays (700 W at Jupiter ÷ 0.04, near Earth).', '標準の太陽電池（木星で700 W ÷ 0.04、地球近くの値）の5分の4。')),
       failPerYear: rule(0.02),
     },
     {
@@ -230,8 +230,8 @@ export const jupiterIcyMoon: Mission = {
       description: tx('Steady power anywhere, but plutonium is scarce and the safety review is long.', 'どこでも安定した電力。ただしプルトニウムは貴重で、安全審査が長い。'),
       cost: rule(300000, tx('Game value including the safety review.', '安全審査を含むゲームの値。')),
       leadDays: rule(180, tx('Game value for the launch safety approval.', '打ち上げの安全承認の分のゲームの値。')),
-      massKg: est(-57, ['nasa-rps'], tx('Two MMRTGs of 46.5 kg each, minus the 150 kg saved on smaller arrays.', 'MMRTG 1基46.5 kgを2基、小さめの太陽電池で減る150 kgを差し引く。')),
-      generatesW: est(11700, ['jpl-clipper-spacecraft'], tx('Same arrays as the smaller option.', '小さめの太陽電池と同じ。')),
+      massKg: est(-7, ['nasa-rps'], tx('Two MMRTGs of 46.5 kg each, minus the 100 kg saved on smaller arrays.', 'MMRTG 1基46.5 kgを2基、小さめの太陽電池で減る100 kgを差し引く。')),
+      generatesW: est(14000, ['jpl-clipper-spacecraft'], tx('Same arrays as the smaller option.', '小さめの太陽電池と同じ。')),
       rtgW: est(220, ['nasa-rps'], tx('Two MMRTGs of 110 W each at launch.', '打ち上げ時110 WのMMRTGを2基。')),
       failPerYear: rule(0.01),
     },
@@ -260,8 +260,8 @@ export const jupiterIcyMoon: Mission = {
     },
     {
       kind: 'launch', id: 'jlv-direct', name: tx('Super-heavy rocket, direct route', '超大型ロケットで直行'),
-      description: tx('Much faster to Jupiter and more mass to spare, at a very high price.', '木星までずっと早く、質量の余裕も大きいが、非常に高い。'),
-      cost: rule(1500000), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
+      description: tx('Much faster to Jupiter, so fewer years of wear on the way, and more mass to spare; very expensive.', '木星までずっと早く、途中で傷む年数が少ない。質量の余裕も大きいが、非常に高い。'),
+      cost: rule(900000, tx('Game value for a super-heavy launch.', '超大型ロケットの打ち上げのゲームの値。')), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
       reliability: rule(0.95), windowsDay: rule([1700, 2100, 2500]), tags: ['direct'],
     },
 
@@ -350,6 +350,16 @@ export const jupiterIcyMoon: Mission = {
         text: tx('Juno (2016): two helium check valves took minutes instead of seconds to open, so the team skipped the burn to a shorter orbit and stayed in the 53-day orbit.', 'Juno（2016年）：ヘリウムの逆止弁2つが開くのに数秒でなく数分かかり、短い周回に移る噴射を見送って53日周回のまま観測した。'),
         sources: ['nasa-juno-orbit'],
       },
+    },
+    {
+      id: 'jlong-cruise', phase: 5, name: tx('Wear from a long cruise', '長い航行での消耗'),
+      story: tx('After years of swing-bys on the way, parts have worn and the team must nurse the spacecraft through the tour.', '途中のスイングバイで何年も飛ぶうちに部品が消耗し、チームは探査機をいたわりながら観測を続ける。'),
+      probability: rule(0.25),
+      protectedIf: { kind: 'hasTag', tag: 'direct' },
+      partialIf: { kind: 'hasTag', tag: 'opsRehearsed' },
+      partial: [{ kind: 'scienceFactor', factor: 0.95 }],
+      unprotected: [{ kind: 'scienceFactor', factor: 0.85 }],
+      lesson: tx('{agency} took the long route and its worn spacecraft observed less.', '{agency}は長い経路をとり、消耗した探査機で観測が減った。'),
     },
     {
       id: 'jradiation', phase: 5, name: tx('Radiation damage', '放射線による損傷'),

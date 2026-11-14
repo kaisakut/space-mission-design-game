@@ -40,6 +40,8 @@ export interface DesignState {
   missedWindows: number;
   /** Money kept aside for surprises, kUSD. */
   reserveKUSD: number;
+  /** Hardware plus every design change, reserve included: what the mission has spent in the end. */
+  totalSpentKUSD: number;
   /** Ground contact per day with the chosen stations, minutes. */
   contactMin: number;
   issues: Issue[];
@@ -139,7 +141,11 @@ export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): De
   // Budget
   const budget = num(m.budgetKUSD) + (adj.budgetDelta ?? 0);
   const reserveKUSD = budget * (settings.reserveShare ?? 0);
-  const spent = num(m.bus.cost) + options.reduce((a, o) => a + num(o.cost), 0) + (adj.extraKUSD ?? 0);
+  // The reserve pays for design changes first; only what it cannot cover eats into the hardware budget.
+  const hardwareKUSD = num(m.bus.cost) + options.reduce((a, o) => a + num(o.cost), 0);
+  const changeKUSD = adj.extraKUSD ?? 0;
+  const spent = hardwareKUSD + Math.max(0, changeKUSD - reserveKUSD);
+  const totalSpentKUSD = hardwareKUSD + changeKUSD;
 
   // Downlink (per day)
   // All instruments and radios count, so missions can carry several.
@@ -184,7 +190,7 @@ export function evaluate(m: Mission, rawPicks: Picks, adj: Adjustments = {}): De
     if (x.margin >= 0 && x.margin < LOW_MARGIN) issues.push({ level: 'warning', code: 'lowMargin', resource: r, values: { margin: Math.round(x.margin * 100) } });
   }
 
-  return { picks, orbit, launch, options, settings, tags, gauges, readyDay, launchDay, missedWindows: missedWindows + target, reserveKUSD, contactMin, issues };
+  return { picks, orbit, launch, options, settings, tags, gauges, readyDay, launchDay, missedWindows: missedWindows + target, reserveKUSD, totalSpentKUSD, contactMin, issues };
 }
 
 /** True when nothing stops the launch. */

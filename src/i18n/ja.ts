@@ -125,6 +125,7 @@ export const ja: Messages = {
   stat_inclination: '傾斜角',
   stat_capacity: '搭載',
   stat_sunlight: '日射',
+  stat_detect: '検知できる割合',
   stat_rtg: '原子力電池（W）',
   stat_reliability: '成功率',
   stat_windows: '打ち上げ窓',

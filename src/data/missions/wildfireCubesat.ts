@@ -138,7 +138,7 @@ export const wildfireCubesat: Mission = {
       id: 'radio', default: 'radio-sband', phase: 2, role: 'powerComms', changeKind: 'hardware',
       label: tx('Radio', '無線機'),
       help: tx('How fast data reaches the ground.', 'データを地上へ送る速さ。'),
-      options: ['radio-uhf', 'radio-sband', 'radio-xband'],
+      options: ['radio-sband', 'radio-xband'],
     },
     {
       id: 'protection', phase: 2, role: 'spacecraft', changeKind: 'hardware',
@@ -223,8 +223,8 @@ export const wildfireCubesat: Mission = {
     },
     {
       kind: 'orbit', id: 'orbit-sso-600', name: tx('Sun-synchronous, 600 km', '太陽同期軌道 600 km'),
-      description: tx('Higher: longer passes over each ground station.', '高い分、地上局の上を通る時間が長い。'),
-      cost: rule(0),
+      description: tx('Higher: longer passes over each ground station and less air drag in solar storms, but needs a device to come down at the end.', '高い分、地上局の上を通る時間が長く、磁気嵐で大気の抵抗も受けにくい。ただし最後に降ろす装置が要る。'),
+      cost: rule(40, tx('Game value for a drag device that brings the satellite down at the end of the mission; from 600 km it would take much longer on its own.', 'ミッションの終わりに衛星を降ろす抵抗装置のゲームの値。600 kmからでは自然に落ちるまでずっと長くかかる。')),
       altitudeKm: rule(600, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
       deltaVms: rule(0),
@@ -236,7 +236,7 @@ export const wildfireCubesat: Mission = {
 
     { kind: 'choice', id: 'split-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('A typical reserve.', '一般的な予備費。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'split-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'split-safe', name: tx('Safe (25% reserve)', '安全重視（予備費25%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.25) } },
+    { kind: 'choice', id: 'split-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.2) } },
 
     {
       kind: 'part', id: 'cam-vis', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'),
@@ -245,6 +245,7 @@ export const wildfireCubesat: Mission = {
       massKg: pub(0.5, ['dragonfly-gecko'], tx('Off-the-shelf CubeSat RGB imager, including electronics.', '市販のCubeSat用RGBカメラ（電子回路込み）。')),
       powerW: pub(3.5, ['dragonfly-gecko'], tx('Power while imaging (under 3.5 W).', '撮影中の電力（3.5 W未満）。')),
       dataMBPerDay: rule(300, DATA_NOTE), scienceWeight: rule(0.5), observes: 'day',
+      detectShare: rule(0.3, tx('Game value: it sees the smoke of large fires by day, but FIRMS counts fires found in infrared, many of them small or hidden by smoke.', 'ゲームの値：昼の大きな火災の煙は見えるが、FIRMSが数えるのは赤外で見つけた火災で、その多くは小さいか煙に隠れている。')),
     },
     {
       kind: 'part', id: 'cam-swir', subsystem: 'payload', name: tx('Short-wave infrared camera', '短波赤外カメラ'),
@@ -280,14 +281,6 @@ export const wildfireCubesat: Mission = {
       failPerYear: rule(0.04),
     },
 
-    {
-      kind: 'part', id: 'radio-uhf', subsystem: 'comms', name: tx('UHF radio (9.6 kbps)', 'UHF無線機（9.6 kbps）'),
-      description: tx('Cheap, simple and mature, very slow.', '安く単純で実績も多いが、とても遅い。'),
-      cost: rule(15),
-      massKg: nasa(0.048, ['nasa-soa-comms']),
-      powerW: est(3, ['nasa-soa-comms'], tx('About 1 W of radio output (0.25–4 W, Table 9-3) × 3 for amplifier losses (game assumption).', '送信出力 約1 W（0.25〜4 W、表9-3）× 3（増幅の損失。ゲームの仮定）。')),
-      downlinkMBPerMin: est(0.072, ['nasa-soa-comms'], tx('9.6 kbps (Table 9-3) × 60 s ÷ 8 bits.', '9.6 kbps（表9-3）× 60秒 ÷ 8ビット。')),
-    },
     {
       kind: 'part', id: 'radio-sband', subsystem: 'comms', name: tx('S-band transmitter (6 Mbps)', 'Sバンド送信機（6 Mbps）'),
       description: tx('The common choice for science data.', '科学データでよく使われる選択。'),
@@ -385,14 +378,15 @@ export const wildfireCubesat: Mission = {
       settings: { earlyFailureFactorOps: est(0.6, ['nasa-cubesat101'], tx('CubeSat 101: test the ground station early and often; an inadequate one is a mission killer. Game effect: 40% fewer early failures.', 'CubeSat 101：地上局は早くから何度も試すこと、不備はミッションを失う原因。ゲームでは初期故障を4割減らす。')) },
     },
     {
-      kind: 'part', id: 'em-none', subsystem: 'structure', name: tx('No spare unit', '予備機なし'),
+      kind: 'choice', id: 'em-none', name: tx('No spare unit', '予備機なし'),
       description: tx('Test the flight unit only.', '本番の機体だけで試験する。'),
-      cost: rule(0), massKg: rule(0),
+      cost: rule(0),
     },
     {
-      kind: 'part', id: 'em-build', subsystem: 'structure', name: tx('Build an engineering model', '予備機を作る'),
-      description: tx('A ground copy for testing; it does not fly.', '試験用の地上の複製機。宇宙には行かない。'),
-      cost: rule(80), leadDays: rule(20), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')),
+      kind: 'choice', id: 'em-build', name: tx('Build an engineering model', '予備機を作る'),
+      description: tx('A ground copy for testing; it does not fly. Integration problems show up on the copy, so fewer satellites die right after launch.', '試験用の地上の複製機。宇宙には行かない。組み立ての問題を複製機で見つけるので、打ち上げ直後に動かなくなる衛星が減る。'),
+      cost: rule(80), leadDays: rule(20),
+      settings: { earlyFailureFactorEM: rule(0.7, tx('Game value: 30% fewer satellites that never work after launch.', 'ゲームの値：打ち上げ後に動かない確率を3割減らす。')) },
       tags: ['engineeringModel'],
     },
     { kind: 'choice', id: 'test-basic', name: tx('Basic', '最小限'), description: tx('Functional tests only.', '動作確認のみ。'), cost: rule(20), leadDays: rule(15), settings: { testDepth: rule(1) } },
@@ -507,6 +501,20 @@ export const wildfireCubesat: Mission = {
       protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
       lesson: tx('{agency} could not downlink everything when station time was cut.', '{agency}は、地上局の時間が減ったときにデータを送りきれなかった。'),
+    },
+    {
+      id: 'storm-drag', phase: 5, name: tx('Geomagnetic storm drag', '磁気嵐で大気の抵抗が増える'),
+      story: tx('A geomagnetic storm heats the upper atmosphere. Low satellites feel extra drag and lose their pointing for a while.', '磁気嵐で上層大気が温まった。低い軌道の衛星は抵抗が増え、しばらく姿勢を保てない。'),
+      probability: rule(0.3),
+      protectedIf: { kind: 'hasTag', tag: 'orbit:high' },
+      unprotected: [{ kind: 'scienceFactor', factor: 0.95 }],
+      lesson: tx('{agency} flew lower and lost observing time when a storm thickened the air.', '{agency}は低い軌道を飛び、嵐で大気が濃くなったときに観測の時間を失った。'),
+      realCase: {
+        who: tx('ICESat-2', 'ICESat-2'),
+        year: '2024',
+        text: tx('ICESat-2 (May 2024): during the Gannon storm, extra drag at about 480 km turned the spacecraft and put it into safe hold; Starlink raised about 5,000 satellites at once.', 'ICESat-2（2024年5月）：ガノン嵐のとき、高度約480 kmで想定外の抵抗を受けて姿勢が回り、セーフホールドに入った。Starlinkは約5,000機の軌道を一斉に上げた。'),
+        sources: ['knipp-gannon'],
+      },
     },
     {
       id: 'big-fire-season', phase: 5, name: tx('Major fire season', '大規模な火災シーズン'),

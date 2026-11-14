@@ -37,7 +37,7 @@ const FIELD_LABEL: Record<string, string> = {
   cost: 'stat_cost', massKg: 'stat_mass', powerW: 'stat_power', generatesW: 'stat_generates', dataMBPerDay: 'stat_data',
   downlinkMBPerMin: 'stat_downlink', contactMinPerDay: 'stat_contact', altitudeKm: 'stat_altitude', inclinationDeg: 'stat_inclination',
   leadDays: 'stat_days', reliability: 'stat_reliability', windowsDay: 'stat_windows', capacityKg: 'stat_capacity', deltaVms: 'stat_deltaV',
-  failPerYear: 'stat_failPerYear', rtgW: 'stat_rtg', solarFactor: 'stat_sunlight', contactHighLatMinPerDay: 'stat_contact', scienceWeight: 'stat_science', science: 'stat_opportunities', settings: 'stat_setting', storageMB: 'stat_storage',
+  failPerYear: 'stat_failPerYear', detectShare: 'stat_detect', rtgW: 'stat_rtg', solarFactor: 'stat_sunlight', contactHighLatMinPerDay: 'stat_contact', scienceWeight: 'stat_science', science: 'stat_opportunities', settings: 'stat_setting', storageMB: 'stat_storage',
 };
 
 /** Every sourced value of an option, for the details panel. */

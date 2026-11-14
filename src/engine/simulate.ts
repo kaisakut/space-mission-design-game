@@ -155,7 +155,7 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
     const sentShare = g.used > 0 ? Math.min(1, g.available / g.used) : 1;
     for (const p of d.options) {
       if (p.kind !== 'part' || p.subsystem !== 'payload' || !p.observes) continue;
-      const n = (d.orbit.science[p.observes]?.value ?? 0) * duty * sentShare * opsFraction * scienceFactor;
+      const n = (d.orbit.science[p.observes]?.value ?? 0) * (p.detectShare?.value ?? 1) * duty * sentShare * opsFraction * scienceFactor;
       delivered += n;
       value += n * (p.scienceWeight?.value ?? 1);
     }
@@ -186,13 +186,14 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
 
   const rb = m.rubric;
   const secondary = Math.min(rb.secondary.value, m.secondary.reduce((a, o) => a + (o.chosenBy && d.tags.has(o.chosenBy) ? o.points.value * judge(o.rule) : 0), 0));
-  const ratio = spent / Math.max(budgetAvail, 1);
+  // Budget points: full when at least 20% of the (possibly cut) budget is left unspent at the end, none when it is all used.
+  const leftShare = (budgetAvail - d.totalSpentKUSD) / Math.max(budget, 1);
   const missed = launchDay === null ? Infinity : allWindows.indexOf(launchDay);
   const score: Score = {
     primary: rb.primary.value * primaryMet,
     secondary,
     science: rb.science.value * Math.min(1, value / m.rules.scienceFullScore.value),
-    budget: outcome === 'noLaunch' && causes[0] === 'blocked:overBudget' ? 0 : rb.budget.value * clamp((1.1 - ratio) / 0.2, 0, 1),
+    budget: outcome === 'noLaunch' && causes[0] === 'blocked:overBudget' ? 0 : rb.budget.value * clamp(leftShare / 0.2, 0, 1),
     schedule: missed === 0 ? rb.schedule.value : missed === 1 ? rb.schedule.value / 2 : 0,
     total: 0,
   };

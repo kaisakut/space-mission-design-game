@@ -124,6 +124,7 @@ export const en = {
   stat_inclination: 'Inclination',
   stat_capacity: 'Carries',
   stat_sunlight: 'Sunlight',
+  stat_detect: 'Share it can detect',
   stat_rtg: 'Nuclear power (W)',
   stat_reliability: 'Success',
   stat_windows: 'Windows',

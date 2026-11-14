@@ -94,6 +94,8 @@ export interface Part extends OptionBase {
   failPerYear?: Sourced;
   /** Science value of one observation, for instruments. */
   scienceWeight?: Sourced;
+  /** Share of the orbit's observation opportunities this instrument can actually detect (default 1). */
+  detectShare?: Sourced;
   /** Observation mode of an instrument; must be a key of every orbit's `science` (e.g. 'day', 'dayNight'). */
   observes?: string;
 }

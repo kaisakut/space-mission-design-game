@@ -204,7 +204,7 @@ export const lunarIceRover: Mission = {
 
     { kind: 'choice', id: 'lsplit-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('A typical reserve.', '一般的な予備費。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'lsplit-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'lsplit-safe', name: tx('Safe (25% reserve)', '安全重視（予備費25%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.25) } },
+    { kind: 'choice', id: 'lsplit-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.2) } },
 
     {
       kind: 'part', id: 'inst-nss', subsystem: 'payload', name: tx('Neutron spectrometer (NSS)', '中性子分光計（NSS）'),
@@ -300,7 +300,7 @@ export const lunarIceRover: Mission = {
     {
       kind: 'launch', id: 'lander-large', name: tx('Large commercial lander', '大型の民間着陸機'),
       description: tx('Plenty of mass to spare and a better landing record, at a higher price.', '質量に大きな余裕があり着陸の実績もよいが、高い。'),
-      cost: rule(320000),
+      cost: rule(250000, tx('Game value: about a quarter more than the medium lander.', 'ゲームの値：中型の着陸機より約4分の1高い。')),
       capacityKg: { 'site-ridge': rule(1500), 'site-nobile': rule(1500), 'site-coldtrap': rule(1500) },
       reliability: rule(0.8, tx('Game value: a little better than the medium lander.', 'ゲームの値：中型の着陸機より少しよい。')),
       windowsDay: rule([1000, 1200, 1400]),
@@ -311,7 +311,7 @@ export const lunarIceRover: Mission = {
     { kind: 'choice', id: 'lwindow-second', name: tx('Next window', '次の窓'), description: tx('Half the schedule score, plenty of time for surprises.', '日程の点は半分。想定外に備える時間ができる。'), cost: rule(0), settings: { targetWindow: rule(1) } },
 
     { kind: 'choice', id: 'dsn-standard', name: tx('Standard booking', '標準の割り当て'), description: tx('Contact whenever Earth is up and an antenna is free.', '地球が見えていてアンテナが空いているときに通信する。'), cost: rule(5000), settings: { networkFactor: rule(1) } },
-    { kind: 'choice', id: 'dsn-priority', name: tx('Priority booking', '優先の割り当て'), description: tx('More antenna time while Earth is up.', '地球が見えているあいだ、アンテナの時間を多く確保する。'), cost: rule(20000), settings: { networkFactor: rule(1.5) } },
+    { kind: 'choice', id: 'dsn-priority', name: tx('Priority booking', '優先の割り当て'), description: tx('More antenna time while Earth is up.', '地球が見えているあいだ、アンテナの時間を多く確保する。'), cost: rule(20000), settings: { networkFactor: rule(1.5) }, tags: ['dsn:priority'] },
 
     { kind: 'choice', id: 'ltest-basic', name: tx('Basic', '最小限'), description: tx('Functional tests only.', '動作確認のみ。'), cost: rule(5000), leadDays: rule(30), settings: { testDepth: rule(1) } },
     {
@@ -436,9 +436,11 @@ export const lunarIceRover: Mission = {
       id: 'comm-gap', phase: 5, name: tx('Earth below the horizon', '地球が地平線の下に'),
       story: tx('Earth sets for longer than planned and data piles up.', '地球が想定より長く沈み、データがたまった。'),
       probability: rule(0.4),
-      protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
-      unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
-      lesson: tx('{agency} could not send everything once Earth rose again.', '{agency}は、地球が昇ってからもデータを送りきれなかった。'),
+      protectedIf: { kind: 'hasTag', tag: 'dsn:priority' },
+      partialIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
+      partial: [{ kind: 'scienceFactor', factor: 0.95 }],
+      unprotected: [{ kind: 'scienceFactor', factor: 0.85 }],
+      lesson: tx('{agency} had no priority antenna time when Earth came back up, and lost data.', '{agency}は、地球が昇ったときに優先のアンテナ時間がなく、データを失った。'),
     },
     {
       id: 'tip-over', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),
