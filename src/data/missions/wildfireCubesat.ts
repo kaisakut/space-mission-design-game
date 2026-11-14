@@ -54,6 +54,7 @@ export const wildfireCubesat: Mission = {
   },
   rules: {
     scienceUnit: tx('fires', '件の火災'),
+    budgetFullLeftShare: rule(0.15, tx('Game value, set so that adding one small safeguard to the standard design still earns full budget points.', 'ゲームの値。標準の設計に小さな備えを1つ足しても満点のままになるように決めた。')),
     scienceFullScore: rule(200000, tx('Science value for the full science score; a standard design earns about 40% of it.', '科学価値の満点の基準。標準の設計でその約4割。')),
     earlyFailureByTestDepth: est([0.18, 0.08, 0.04], ['langer-2016', 'nasa-cubesat101'], tx(
       'Chance the satellite never works after launch, by test depth. Basic testing: 18% of 178 CubeSats launched by mid-2014 never made contact (Langer 2016). The values for deeper testing are game values. CubeSat 101 puts verification testing (vibration, thermal vacuum) before every launch.',
@@ -167,7 +168,7 @@ export const wildfireCubesat: Mission = {
     },
     // Phase 4: test and launch
     {
-      id: 'testing', default: 'test-standard', phase: 4, role: 'spacecraft', changeKind: 'plan',
+      id: 'testing', default: 'test-basic', phase: 4, role: 'spacecraft', changeKind: 'plan',
       label: tx('Test campaign', '試験の深さ'),
       help: tx('Deeper testing finds faults before launch but uses time and money.', '試験を厚くすると打ち上げ前に不具合を見つけられますが、時間と費用を使います。'),
       options: ['test-basic', 'test-standard', 'test-full'],
@@ -186,7 +187,7 @@ export const wildfireCubesat: Mission = {
     },
     // Phase 5: operations
     {
-      id: 'ops-plan', phase: 5, role: 'science', changeKind: 'plan',
+      id: 'ops-plan', default: 'ops-conservative', phase: 5, role: 'science', changeKind: 'plan',
       label: tx('Observation plan', '観測計画'),
       help: tx('Observing more finds more fires but needs more power and downlink.', '多く観測するほど火災を見つけられますが、電力と通信が多く要ります。'),
       options: ['ops-steady', 'ops-aggressive', 'ops-conservative'],
@@ -205,7 +206,6 @@ export const wildfireCubesat: Mission = {
       cost: rule(0),
       altitudeKm: est(410, ['nasa-soa-launch'], tx('Middle of the 400–420 km deployment orbit given for ISS CubeSat deployment.', 'ISSからの放出軌道 400〜420 km の中央。')),
       inclinationDeg: nasa(51.6, ['nasa-soa-launch']),
-      deltaVms: rule(0),
       contactMinPerDay: est(21, ['nasa-orbits-catalog'], CONTACT_NOTE),
       contactHighLatMinPerDay: est(0, ['nasa-orbits-catalog'], HIGHLAT_NOTE),
       science: { day: est(198436, ['nasa-firms'], FIRMS_NOTE), dayNight: est(387362, ['nasa-firms'], FIRMS_NOTE) },
@@ -216,7 +216,6 @@ export const wildfireCubesat: Mission = {
       cost: rule(0),
       altitudeKm: rule(500, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
       inclinationDeg: est(97.4, ['nasa-orbits-catalog'], SSO_NOTE),
-      deltaVms: rule(0),
       contactMinPerDay: est(17, ['nasa-orbits-catalog'], CONTACT_NOTE),
       contactHighLatMinPerDay: est(37, ['nasa-orbits-catalog'], HIGHLAT_NOTE),
       science: { day: est(158040, ['nasa-firms'], FIRMS_NOTE), dayNight: est(304111, ['nasa-firms'], FIRMS_NOTE) },
@@ -227,7 +226,6 @@ export const wildfireCubesat: Mission = {
       cost: rule(40, tx('Game value for a drag device that brings the satellite down at the end of the mission; from 600 km it would take much longer on its own.', 'ミッションの終わりに衛星を降ろす抵抗装置のゲームの値。600 kmからでは自然に落ちるまでずっと長くかかる。')),
       altitudeKm: rule(600, tx('Design choice offered to the player.', 'プレイヤーに示す設計の選択肢。')),
       inclinationDeg: est(97.8, ['nasa-orbits-catalog'], SSO_NOTE),
-      deltaVms: rule(0),
       contactMinPerDay: est(22, ['nasa-orbits-catalog'], CONTACT_NOTE),
       contactHighLatMinPerDay: est(49, ['nasa-orbits-catalog'], HIGHLAT_NOTE),
       science: { day: est(157475, ['nasa-firms'], FIRMS_NOTE), dayNight: est(311631, ['nasa-firms'], FIRMS_NOTE) },
@@ -433,7 +431,7 @@ export const wildfireCubesat: Mission = {
       id: 'long-wait', phase: 3, name: tx('Long wait in the rocket', '打ち上げ待ちで電池が減る'),
       story: tx('Your CubeSat is loaded into the rocket months before launch and waits there without charging.', 'キューブサットは打ち上げの何か月も前にロケットに積まれ、充電できないまま待つ。'),
       probability: rule(0.3),
-      protectedIf: { kind: 'margin', resource: 'power', atLeast: 0.2 },
+      protectedIf: { kind: 'margin', resource: 'power', atLeast: 0.4 },
       unprotected: [{ kind: 'failChance', subsystem: 'power', add: 0.1 }],
       lesson: tx('{agency} had little power margin, and its battery came out of the long wait weakened.', '{agency}は電力に余裕がなく、長い待ちのあと電池が弱っていた。'),
       realCase: {
@@ -498,7 +496,7 @@ export const wildfireCubesat: Mission = {
       id: 'station-cut', phase: 5, name: tx('Ground station time cut', '地上局の割り当て減'),
       story: tx('Other users need the ground stations, and your contact time is cut.', 'ほかの利用者が地上局を必要とし、通信時間が削られた。'),
       probability: rule(0.25),
-      protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
+      protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.75 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.9 }],
       lesson: tx('{agency} could not downlink everything when station time was cut.', '{agency}は、地上局の時間が減ったときにデータを送りきれなかった。'),
     },
@@ -521,7 +519,7 @@ export const wildfireCubesat: Mission = {
       story: tx('An intense fire season: a chance for valuable observations.', '火災が多い季節になった。価値ある観測の好機。'),
       probability: rule(0.3),
       unprotected: [],
-      readyIf: { kind: 'margin', resource: 'power', atLeast: 0.2 },
+      readyIf: { kind: 'margin', resource: 'power', atLeast: 0.4 },
       benefit: [{ kind: 'scienceFactor', factor: 1.2 }],
       lesson: tx('{agency} had the power margin to observe the major fire season.', '{agency}は、電力に余裕があり大規模な火災シーズンを観測できた。'),
     },

@@ -11,7 +11,7 @@ import { agencyForecast, pendingChanges, type Agency, type Game } from './game';
  * (for instrument slots that take several, it keeps adding the most useful one while that helps).
  * It does not reopen earlier decisions.
  */
-const AI_RUNS = 40;
+const AI_RUNS = 100;
 
 export function aiPicks(g: Game, a: Agency): Picks {
   const m = g.mission;
@@ -20,7 +20,8 @@ export function aiPicks(g: Game, a: Agency): Picks {
     const utility = (ids: string[]) => {
       const trial = { ...picks, [s.id]: ids };
       const pend = pendingChanges(g, a, trial);
-      const f = agencyForecast(g, a, trial, AI_RUNS, `ai:${a.id}:${s.id}:${ids.join('+')}`, pend);
+      // Every option of a slot is judged on the same random stream, so the comparison is fair.
+      const f = agencyForecast(g, a, trial, AI_RUNS, `ai:${a.id}:${s.id}`, pend);
       return a.id === 'cautious' ? f.score.p10 + 30 * f.successShare : a.id === 'balanced' ? f.score.p50 + 10 * f.successShare : f.score.p90 + 5 * f.successShare;
     };
     // First the best single option; then, in a multi-choice slot of instruments (no "none" option),

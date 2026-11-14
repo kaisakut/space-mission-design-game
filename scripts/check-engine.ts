@@ -16,7 +16,7 @@ const check = (ok: boolean, what: string) => { console.log(`${ok ? 'ok  ' : 'FAI
 
 for (const m of MISSIONS) {
   const d = evaluate(m, {});
-  check(canLaunch(d), `${m.id}: standard design can launch`);
+  check(canLaunch(d), `${m.id}: auto-plan can launch`);
   const a = runForecast(m, {}, 42, 1, 50);
   const b = runForecast(m, {}, 42, 1, 50);
   check(JSON.stringify(a) === JSON.stringify(b), `${m.id}: same seed gives the same forecast`);
@@ -25,7 +25,7 @@ for (const m of MISSIONS) {
   runForecast(m, {}, 42, 1, 100);
   const real2 = simulate(m, d, new Rng(42, 'failures:player'), { drawn });
   check(JSON.stringify(real1) === JSON.stringify(real2), `${m.id}: forecasting does not change the real game`);
-  console.log(`     standard design: success ${Math.round(a.successShare * 100)}%, median score ${a.score.p50}`);
+  console.log(`     auto-plan: success ${Math.round(a.successShare * 100)}%, median score ${a.score.p50}`);
 }
 if (failed) process.exit(1);
 
@@ -51,3 +51,53 @@ check(sameCards, `${mission.id}: every agency faces the same cards each phase`);
 console.log('     final:', g1.agencies.map((a) => `${a.id} ${g1.final![a.id].score.total} (${g1.final![a.id].outcome})`).join(', '));
 }
 if (failed) process.exit(1);
+
+// One change at a time: how each option moves the standard design, and options or cards that hardly matter.
+// Prints warnings only (they are judgement calls, not failures). `--table` prints every row.
+import { completePicks } from '../src/engine/design';
+import { meets } from '../src/engine/events';
+const showTable = process.argv.includes('--table');
+const SEEDS = 8, N = 100;
+const measure = (m: (typeof MISSIONS)[number], picks: Picks) => {
+  let s = 0, sc = 0;
+  for (let seed = 1; seed <= SEEDS; seed++) { const f = runForecast(m, picks, seed, 1, N); s += f.successShare; sc += f.runs.reduce((a, r) => a + r.score.total, 0) / N; }
+  return { s: (s / SEEDS) * 100, sc: sc / SEEDS };
+};
+for (const m of MISSIONS) {
+  const std = completePicks(m, {});
+  const base = measure(m, {});
+  const warn: string[] = [];
+  for (const slot of m.slots) {
+    for (const id of slot.options) {
+      if ((std[slot.id] ?? []).includes(id)) continue;
+      const picks = { [slot.id]: slot.multi && !slot.multi.noneFirst ? [...(std[slot.id] ?? []), id].slice(-slot.multi.max) : [id] };
+      if (!canLaunch(evaluate(m, picks))) { if (showTable) console.log(`     ${m.id} ${slot.id}=${id}: cannot launch from the standard design`); continue; }
+      const r = measure(m, picks);
+      const ds = r.s - base.s, dsc = r.sc - base.sc;
+      if (showTable) console.log(`     ${m.id} ${slot.id}=${id}: success ${ds >= 0 ? '+' : ''}${ds.toFixed(1)}, score ${dsc >= 0 ? '+' : ''}${dsc.toFixed(1)}`);
+      if (slot.id !== 'secondary' && Math.abs(dsc) < 0.1) warn.push(`${slot.id}=${id} hardly changes the score (${dsc.toFixed(2)})`);
+      if (ds >= 2 && dsc < 0) warn.push(`${slot.id}=${id} raises success by ${ds.toFixed(1)} but lowers the score by ${(-dsc).toFixed(1)}`);
+    }
+  }
+  // Cards that leave almost every launchable design unharmed teach nothing.
+  const rng = new Rng(7, 'random-designs');
+  const designs = [];
+  for (let i = 0; i < 1000 && designs.length < 400; i++) {
+    const picks: Picks = {};
+    for (const s of m.slots) {
+      const opts = s.multi && s.multi.noneFirst ? [s.options[0]!] : s.options;
+      picks[s.id] = s.multi && !s.multi.noneFirst ? opts.filter(() => rng.chance(0.4)).slice(0, s.multi.max) : [opts[Math.floor(rng.float() * opts.length)]!];
+      if (!picks[s.id]!.length) picks[s.id] = [opts[0]!];
+    }
+    const d = evaluate(m, picks);
+    if (canLaunch(d)) designs.push(d);
+  }
+  for (const card of m.events) {
+    const c = card.protectedIf ?? card.readyIf;
+    if (!c || !designs.length) continue;
+    const share = designs.filter((d) => meets(c, d)).length / designs.length;
+    if (share >= 0.8) warn.push(`card ${card.id} leaves ${Math.round(share * 100)}% of random launchable designs unharmed`);
+  }
+  console.log(`     ${m.id}: one-change check, ${warn.length} warning(s)`);
+  for (const w of warn) console.log(`  warn ${w}`);
+}

@@ -56,6 +56,7 @@ export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, tuto
           <button type="button" className="secondary" onClick={onLibrary}>{t.libraryOpen}</button>
         </span>
       </div>
+      <p className="note small">{t.autoPlanNote}</p>
       <div className="missions">
         {MISSIONS.map((m) => <MissionCard key={m.id} m={m} onStart={() => onStart(m, guide)} />)}
         {UPCOMING.map((m) => (

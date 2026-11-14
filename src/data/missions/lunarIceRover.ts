@@ -47,7 +47,8 @@ export const lunarIceRover: Mission = {
   },
   rules: {
     scienceUnit: tx('ice measurements', '件の氷の測定'),
-    scienceFullScore: rule(4000, tx('Science value for the full science score.', '科学価値の満点の基準。')),
+    budgetFullLeftShare: rule(0.15, tx('Game value, set so that adding one small safeguard to the standard design still earns full budget points.', 'ゲームの値。標準の設計に小さな備えを1つ足しても満点のままになるように決めた。')),
+    scienceFullScore: rule(2500, tx('Science value for the full science score.', '科学価値の満点の基準。')),
     earlyFailureByTestDepth: rule([0.2, 0.1, 0.05], tx('Game values: chance the rover never drives off the lander, by test depth.', '試験の深さごとの、ローバーが着陸機から降りられない確率（ゲームの値）。')),
     changeFactors: rule([1.5, 3, 6]),
     changeMinKUSD: rule(5000, tx('Redesign work even when the new part costs nothing.', '部品が無料でも、設計のやり直しに費用がかかる。')),
@@ -62,7 +63,7 @@ export const lunarIceRover: Mission = {
     name: tx('Map the ice', '氷を調べる'),
     description: tx('Send back enough measurements to show where water ice is and how deep.', '水氷がどこに、どの深さにあるかがわかるだけの測定を送り届ける。'),
     points: rule(35),
-    rule: { kind: 'science', atLeast: 600, partialAtLeast: 150 },
+    rule: { kind: 'science', atLeast: 600, partialAtLeast: 150, weighted: true },
   },
   secondary: [
     {
@@ -97,7 +98,7 @@ export const lunarIceRover: Mission = {
       options: ['site-ridge', 'site-nobile', 'site-coldtrap'],
     },
     {
-      id: 'budget-split', phase: 1, role: 'lead', changeKind: 'plan',
+      id: 'budget-split', default: 'lsplit-lean', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Budget split', '予算の配分'),
       help: tx('How much to keep in reserve for surprises.', '想定外に備えて、予備費をどれだけ残すか。'),
       options: ['lsplit-balanced', 'lsplit-lean', 'lsplit-safe'],
@@ -145,7 +146,7 @@ export const lunarIceRover: Mission = {
       options: ['dsn-standard', 'dsn-priority'],
     },
     {
-      id: 'testing', default: 'ltest-standard', phase: 4, role: 'spacecraft', changeKind: 'plan',
+      id: 'testing', default: 'ltest-basic', phase: 4, role: 'spacecraft', changeKind: 'plan',
       label: tx('Test campaign', '試験の深さ'),
       help: tx('Deeper testing finds faults before launch but uses time and money.', '試験を厚くすると打ち上げ前に不具合を見つけられますが、時間と費用を使います。'),
       options: ['ltest-basic', 'ltest-standard', 'ltest-full'],
@@ -174,7 +175,7 @@ export const lunarIceRover: Mission = {
     { kind: 'choice', id: 'lsec-none', name: tx('None', 'なし'), description: tx('Focus on the primary objective.', '主目的に集中する。'), cost: rule(0) },
     { kind: 'choice', id: 'lsec-isotopes', name: tx('Isotopes', '同位体'), description: tx('Needs the mass spectrometer.', '質量分析計が必要。'), cost: rule(0), tags: ['goal:isotopes'] },
     { kind: 'choice', id: 'lsec-coldtrap', name: tx('Drill in a cold trap', '低温域で掘る'), description: tx('Needs the cold-trap site and the drill.', '低温域の着陸地点とドリルが必要。'), cost: rule(0), tags: ['goal:coldtrap'] },
-    { kind: 'choice', id: 'lsec-full', name: tx('All three lunar days', '月の昼3回分'), description: tx('Needs to survive the nights.', '夜を越せる備えが必要。'), cost: rule(0), tags: ['goal:full'] },
+    { kind: 'choice', id: 'lsec-full', name: tx('All three lunar days', '月の昼3回分'), description: tx('Needs a way to survive the night, and also not getting stuck or landing on its side.', '夜を越す備えに加えて、はまらず、横倒しにもならないことが必要。'), cost: rule(0), tags: ['goal:full'] },
 
     {
       kind: 'orbit', id: 'site-ridge', name: tx('Sunlit ridge', '日当たりのよい尾根'),
@@ -266,7 +267,7 @@ export const lunarIceRover: Mission = {
       description: tx('VIPER’s main link: up to 8 million symbols per second, straight to Earth.', 'VIPERの主回線。地球へ直接、毎秒最大800万シンボル。'),
       cost: rule(10000), massKg: rule(8, tx('Game value for the antenna and gimbal on the mast.', 'マスト上のアンテナと可動部のゲームの値。')),
       powerW: rule(60),
-      downlinkMBPerMin: est(60, ['nasa-viper-hw-2024'], tx('8 million symbols per second (VIPER maximum) taken as 8 Mbit/s: × 60 s ÷ 8 bits.', '毎秒800万シンボル（VIPERの最大値）を8 Mbit/sとして換算：× 60秒 ÷ 8ビット。')),
+      downlinkMBPerMin: rule(3.3, tx('Game value for the share of the link given to science data: about 2,000 MB a day at a 600-minute site. VIPER’s radio could reach 8 million symbols per second, but that is its peak, not the science data rate.', '科学データに割り当てる回線の分のゲームの値：通信時間600分の地点で1日約2,000 MB。VIPERの無線機の最大は毎秒800万シンボルだが、それは最大値で、科学データの速度ではない。')),
     },
 
     {
@@ -299,7 +300,7 @@ export const lunarIceRover: Mission = {
     },
     {
       kind: 'launch', id: 'lander-large', name: tx('Large commercial lander', '大型の民間着陸機'),
-      description: tx('Plenty of mass to spare and a better landing record, at a higher price.', '質量に大きな余裕があり着陸の実績もよいが、高い。'),
+      description: tx('A little more likely to reach the surface, and a tip-over does less damage, but it costs more.', '月面に届く確率が少し高く、横倒しになっても被害が小さいが、高い。'),
       cost: rule(250000, tx('Game value: about a quarter more than the medium lander.', 'ゲームの値：中型の着陸機より約4分の1高い。')),
       capacityKg: { 'site-ridge': rule(1500), 'site-nobile': rule(1500), 'site-coldtrap': rule(1500) },
       reliability: rule(0.8, tx('Game value: a little better than the medium lander.', 'ゲームの値：中型の着陸機より少しよい。')),
@@ -333,7 +334,7 @@ export const lunarIceRover: Mission = {
     {
       kind: 'part', id: 'lem-build', subsystem: 'structure', name: tx('Build a light test rover', '軽い試験用ローバーを作る'),
       description: tx('A copy built to weigh as the rover would on the Moon, for driving tests.', '月面での重さに合わせた複製機で走行を試す。'),
-      cost: rule(12000), leadDays: rule(45), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')),
+      cost: rule(12000), leadDays: rule(30), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')),
       tags: ['engineeringModel'],
     },
 
@@ -433,14 +434,20 @@ export const lunarIceRover: Mission = {
       lesson: tx('{agency}’s rover froze in a long shadow: no heaters and a small battery.', '{agency}のローバーは長い影で凍りついた。ヒーターがなく電池も小さかった。'),
     },
     {
-      id: 'comm-gap', phase: 5, name: tx('Earth below the horizon', '地球が地平線の下に'),
-      story: tx('Earth sets for longer than planned and data piles up.', '地球が想定より長く沈み、データがたまった。'),
+      id: 'comm-gap', phase: 5, name: tx('Antenna time cut', 'アンテナ時間の削減'),
+      story: tx('Other missions need the big antennas and your allotted contact time is cut. Data piles up on board.', 'ほかのミッションが大型アンテナを必要とし、割り当ての通信時間が削られた。送れないデータがたまっていく。'),
       probability: rule(0.4),
       protectedIf: { kind: 'hasTag', tag: 'dsn:priority' },
       partialIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
       partial: [{ kind: 'scienceFactor', factor: 0.95 }],
       unprotected: [{ kind: 'scienceFactor', factor: 0.85 }],
-      lesson: tx('{agency} had no priority antenna time when Earth came back up, and lost data.', '{agency}は、地球が昇ったときに優先のアンテナ時間がなく、データを失った。'),
+      lesson: tx('{agency} had no priority antenna time when the allocation was cut, and lost data.', '{agency}は、アンテナの時間が削られたときに優先の割り当てがなく、データを失った。'),
+      realCase: {
+        who: tx('NASA Deep Space Network', 'NASAの深宇宙通信網'),
+        year: '2023',
+        text: tx('NASA’s Inspector General found that demand on the Deep Space Network sometimes exceeds what it can provide by about 40%.', 'NASAの監察官室によると、深宇宙通信網への需要は、ときに供給を約40%上回る。'),
+        sources: ['nasa-oig-dsn'],
+      },
     },
     {
       id: 'tip-over', phase: 5, name: tx('Landed on its side', '横倒しで着陸'),

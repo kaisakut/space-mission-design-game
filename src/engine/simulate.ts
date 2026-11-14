@@ -168,7 +168,11 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
   const reachedOps = lost === null || lost === 'lostInOps';
   const judge = (r: ObjectiveRule): number => {
     switch (r.kind) {
-      case 'science': return delivered >= r.atLeast ? 1 : r.partialAtLeast !== undefined && delivered >= r.partialAtLeast ? 0.5 : 0;
+      case 'science': {
+        // Weighted rules count science value (observations × instrument weight) instead of observations.
+        const n = r.weighted ? value : delivered;
+        return n >= r.atLeast ? 1 : r.partialAtLeast !== undefined && n >= r.partialAtLeast ? 0.5 : 0;
+      }
       case 'hasTag': return reachedOps && d.tags.has(r.tag) && delivered > 0 ? 1 : 0;
       case 'survive': return survived ? 1 : 0;
       case 'margin': return reachedOps && d.gauges[r.resource].margin >= r.atLeast ? 1 : 0;
@@ -186,14 +190,14 @@ export function simulate(m: Mission, d: DesignState, rng: Rng, opts: SimulateOpt
 
   const rb = m.rubric;
   const secondary = Math.min(rb.secondary.value, m.secondary.reduce((a, o) => a + (o.chosenBy && d.tags.has(o.chosenBy) ? o.points.value * judge(o.rule) : 0), 0));
-  // Budget points: full when at least 20% of the (possibly cut) budget is left unspent at the end, none when it is all used.
+  // Budget points: full when the mission's share of the (possibly cut) budget is left unspent at the end, none when it is all used.
   const leftShare = (budgetAvail - d.totalSpentKUSD) / Math.max(budget, 1);
   const missed = launchDay === null ? Infinity : allWindows.indexOf(launchDay);
   const score: Score = {
     primary: rb.primary.value * primaryMet,
     secondary,
     science: rb.science.value * Math.min(1, value / m.rules.scienceFullScore.value),
-    budget: outcome === 'noLaunch' && causes[0] === 'blocked:overBudget' ? 0 : rb.budget.value * clamp(leftShare / 0.2, 0, 1),
+    budget: outcome === 'noLaunch' && causes[0] === 'blocked:overBudget' ? 0 : rb.budget.value * clamp(leftShare / m.rules.budgetFullLeftShare.value, 0, 1),
     schedule: missed === 0 ? rb.schedule.value : missed === 1 ? rb.schedule.value / 2 : 0,
     total: 0,
   };

@@ -38,6 +38,7 @@ export const jupiterIcyMoon: Mission = {
   },
   rules: {
     scienceUnit: tx('close-pass observations', '件の接近観測'),
+    budgetFullLeftShare: rule(0.3, tx('Game value, set so that adding one small safeguard to the standard design still earns full budget points.', 'ゲームの値。標準の設計に小さな備えを1つ足しても満点のままになるように決めた。')),
     scienceFullScore: rule(300, tx('Science value for the full science score.', '科学価値の満点の基準。')),
     earlyFailureByTestDepth: rule([0.15, 0.07, 0.03], tx('Game values: chance of a fatal fault in the early cruise, by test depth.', '試験の深さごとの、航行の初期に致命的な故障が出る確率（ゲームの値）。')),
     changeFactors: rule([1.5, 3, 6]),
@@ -85,7 +86,7 @@ export const jupiterIcyMoon: Mission = {
       options: ['tour-flybys', 'tour-europa-orbit', 'tour-ganymede'],
     },
     {
-      id: 'budget-split', phase: 1, role: 'lead', changeKind: 'plan',
+      id: 'budget-split', default: 'jsplit-lean', phase: 1, role: 'lead', changeKind: 'plan',
       label: tx('Budget split', '予算の配分'),
       help: tx('How much to keep in reserve for surprises.', '想定外に備えて、予備費をどれだけ残すか。'),
       options: ['jsplit-balanced', 'jsplit-lean', 'jsplit-safe'],
@@ -133,7 +134,7 @@ export const jupiterIcyMoon: Mission = {
       options: ['jdsn-standard', 'jdsn-priority'],
     },
     {
-      id: 'testing', default: 'jtest-standard', phase: 4, role: 'spacecraft', changeKind: 'plan',
+      id: 'testing', default: 'jtest-basic', phase: 4, role: 'spacecraft', changeKind: 'plan',
       label: tx('Test campaign', '試験の深さ'),
       help: tx('Deeper testing finds faults before launch but uses time and money.', '試験を厚くすると打ち上げ前に不具合を見つけられますが、時間と費用を使います。'),
       options: ['jtest-basic', 'jtest-standard', 'jtest-full'],
@@ -151,7 +152,7 @@ export const jupiterIcyMoon: Mission = {
       options: ['jem-none', 'jem-build'],
     },
     {
-      id: 'ops-plan', phase: 5, role: 'science', changeKind: 'plan',
+      id: 'ops-plan', default: 'jops-careful', phase: 5, role: 'science', changeKind: 'plan',
       label: tx('Observation plan', '観測計画'),
       help: tx('Observing on more flybys gathers more data but needs more power and downlink.', '多くの接近で観測するほどデータは増えますが、電力と通信が要ります。'),
       options: ['jops-steady', 'jops-aggressive', 'jops-careful'],
@@ -196,7 +197,7 @@ export const jupiterIcyMoon: Mission = {
 
     { kind: 'choice', id: 'jsplit-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('A typical reserve.', '一般的な予備費。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'jsplit-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'jsplit-safe', name: tx('Safe (25% reserve)', '安全重視（予備費25%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.25) } },
+    { kind: 'choice', id: 'jsplit-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.2) } },
 
     { kind: 'part', id: 'jinst-eis', subsystem: 'payload', name: tx('Cameras (EIS)', 'カメラ（EIS）'), description: tx('Wide and narrow cameras map the surface; down to about 1 m per pixel from 100 km.', '広角と狭角のカメラで地表を撮る。100 kmから1画素約1 m。'), cost: rule(60000), massKg: rule(40), powerW: rule(30), dataMBPerDay: rule(800, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
     { kind: 'part', id: 'jinst-mise', subsystem: 'payload', name: tx('Infrared spectrometer (MISE)', '赤外分光計（MISE）'), description: tx('Maps the chemical fingerprints of salts and organics on the surface.', '地表の塩や有機物の化学的な指紋を地図にする。'), cost: rule(60000), massKg: rule(65), powerW: rule(40), dataMBPerDay: rule(600, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
@@ -279,11 +280,11 @@ export const jupiterIcyMoon: Mission = {
     { kind: 'choice', id: 'jprep-rehearsal', name: tx('Flyby rehearsals', '接近観測の通し練習'), description: tx('Rehearse the flyby sequence and recovery from safe mode.', '接近の手順と、セーフモードからの復帰を練習する。'), cost: rule(25000), leadDays: rule(60), settings: { earlyFailureFactorOps: rule(0.6) }, tags: ['opsRehearsed'] },
 
     { kind: 'part', id: 'jem-none', subsystem: 'structure', name: tx('No spare parts', '予備なし'), description: tx('Test the flight parts only.', '本番の部品だけで試験する。'), cost: rule(0), massKg: rule(0) },
-    { kind: 'part', id: 'jem-build', subsystem: 'structure', name: tx('Spare parts for radiation tests', '放射線試験用の予備部品'), description: tx('Find weak transistors before launch, not at Jupiter.', '弱いトランジスタを、木星ではなく打ち上げ前に見つける。'), cost: rule(40000), leadDays: rule(90), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')), tags: ['engineeringModel'] },
+    { kind: 'part', id: 'jem-build', subsystem: 'structure', name: tx('Spare parts for radiation tests', '放射線試験用の予備部品'), description: tx('Find weak transistors before launch, not at Jupiter.', '弱いトランジスタを、木星ではなく打ち上げ前に見つける。'), cost: rule(40000), leadDays: rule(60), massKg: rule(0, tx('Stays on the ground.', '地上に残るので質量に含めない。')), tags: ['engineeringModel'] },
 
-    { kind: 'choice', id: 'jops-steady', name: tx('Steady', '標準'), description: tx('Observe on most flybys.', 'ほとんどの接近で観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
-    { kind: 'choice', id: 'jops-aggressive', name: tx('Aggressive', '積極的'), description: tx('Observe on nearly every flyby; strains power and downlink.', 'ほとんどの接近で観測する。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
-    { kind: 'choice', id: 'jops-careful', name: tx('Careful', '慎重'), description: tx('Observe on selected flybys only.', '選んだ接近だけで観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
+    { kind: 'choice', id: 'jops-steady', name: tx('Steady', '標準'), description: tx('Observe on about half of the flybys.', '接近の約半分で観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.5) } },
+    { kind: 'choice', id: 'jops-aggressive', name: tx('Aggressive', '積極的'), description: tx('Observe on nearly every flyby. Hard on power and downlink.', 'ほぼすべての接近で観測する。電力と通信に負担がかかる。'), cost: rule(0), settings: { dutyCycle: rule(0.9) } },
+    { kind: 'choice', id: 'jops-careful', name: tx('Careful', '慎重'), description: tx('Observe on about a quarter of the flybys.', '接近の約4分の1だけで観測する。'), cost: rule(0), settings: { dutyCycle: rule(0.25) } },
   ],
 
   events: [
@@ -364,7 +365,7 @@ export const jupiterIcyMoon: Mission = {
     {
       id: 'jradiation', phase: 5, name: tx('Radiation damage', '放射線による損傷'),
       story: tx('Jupiter’s radiation belts slowly damage the electronics.', '木星の放射線帯が、少しずつ電子機器を傷めた。'),
-      probability: rule(0.7),
+      probability: rule(0.7, tx('Game value. Even the same vault as the real spacecraft adds some failure risk here: the game is harsher than the real Europa Clipper.', 'ゲームの値。実機と同じ容器でも故障の確率が上がるようにしてあり、実際のエウロパ・クリッパーより厳しい。')),
       protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'vault-thick' }, { kind: 'hasTag', tag: 'radiation:low' }] },
       partialIf: { kind: 'hasTag', tag: 'vault' },
       partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.1 }],
@@ -390,7 +391,7 @@ export const jupiterIcyMoon: Mission = {
       id: 'jdsn', phase: 5, name: tx('Antenna time cut', 'アンテナ時間の削減'),
       story: tx('Other missions need the big antennas; your time is cut.', 'ほかのミッションが大型アンテナを必要とし、時間が削られた。'),
       probability: rule(0.35),
-      protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.5 },
+      protectedIf: { kind: 'margin', resource: 'downlink', atLeast: 0.7 },
       unprotected: [{ kind: 'scienceFactor', factor: 0.85 }],
       lesson: tx('{agency} could not send everything when antenna time was cut.', '{agency}は、アンテナの時間が減ったときにデータを送りきれなかった。'),
       realCase: {

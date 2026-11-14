@@ -150,7 +150,7 @@ export interface DecisionSlot {
   help: Text;
   /** Option ids, in the order shown. */
   options: string[];
-  /** Standard choice (one id, or several for multi-choice slots), used to fill undecided slots. Defaults to the first option. */
+  /** Auto-plan choice (one id, or several for multi-choice slots): every game starts from it. The auto-plan keeps cost and effort as low as possible and ignores risk. Defaults to the first option. */
   default?: string | string[];
   /** Several options can be picked (e.g. instruments). With noneFirst, the first option means "none" and clears the others. */
   multi?: { min: number; max: number; noneFirst?: boolean };
@@ -214,7 +214,7 @@ export type Outcome = 'fullSuccess' | 'partialSuccess' | 'objectiveMissed' | 'no
 /** How an objective is judged; combined from a few standard checks so any mission can use them. */
 export type ObjectiveRule =
   /** Observations delivered to the ground (mission's science unit): full at `atLeast`, half at `partialAtLeast`. */
-  | { kind: 'science'; atLeast: number; partialAtLeast?: number }
+  | { kind: 'science'; atLeast: number; partialAtLeast?: number; weighted?: boolean }
   /** The design carries something with this tag and the mission reached operations. */
   | { kind: 'hasTag'; tag: Tag }
   /** The spacecraft operated for the whole mission. */
@@ -240,6 +240,8 @@ export interface MissionRules {
   scienceUnit: Text;
   /** Science value that earns the full science score. */
   scienceFullScore: Sourced;
+  /** Share of the budget left unspent at the end that earns full budget points. */
+  budgetFullLeftShare: Sourced;
   /** Chance the spacecraft fails right after launch, for test depth 1, 2, 3. */
   earlyFailureByTestDepth: Sourced<number[]>;
   /** Changing a decision made 1, 2, 3+ phases ago costs the larger option cost × this factor. */

@@ -99,7 +99,8 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
 
   const runForecast = () => {
     if (!canForecast) return;
-    const f = agencyForecast(game, player, working, RUNS, undefined, pending);
+    // Same random stream as the baseline, so the difference shows the design change, not noise.
+    const f = agencyForecast(game, player, working, RUNS, 'baseline', pending);
     setGame({ ...game, forecastsUsed: game.forecastsUsed + 1 });
     setMine({ f, key: designKey, phase: game.phase });
   };
