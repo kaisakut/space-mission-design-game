@@ -82,6 +82,7 @@ function CardDetail({ entry: { mission, card } }: { entry: Entry }) {
     switch (c.kind) {
       case 'hasTag': return fmt(t.cond_pick, { names: quote(mission.options.filter((o) => o.tags?.includes(c.tag)).map((o) => L(o.name))) });
       case 'setting': return fmt(t.cond_pick, { names: quote(mission.options.filter((o) => o.kind === 'choice' && (o.settings?.[c.key]?.value ?? -Infinity) >= c.atLeast).map((o) => L(o.name))) });
+      case 'settingAtMost': return fmt(t.cond_pick, { names: quote(mission.options.filter((o) => o.kind === 'choice' && o.settings?.[c.key] !== undefined && o.settings[c.key]!.value <= c.atMost).map((o) => L(o.name))) });
       case 'margin': return fmt(t.cond_margin, { res: tk(t, `res_${c.resource}`), n: Math.round(c.atLeast * 100) });
       case 'reserveAtLeast': return fmt(t.cond_reserve, { k: `${c.kUSD.toLocaleString()} ${t.unit_kUSD}` });
       case 'all': return c.of.map(cond).join(t.cond_and);

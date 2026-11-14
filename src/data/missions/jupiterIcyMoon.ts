@@ -1,5 +1,5 @@
 import type { Mission } from '../types';
-import { est, nasa, rule, tx } from '../helpers';
+import { est, nasa, pub, rule, tx } from '../helpers';
 
 /**
  * Mission 3 (playable): a flagship spacecraft that studies Jupiter's icy moon Europa.
@@ -74,7 +74,7 @@ export const jupiterIcyMoon: Mission = {
       points: rule(5), rule: { kind: 'survive' }, chosenBy: 'goal:full',
     },
   ],
-  rubric: { primary: rule(35), secondary: rule(15), science: rule(25), budget: rule(15), schedule: rule(10) },
+  rubric: { primary: rule(35), secondary: rule(15), science: rule(30), budget: rule(10), schedule: rule(10) },
 
   slots: [
     {
@@ -199,9 +199,9 @@ export const jupiterIcyMoon: Mission = {
       tags: ['tour', 'radiation:low'],
     },
 
-    { kind: 'choice', id: 'jsplit-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('A typical reserve.', '一般的な予備費。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'jsplit-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'jsplit-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'jsplit-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.2) } },
+    { kind: 'choice', id: 'jsplit-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
 
     { kind: 'part', id: 'jinst-eis', subsystem: 'payload', name: tx('Cameras (EIS)', 'カメラ（EIS）'), description: tx('Wide and narrow cameras map the surface; down to about 1 m per pixel from 100 km.', '広角と狭角のカメラで地表を撮る。100 kmから1画素約1 m。'), cost: rule(60000), massKg: rule(40), powerW: rule(30), dataMBPerDay: rule(800, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
     { kind: 'part', id: 'jinst-mise', subsystem: 'payload', name: tx('Infrared spectrometer (MISE)', '赤外分光計（MISE）'), description: tx('Maps the chemical fingerprints of salts and organics on the surface.', '地表の塩や有機物の化学的な指紋を地図にする。'), cost: rule(60000), massKg: rule(65), powerW: rule(40), dataMBPerDay: rule(600, DATA_NOTE), scienceWeight: rule(2), observes: 'remote' },
@@ -259,14 +259,14 @@ export const jupiterIcyMoon: Mission = {
     {
       kind: 'launch', id: 'jlv-heavy', name: tx('Heavy rocket with Mars and Earth swing-bys', '大型ロケット＋火星・地球スイングバイ'),
       description: tx('Europa Clipper’s route on a Falcon Heavy: 5½ years to Jupiter.', 'ファルコン・ヘビーでのエウロパ・クリッパーの経路。木星まで5年半。'),
-      cost: rule(180000, tx('Game value for the launch service.', '打ち上げサービスのゲームの値。')),
+      cost: pub(178000, ['seradata-clipper-fh'], tx('Europa Clipper’s Falcon Heavy launch contract: about US$178 million.', 'エウロパ・クリッパーのファルコン・ヘビー打ち上げ契約：約1億7800万ドル。')),
       capacityKg: { 'tour-flybys': rule(6500), 'tour-europa-orbit': rule(6500), 'tour-ganymede': rule(6500) },
       reliability: rule(0.97), windowsDay: rule([1700, 2100, 2500]),
     },
     {
       kind: 'launch', id: 'jlv-direct', name: tx('Super-heavy rocket, direct route', '超大型ロケットで直行'),
       description: tx('Much faster to Jupiter, so fewer years of wear on the way, and more mass to spare; very expensive.', '木星までずっと早く、途中で傷む年数が少ない。質量の余裕も大きいが、非常に高い。'),
-      cost: rule(900000, tx('Game value for a super-heavy launch.', '超大型ロケットの打ち上げのゲームの値。')), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
+      cost: est(2000000, ['seradata-clipper-fh'], tx('About US$2 billion: the estimated cost of an SLS launch for Europa Clipper. NASA chose the US$178 million Falcon Heavy and the longer route instead.', '約20億ドル：エウロパ・クリッパーをSLSで打ち上げる場合の見積もり。NASAは代わりに1億7800万ドルのファルコン・ヘビーと長い経路を選んだ。')), capacityKg: { 'tour-flybys': rule(9000), 'tour-europa-orbit': rule(9000), 'tour-ganymede': rule(9000) },
       reliability: rule(0.95), windowsDay: rule([1700, 2100, 2500]), tags: ['direct'],
     },
 
@@ -296,8 +296,12 @@ export const jupiterIcyMoon: Mission = {
       id: 'jbudget-cut', phase: 1, name: tx('Budget cut', '予算の削減'),
       story: tx('The programme budget is cut by 10%.', '計画の予算が10%削減された。'),
       probability: rule(0.35),
-      protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
-      unprotected: [{ kind: 'resource', resource: 'budget', delta: -450000 }],
+      // A 20% reserve absorbs the cut (JPL keeps 20–30% during design); 10% absorbs half and the rest is
+      // found by descoping; with no reserve the whole cut is taken from the hardware and the operations.
+      protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.2 },
+      partialIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
+      partial: [{ kind: 'resource', resource: 'budget', delta: -225000 }, { kind: 'scienceFactor', factor: 0.9 }],
+      unprotected: [{ kind: 'resource', resource: 'budget', delta: -450000 }, { kind: 'scienceFactor', factor: 0.75 }],
       lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
     },
     {
@@ -367,19 +371,31 @@ export const jupiterIcyMoon: Mission = {
       lesson: tx('{agency} took the long route and its worn spacecraft observed less.', '{agency}は長い経路をとり、消耗した探査機で観測が減った。'),
     },
     {
+      id: 'jinstrument-dose', phase: 5, name: tx('Instruments wear in the belts', '観測機器が放射線で劣化する'),
+      story: tx('Instruments observing on every close pass spend the most time switched on deep in the radiation belts.', 'すべての接近で観測する機器は、放射線帯の奥で電源を入れている時間がいちばん長い。'),
+      probability: rule(0.8, tx('Game value, after JunoCam (a camera outside the vault), which degraded after many orbits.', 'ゲームの値。容器の外にあるカメラ JunoCam が、多くの周回のあと劣化した例による。')),
+      // Observing on fewer passes, or staying out of the belts, spares the instruments.
+      protectedIf: { kind: 'any', of: [{ kind: 'settingAtMost', key: 'dutyCycle', atMost: 0.3 }, { kind: 'hasTag', tag: 'radiation:low' }] },
+      partialIf: { kind: 'any', of: [{ kind: 'settingAtMost', key: 'dutyCycle', atMost: 0.6 }, { kind: 'hasTag', tag: 'vault-thick' }] },
+      partial: [{ kind: 'failChance', subsystem: 'payload', add: 0.2 }],
+      unprotected: [{ kind: 'failChance', subsystem: 'payload', add: 0.6 }],
+      lesson: tx('{agency} observed on every pass without extra shielding, and its instruments wore out before the end of the tour.', '{agency}は追加の遮へいなしにすべての接近で観測し、観測期間の途中で機器が劣化した。'),
+      realCase: {
+        who: tx('Juno (JunoCam)', 'Juno（JunoCam）'),
+        text: tx('JunoCam sits outside Juno’s titanium vault. It worked through 46 orbits, then radiation damage spoiled most images until engineers partly repaired it by heating (annealing).', 'JunoCamはJunoのチタンの容器の外にある。46周までは正常だったが、その後放射線の損傷で画像の多くが壊れ、加熱（アニール）でいったん一部を直した。'),
+        sources: ['nasa-junocam'],
+      },
+    },
+    {
       id: 'jradiation', phase: 5, name: tx('Radiation damage', '放射線による損傷'),
       story: tx('Jupiter’s radiation belts slowly damage the electronics.', '木星の放射線帯が、少しずつ電子機器を傷めた。'),
       probability: rule(0.7, tx('Game value. Even the same vault as the real spacecraft adds some failure risk here: the game is harsher than the real Europa Clipper.', 'ゲームの値。実機と同じ容器でも故障の確率が上がるようにしてあり、実際のエウロパ・クリッパーより厳しい。')),
-      protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'vault-thick' }, { kind: 'hasTag', tag: 'radiation:low' }] },
+      // Clipper's vault was sized for a flyby tour that leaves the belts between passes; living in them needs more.
+      protectedIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'vault-thick' }, { kind: 'hasTag', tag: 'radiation:low' }, { kind: 'all', of: [{ kind: 'hasTag', tag: 'vault' }, { kind: 'hasTag', tag: 'tour' }] }] },
       partialIf: { kind: 'hasTag', tag: 'vault' },
       partial: [{ kind: 'failChance', subsystem: 'cdh', add: 0.1 }],
       unprotected: [{ kind: 'failChance', subsystem: 'cdh', add: 0.5 }],
       lesson: tx('The same radiation hit everyone; {agency}’s vault was too thin.', '同じ放射線が全機関を襲った。{agency}の保護容器は薄すぎた。'),
-      realCase: {
-        who: tx('Juno (JunoCam)', 'Juno（JunoCam）'),
-        text: tx('JunoCam: the camera worked through Juno’s 34-orbit prime mission, then radiation damage appeared from orbit 47 and nearly every image was corrupted by orbit 56.', 'JunoCam：本来の任務の34周は正常だったが、47周目から放射線の損傷が出て、56周目にはほぼすべての画像が壊れていた。'),
-        sources: ['nasa-junocam'],
-      },
     },
     {
       id: 'jeuropa-orbit', phase: 5, name: tx('Constant radiation in Europa orbit', 'エウロパ周回での絶え間ない放射線'),

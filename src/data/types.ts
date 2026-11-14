@@ -166,6 +166,8 @@ export type Condition =
   | { kind: 'margin'; resource: Resource; atLeast: number }
   | { kind: 'reserveAtLeast'; kUSD: number }
   | { kind: 'setting'; key: string; atLeast: number }
+  /** A setting at or below a value (e.g. a careful operations plan: dutyCycle at most 0.3). */
+  | { kind: 'settingAtMost'; key: string; atMost: number }
   | { kind: 'all'; of: Condition[] }
   | { kind: 'any'; of: Condition[] };
 

@@ -18,6 +18,7 @@ export function meets(c: Condition | undefined, d: DesignState): boolean {
     case 'margin': return d.gauges[c.resource].margin >= c.atLeast;
     case 'reserveAtLeast': return d.reserveKUSD >= c.kUSD;
     case 'setting': return (d.settings[c.key] ?? 0) >= c.atLeast;
+    case 'settingAtMost': return (d.settings[c.key] ?? 0) <= c.atMost;
     case 'all': return c.of.every((x) => meets(x, d));
     case 'any': return c.of.some((x) => meets(x, d));
   }

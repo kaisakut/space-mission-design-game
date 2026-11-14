@@ -112,7 +112,7 @@ export const wildfireCubesat: Mission = {
       chosenBy: 'goal:life',
     },
   ],
-  rubric: { primary: rule(35), secondary: rule(15), science: rule(25), budget: rule(15), schedule: rule(10) },
+  rubric: { primary: rule(35), secondary: rule(15), science: rule(30), budget: rule(10), schedule: rule(10) },
 
   slots: [
     // Phase 1: concept
@@ -245,9 +245,9 @@ export const wildfireCubesat: Mission = {
       tags: ['orbit:high'],
     },
 
-    { kind: 'choice', id: 'split-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('A typical reserve.', '一般的な予備費。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'split-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'split-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'split-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.2) } },
+    { kind: 'choice', id: 'split-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
 
     {
       kind: 'part', id: 'cam-vis', subsystem: 'payload', name: tx('Visible camera', '可視カメラ'),
@@ -422,8 +422,12 @@ export const wildfireCubesat: Mission = {
       id: 'budget-cut', phase: 1, name: tx('Budget cut', '予算の削減'),
       story: tx('The programme budget is cut by 10%.', '計画の予算が10%削減された。'),
       probability: rule(0.3),
-      protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
-      unprotected: [{ kind: 'resource', resource: 'budget', delta: -150 }],
+      // A 20% reserve absorbs the cut (JPL keeps 20–30% during design); 10% absorbs half and the rest is
+      // found by descoping; with no reserve the whole cut is taken from the hardware and the operations.
+      protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.2 },
+      partialIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
+      partial: [{ kind: 'resource', resource: 'budget', delta: -75 }, { kind: 'scienceFactor', factor: 0.9 }],
+      unprotected: [{ kind: 'resource', resource: 'budget', delta: -150 }, { kind: 'scienceFactor', factor: 0.75 }],
       lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
     },
     {
@@ -526,6 +530,17 @@ export const wildfireCubesat: Mission = {
         text: tx('ICESat-2 (May 2024): during the Gannon storm, extra drag at about 480 km turned the spacecraft and put it into safe hold; Starlink raised about 5,000 satellites at once.', 'ICESat-2（2024年5月）：ガノン嵐のとき、高度約480 kmで想定外の抵抗を受けて姿勢が回り、セーフホールドに入った。Starlinkは約5,000機の軌道を一斉に上げた。'),
         sources: ['knipp-gannon'],
       },
+    },
+    {
+      id: 'battery-wear', phase: 5, name: tx('Battery wear', '電池の劣化'),
+      story: tx('A satellite in low orbit charges and discharges its battery about 5,500 times a year. Imaging on every orbit drains it deeper each time.', '低軌道の衛星は、年に約5,500回、電池の充電と放電をくり返す。毎周回撮影すると、そのたびに深く放電する。'),
+      probability: est(0.8, ['knap-battery'], tx('Game value: deep cycling is a matter of design, not luck, so the chance is high. Cycle depth is one of the main drivers of battery wear in LEO nanosatellites (Knap et al.).', 'ゲームの値：深い放電は運ではなく設計で決まるので、確率を高くした。低軌道の超小型衛星では、放電の深さが電池の劣化の大きな要因（Knapら）。')),
+      // A steady or conservative plan keeps discharges shallow; a large power margin also helps.
+      protectedIf: { kind: 'any', of: [{ kind: 'settingAtMost', key: 'dutyCycle', atMost: 0.6 }, { kind: 'margin', resource: 'power', atLeast: 0.6 }] },
+      partialIf: { kind: 'margin', resource: 'power', atLeast: 0.4 },
+      partial: [{ kind: 'failChance', subsystem: 'power', add: 0.15 }],
+      unprotected: [{ kind: 'failChance', subsystem: 'power', add: 0.4 }],
+      lesson: tx('{agency} imaged on every orbit with little power to spare, and its battery wore out early.', '{agency}は電力に余裕がないまま毎周回撮影し、電池が早く劣化した。'),
     },
     {
       id: 'big-fire-season', phase: 5, name: tx('Major fire season', '大規模な火災シーズン'),

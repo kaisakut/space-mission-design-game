@@ -62,3 +62,23 @@ for (const m of MISSIONS) {
     }
   }
 }
+
+// Best choice share: in each random design, which option of the box gives the highest mean score.
+// An option that is never best (0%) has no design it suits; that is a balance problem unless intended.
+console.log('\n# Best choice share (single-choice boxes)');
+for (const m of MISSIONS) {
+  const bases: Picks[] = [];
+  for (let k = 0; bases.length < Math.min(DESIGNS, 80) && k < 8000; k++) { const p = randomPicks(m); if (canLaunch(evaluate(m, p))) bases.push(p); }
+  const score = (p: Picks) => (canLaunch(evaluate(m, p)) ? measure(m, p).sc : -1);
+  console.log(`\n## ${m.id}`);
+  for (const slot of m.slots) {
+    if (slot.multi) continue;
+    const wins: Record<string, number> = Object.fromEntries(slot.options.map((o) => [o, 0]));
+    for (const b of bases) {
+      let best = '', bs = -2;
+      for (const o of slot.options) { const s = score({ ...b, [slot.id]: [o] }); if (s > bs + 0.3) { bs = s; best = o; } }
+      wins[best] = (wins[best] ?? 0) + 1;
+    }
+    console.log(`${slot.id}: ` + slot.options.map((o) => `${o} ${Math.round((wins[o]! / bases.length) * 100)}%`).join('  '));
+  }
+}

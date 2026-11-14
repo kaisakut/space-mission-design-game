@@ -73,7 +73,7 @@ export function validateMission(m: Mission): DataIssue[] {
   const checkCond = (c: Condition | undefined, where: string): void => {
     if (!c) return;
     if (c.kind === 'hasTag' && !tags.has(c.tag)) err(where, `no option gives tag '${c.tag}'`);
-    if (c.kind === 'setting' && !settings.has(c.key)) err(where, `no option sets '${c.key}'`);
+    if ((c.kind === 'setting' || c.kind === 'settingAtMost') && !settings.has(c.key)) err(where, `no option sets '${c.key}'`);
     if (c.kind === 'all' || c.kind === 'any') c.of.forEach((x) => checkCond(x, where));
   };
   const checkEffects = (es: Effect[] | undefined, where: string) => {

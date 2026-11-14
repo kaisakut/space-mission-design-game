@@ -92,7 +92,7 @@ export const lunarIceRover: Mission = {
       points: rule(5), rule: { kind: 'survive' }, chosenBy: 'goal:full',
     },
   ],
-  rubric: { primary: rule(35), secondary: rule(15), science: rule(25), budget: rule(15), schedule: rule(10) },
+  rubric: { primary: rule(35), secondary: rule(15), science: rule(30), budget: rule(10), schedule: rule(10) },
 
   slots: [
     {
@@ -213,9 +213,9 @@ export const lunarIceRover: Mission = {
       tags: ['site:coldtrap'],
     },
 
-    { kind: 'choice', id: 'lsplit-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('A typical reserve.', '一般的な予備費。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
+    { kind: 'choice', id: 'lsplit-balanced', name: tx('Balanced (10% reserve)', '標準（予備費10%）'), description: tx('Cushions half of a budget cut; the rest means dropping some observations.', '予算削減の半分を吸収する。残りは観測を一部あきらめて賄う。'), cost: rule(0), settings: { reserveShare: rule(0.1) } },
     { kind: 'choice', id: 'lsplit-lean', name: tx('Lean (0% reserve)', '切り詰め（予備費0%）'), description: tx('More money for hardware, none for surprises.', '機器に回せる分は多いが、想定外に弱い。'), cost: rule(0), settings: { reserveShare: rule(0) } },
-    { kind: 'choice', id: 'lsplit-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Survives cuts, less to spend on hardware.', '削減に耐えるが、機器に回せる分が減る。'), cost: rule(0), settings: { reserveShare: rule(0.2) } },
+    { kind: 'choice', id: 'lsplit-safe', name: tx('Safe (20% reserve)', '安全重視（予備費20%）'), description: tx('Absorbs a budget cut in full, as NASA projects plan (20–30% during design); less to spend on hardware.', 'NASAの計画と同じく（設計中は20〜30%）、予算削減を全部吸収する。機器に回せる分は減る。'), cost: rule(0), settings: { reserveShare: nasa(0.2, ['jpl-reserves'], tx('JPL keeps 20% of the cost to go as reserve from CDR to launch (30% at proposal).', 'JPLは詳細設計審査から打ち上げまで、残りの費用の20%を予備費として持つ（提案時は30%）。')) } },
 
     {
       kind: 'part', id: 'inst-nss', subsystem: 'payload', name: tx('Neutron spectrometer (NSS)', '中性子分光計（NSS）'),
@@ -358,8 +358,12 @@ export const lunarIceRover: Mission = {
       id: 'lbudget-cut', phase: 1, name: tx('Budget cut', '予算の削減'),
       story: tx('The programme budget is cut by 10%.', '計画の予算が10%削減された。'),
       probability: rule(0.3),
-      protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
-      unprotected: [{ kind: 'resource', resource: 'budget', delta: -50000 }],
+      // A 20% reserve absorbs the cut (JPL keeps 20–30% during design); 10% absorbs half and the rest is
+      // found by descoping; with no reserve the whole cut is taken from the hardware and the operations.
+      protectedIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.2 },
+      partialIf: { kind: 'setting', key: 'reserveShare', atLeast: 0.1 },
+      partial: [{ kind: 'resource', resource: 'budget', delta: -25000 }, { kind: 'scienceFactor', factor: 0.9 }],
+      unprotected: [{ kind: 'resource', resource: 'budget', delta: -50000 }, { kind: 'scienceFactor', factor: 0.75 }],
       lesson: tx('{agency} had no reserve when the budget was cut.', '{agency}は、予算削減のときに予備費がなかった。'),
       realCase: {
         who: tx('VIPER', 'VIPER'),
@@ -428,17 +432,26 @@ export const lunarIceRover: Mission = {
       id: 'stuck', phase: 5, name: tx('Stuck in soft soil', '柔らかい土にはまる'),
       story: tx('A wheel sinks into loose regolith.', '車輪がやわらかいレゴリスに沈んだ。'),
       probability: rule(0.3),
-      partialIf: { kind: 'hasTag', tag: 'engineeringModel' },
+      // Short careful drives keep off soft ground; a steady plan or a tested rover gets free; long drives risk the most.
+      protectedIf: { kind: 'settingAtMost', key: 'dutyCycle', atMost: 0.3 },
+      partialIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'engineeringModel' }, { kind: 'settingAtMost', key: 'dutyCycle', atMost: 0.5 }] },
       partial: [{ kind: 'durationFactor', factor: 0.85 }],
       unprotected: [{ kind: 'durationFactor', factor: 0.5 }],
-      lesson: tx('{agency} had not tested driving in Moon-like gravity and lost weeks getting free.', '{agency}は月の重力に近い条件で走行を試しておらず、抜け出すのに何週間もかかった。'),
+      lesson: tx('{agency} drove far on an untested rover and lost weeks getting free.', '{agency}は試していないローバーで長く走り、抜け出すのに何週間もかかった。'),
+      realCase: {
+        who: tx('Spirit (Mars)', 'スピリット（火星）'),
+        year: '2009',
+        text: tx('Spirit: in May 2009 the rover broke through a crust and sank into soft soil at “Troy”; it never drove out, and the mission ended there.', 'スピリット：2009年5月、表面の固い層を踏み抜いて「トロイ」の柔らかい土に沈んだ。抜け出せないまま、そこで任務を終えた。'),
+        sources: ['nasa-spirit-troy'],
+      },
     },
     {
       id: 'long-night', phase: 5, name: tx('Longer shadow than planned', '想定より長い影'),
       story: tx('The safe spot falls into shadow for longer than expected.', '安全な待機場所が、想定より長く影に入った。'),
       probability: rule(0.5),
-      protectedIf: { kind: 'hasTag', tag: 'nightSurvival' },
-      partialIf: { kind: 'hasTag', tag: 'bigBattery' },
+      // Heaters protect a rover that stays near its safe spot; one that drives deep into the shadows is only partly covered.
+      protectedIf: { kind: 'all', of: [{ kind: 'hasTag', tag: 'nightSurvival' }, { kind: 'settingAtMost', key: 'dutyCycle', atMost: 0.6 }] },
+      partialIf: { kind: 'any', of: [{ kind: 'hasTag', tag: 'bigBattery' }, { kind: 'hasTag', tag: 'nightSurvival' }] },
       partial: [{ kind: 'durationFactor', factor: 0.85 }],
       unprotected: [{ kind: 'durationFactor', factor: 0.6 }],
       lesson: tx('{agency}’s rover froze in a long shadow: no heaters and a small battery.', '{agency}のローバーは長い影で凍りついた。ヒーターがなく電池も小さかった。'),
