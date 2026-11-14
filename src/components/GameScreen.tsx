@@ -12,7 +12,7 @@ import { AutoFit } from './AutoFit';
 import { ForecastPanel, RUNS } from './ForecastPanel';
 import { Gauges } from './Gauges';
 import { MissionView } from './MissionView';
-import { useCardText, useCauseName } from './labels';
+import { AGENCY_COLOR, SeatContext, useCardText, useCauseName } from './labels';
 import { Modal } from './Modal';
 import { OptionCard, type Diff } from './OptionCard';
 import { Briefing } from './Briefing';
@@ -20,6 +20,7 @@ import { Icon } from './icons';
 import { FinalScreen, TurnReports } from './Reports';
 import { AgencyLabel, Resolution } from './Resolution';
 import { Tutorial } from './Tutorial';
+import { GatherScreen, HandoverScreen, OrderScreen } from './TurnScreens';
 import type { PlaySettings } from './TitleScreen';
 
 const PHASES = [1, 2, 3, 4, 5] as const;
@@ -33,7 +34,15 @@ const fmtDelta = (x: number) => (Math.abs(x) >= 100 ? Math.round(x).toLocaleStri
 export function GameScreen({ mission, settings }: { mission: Mission; settings: PlaySettings }) {
   const tutorial = settings.tutorial;
   const { t, L } = useLang();
-  const [game, setGame] = useState<Game>(() => newGame(mission, newSeed(), settings.practice, settings.hints));
+  const [game, setGame] = useState<Game>(() => newGame(mission, newSeed(), settings.practice, settings.hints, settings.seats));
+  // Playing together: each phase shows the order, then each human's turn behind a hand-over screen, then a
+  // gather screen; the picks wait here until everyone has decided. Solo play never leaves 'turn'.
+  const multi = game.mode === 'multi';
+  const [stage, setStage] = useState<'order' | 'handover' | 'turn' | 'gather'>(() => (game.mode === 'multi' ? 'order' : 'turn'));
+  const [turnIndex, setTurnIndex] = useState(0);
+  const [handed, setHanded] = useState<Partial<Record<AgencyKind, Picks>>>({});
+  const [gathered, setGathered] = useState<{ g: Game; phase: number } | null>(null);
+  const viewerId: AgencyKind = multi ? game.order[turnIndex] ?? 'player' : 'player';
   const [tab, setTab] = useState(1);
   const [draft, setDraft] = useState<Picks>({});
   const [guide, setGuide] = useState(tutorial);
@@ -54,7 +63,8 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   // The hint button: the single change in this phase expected to help most, lit until the design changes.
   const [hinted, setHinted] = useState<{ slot: string; id: string; text: string; key: string } | { none: true; key: string } | null>(null);
   const [hintBusy, setHintBusy] = useState(false);
-  const player = game.agencies.find((a) => a.id === 'player')!;
+  // The agency at the screen: seat 1 when playing solo, the human whose turn it is when playing together.
+  const player = game.agencies.find((a) => a.id === viewerId)!;
   const working = { ...player.picks, ...draft };
   const pending = useMemo(() => pendingChanges(game, player, working), [game, player, working]);
   const state = useMemo(() => agencyDesign(game, player, working, pending), [game, player, working, pending]);
@@ -67,16 +77,16 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   // The player's forecasts share one seed and stream: an unchanged design gives exactly the baseline's numbers.
   const baseline = useMemo(() => agencyForecast(game, player, player.picks, RUNS, 'baseline', undefined, FORECAST_SEED),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [game.phase, game.agencies]);
+    [game.phase, game.agencies, player.id]);
   // Cards that already hit the player: they are history now, not weak points with a chance.
   const cardText = useCardText(mission);
-  const past = useMemo(() => game.reports.flatMap((r) => r.cards.map((id) => ({ id, result: r.results.player[id] }))).filter((x) => x.result === 'hit' || x.result === 'partial'), [game.reports]);
+  const past = useMemo(() => game.reports.flatMap((r) => r.cards.map((id) => ({ id, result: r.results[player.id][id] }))).filter((x) => x.result === 'hit' || x.result === 'partial'), [game.reports, player.id]);
   const pastIds = useMemo(() => new Set(past.map((x) => x.id)), [past]);
   const weakCards = useMemo(() => new Set(baseline.topCauses.map(([c]) => c)), [baseline]);
   const pastLines = past.map((x) => { const card = mission.events.find((e) => e.id === x.id)!; const eff = cardText.resultLine(card, x.result!); return `${L(card.name)}${eff ? ` (${eff})` : ''}`; });
   // The baseline before the last confirmation, and what happened since, for the line under the ring.
-  const prevBase = useRef<number | null>(null);
-  const prevPicks = useRef<Picks | null>(null);
+  const prevBase = useRef<Partial<Record<AgencyKind, number>>>({});
+  const prevPicks = useRef<Partial<Record<AgencyKind, Picks>>>({});
   const designKey = JSON.stringify([working, game.phase]);
   // A new phase opens its first item; a past phase shows every item closed, as a list of what was picked.
   useEffect(() => {
@@ -115,7 +125,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   }, [designKey]);
   const myForecast = mine && mine.phase === game.phase ? mine : null;
   const stale = !!myForecast && myForecast.key !== designKey;
-  const forecastsLeft = game.practice ? null : Math.max(0, 1 - game.forecastsUsed);
+  const forecastsLeft = game.practice ? null : Math.max(0, 1 - game.forecastsUsed[player.id]);
   const canForecast = forecastsLeft === null || forecastsLeft > 0;
 
   // Gauges that just changed glow for a moment.
@@ -174,18 +184,19 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
     if (!canForecast) return;
     // Same random stream as the baseline, so the difference shows the design change, not noise.
     const f = agencyForecast(game, player, working, RUNS, 'baseline', pending, FORECAST_SEED);
-    setGame({ ...game, forecastsUsed: game.forecastsUsed + 1 });
+    setGame({ ...game, forecastsUsed: { ...game.forecastsUsed, [player.id]: game.forecastsUsed[player.id] + 1 } });
     setMine({ f, key: designKey, phase: game.phase });
     play('forecastRun');
     const d = f.successShare - baseline.successShare;
     if (Math.abs(d) >= 0.02) play(d > 0 ? 'forecastUp' : 'forecastDown', 1.2);
   };
   const doConfirm = () => {
+    if (multi) { passOn(); return; }
     const picks = {} as Record<AgencyKind, Picks>;
     for (const a of game.agencies) picks[a.id] = a.id === 'player' ? working : aiPicks(game, a);
     const phase = game.phase;
-    prevBase.current = baseline.successShare;
-    prevPicks.current = player.picks;
+    prevBase.current = { ...prevBase.current, [player.id]: baseline.successShare };
+    prevPicks.current = { ...prevPicks.current, [player.id]: player.picks };
     play('confirm');
     const g = confirmPhase(game, picks);
     setGame(g);
@@ -195,11 +206,46 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
     setTab(Math.min(g.phase, PHASE_COUNT));
     if (g.phase <= PHASE_COUNT) setResolved(phase);
   };
+  // Playing together. A turn starts clean: nothing of the previous person's work is left on screen.
+  const beginTurn = () => {
+    const f = firstSlot(game.phase);
+    setDraft({}); setMine(null); setHinted(null); setHover(null); setFlashSlot(null); setAskConfirm(false); setAllTurns(false);
+    openNext.current = null;
+    setTab(game.phase); setOpenSlot(f); setSeen(new Set([f ?? '']));
+    setStage('turn');
+    play('ui');
+  };
+  // "Lock in": the picks wait (the engine sees nothing yet); the next person, or the gather screen.
+  const passOn = () => {
+    prevBase.current = { ...prevBase.current, [player.id]: baseline.successShare };
+    prevPicks.current = { ...prevPicks.current, [player.id]: player.picks };
+    const all = { ...handed, [player.id]: working };
+    setHanded(all);
+    setAskConfirm(false);
+    play('confirm');
+    if (turnIndex + 1 < game.order.length) { setTurnIndex(turnIndex + 1); setStage('handover'); return; }
+    // Everyone has decided: the AI seats decide now, from the state at the start of the phase, then all at once.
+    setStage('gather');
+    setGathered(null);
+    window.setTimeout(() => {
+      const picks = {} as Record<AgencyKind, Picks>;
+      for (const a of game.agencies) picks[a.id] = a.control === 'human' ? all[a.id] ?? {} : aiPicks(game, a);
+      setGathered({ g: confirmPhase(game, picks), phase: game.phase });
+    }, 30);
+  };
+  const showGathered = () => {
+    if (!gathered) return;
+    const { g, phase } = gathered;
+    setGame(g); setHanded({}); setGathered(null); setTurnIndex(0); setDraft({}); setMine(null);
+    setTab(Math.min(g.phase, PHASE_COUNT));
+    if (g.phase <= PHASE_COUNT) setResolved(phase);
+    play('ui');
+  };
   // Try every other option of this phase's boxes once with the same forecast, and light the one that does
   // most for the expected score (success counts too). Runs in the next tick so the button can show it is working.
   const showHint = () => {
     setHintBusy(true);
-    setGame((g) => ({ ...g, hintsUsed: g.hintsUsed + 1 }));
+    setGame((g) => ({ ...g, hintsUsed: { ...g.hintsUsed, [player.id]: g.hintsUsed[player.id] + 1 } }));
     setTimeout(() => {
       const runs = 60;
       const value = (f: Forecast) => f.score.p50 + 20 * f.successShare;
@@ -230,8 +276,12 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   };
   // Items of this phase never opened: named before confirming (it does not stop the player).
   const unseen = mission.slots.filter((sl) => sl.phase === game.phase && !seen.has(sl.id) && mission.slots.filter((x) => x.phase === game.phase).length > 1);
-  const confirm = () => ((game.forecastsUsed === 0 && !myForecast) || unseen.length ? setAskConfirm(true) : doConfirm());
-  const restart = (seed = newSeed()) => { setGame(newGame(mission, seed, game.practice, game.hints)); setDraft({}); setMine(null); setTab(1); };
+  const confirm = () => ((game.forecastsUsed[player.id] === 0 && !myForecast) || unseen.length ? setAskConfirm(true) : doConfirm());
+  const restart = (seed = newSeed()) => {
+    const g = newGame(mission, seed, game.practice, game.hints, settings.seats);
+    setGame(g); setDraft({}); setMine(null); setTab(1);
+    setStage(g.mode === 'multi' ? 'order' : 'turn'); setTurnIndex(0); setHanded({}); setGathered(null);
+  };
 
   const issueText = (i: Issue) => {
     const values: Record<string, string | number> = { ...i.values, res: i.resource ? tk(t, `res_${i.resource}`) : '' };
@@ -298,15 +348,19 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
     [hover, game, draft]);
 
   const lastReport = game.reports[game.reports.length - 1];
+  // Names for labels: the seats when playing together (solo keeps the dictionary names).
+  const seats = multi ? game.agencies : null;
+  const agencyName = (id: AgencyKind) => { const a = game.agencies.find((x) => x.id === id); return multi && a?.control === 'human' ? a.name ?? fmt(t.defaultPlayerName, { n: game.agencies.indexOf(a) + 1 }) : tk(t, `agency_${id}`); };
   // Why the baseline moved since the last confirmation. Only reasons that point the way it moved are named:
   // your own changes (measured on the same runs), cards that hit (down) or were avoided (up), risks that did not come.
   const wasNote = useMemo(() => {
-    const was = prevBase.current;
+    const was = prevBase.current[player.id] ?? null;
     if (was === null || !lastReport || Math.round(was * 100) === Math.round(baseline.successShare * 100)) return null;
     const up = baseline.successShare > was;
     const why: string[] = [];
-    if (prevPicks.current) {
-      const before = agencyForecast(game, player, prevPicks.current, RUNS, 'baseline', undefined, FORECAST_SEED).successShare;
+    const prevP = prevPicks.current[player.id];
+    if (prevP) {
+      const before = agencyForecast(game, player, prevP, RUNS, 'baseline', undefined, FORECAST_SEED).successShare;
       const mine = baseline.successShare - before;
       const changed = mission.slots.filter((s) => s.phase === lastReport.phase)
         .flatMap((s) => (player.picks[s.id] ?? []).filter((id) => !(standard[s.id] ?? []).includes(id)))
@@ -323,20 +377,39 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
   }, [baseline]);
 
   if (over && game.final) {
-    return <AutoFit className="final-wrap" min={0.8}><FinalScreen game={game} onRestart={() => restart()} onReplaySame={() => restart(game.seed)} /></AutoFit>;
+    return <SeatContext.Provider value={seats}><AutoFit className="final-wrap" min={0.8}><FinalScreen game={game} onRestart={() => restart()} onReplaySame={() => restart(game.seed)} /></AutoFit></SeatContext.Provider>;
   }
 
   const forecastFirst = canForecast && (!myForecast || stale);
   const step = !myForecast || stale ? 2 : 3;
   const forecastBtn = <button type="button" data-tour="forecastBtn" className={forecastFirst ? 'primary' : 'secondary'} disabled={!canForecast} onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })}</button>;
-  const confirmBtn = <button type="button" className={forecastFirst ? 'secondary' : 'primary'} onClick={confirm}>{game.phase < PHASE_COUNT ? fmt(t.confirmPhaseN, { n: game.phase }) : t.confirmLast}</button>;
+  const lockLabel = multi ? (turnIndex + 1 < game.order.length ? t.passOn : t.passLast) : game.phase < PHASE_COUNT ? fmt(t.confirmPhaseN, { n: game.phase }) : t.confirmLast;
+  const confirmBtn = <button type="button" className={forecastFirst ? 'secondary' : 'primary'} onClick={confirm}>{lockLabel}</button>;
+
+  // Playing together: the order, hand-over and gather screens, and the shared scenes, cover everything else.
+  if (multi && (stage !== 'turn' || resolved !== null)) {
+    return (
+      <SeatContext.Provider value={seats}>
+        <div className="game">
+          {resolved !== null
+            ? <Resolution game={game} phase={resolved} onClose={() => { setResolved(null); setStage('order'); setTurnIndex(0); }} />
+            : stage === 'order' ? <OrderScreen phase={game.phase} order={game.order} ais={game.agencies.filter((a) => a.control === 'ai').map((a) => a.id)} ready={!brief} onGo={() => { setTurnIndex(0); setStage('handover'); }} />
+              : stage === 'handover' ? <HandoverScreen id={viewerId} i={turnIndex + 1} n={game.order.length} onStart={beginTurn} />
+                : <GatherScreen ready={!!gathered} onGo={showGathered} />}
+          {brief && <Briefing mission={mission} game={game} onClose={() => setBrief(false)} />}
+        </div>
+      </SeatContext.Provider>
+    );
+  }
 
   return (
-    <div className="game">
+    <SeatContext.Provider value={seats}>
+    <div className={`game ${multi ? 'turn-multi' : ''}`} style={multi ? { ['--seat' as string]: AGENCY_COLOR[player.id] } : undefined}>
       <div className="turnbar">
         <div className="turn-title" title={L(mission.summary)}>
           <button type="button" className="link-btn turn-name" title={t.briefOpen} onClick={() => setBrief(true)}><b>{L(mission.name)}</b> <span className="info-btn" aria-hidden>i</span></button>
           {game.practice && <span className="tag-practice">{t.tagPractice}</span>}
+          {multi && <span className="turn-of"><span className="seat-dot" style={{ background: AGENCY_COLOR[player.id] }} aria-hidden />{fmt(t.turnOf, { name: agencyName(player.id) })}</span>}
           <span className="note">{fmt(t.turnTitle, { n: game.phase, total: PHASE_COUNT, name: tk(t, `phase${game.phase}`) })}</span>
         </div>
         <ol className="progress" role="tablist">
@@ -473,7 +546,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
                         ? <button type="button" className="secondary" data-tour="nextItem" onClick={() => openItem(next.id)}>{t.nextItem} ▶</button>
                         : canForecast
                           ? <button type="button" className="primary" data-tour="nextItem" onClick={runForecast}>{fmt(t.runForecast, { n: RUNS })} ▶</button>
-                          : <button type="button" className="primary" data-tour="nextItem" onClick={confirm}>{game.phase < PHASE_COUNT ? fmt(t.confirmPhaseN, { n: game.phase }) : t.confirmLast}</button>}
+                          : <button type="button" className="primary" data-tour="nextItem" onClick={confirm}>{lockLabel}</button>}
                     </div>
                   )}
                 </fieldset>
@@ -488,7 +561,7 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
       </div>
       <button type="button" className="rival-strip" onClick={() => setAllTurns(true)} disabled={!game.reports.length} title={t.showAllReports}>
         <span className="note">{t.rivalsTitle}</span>
-        {game.agencies.filter((a) => a.id !== 'player').map((a) => {
+        {game.agencies.filter((a) => a.id !== player.id).map((a) => {
           const used = Math.round((agencyDesign(game, a).gauges.budget.used / Math.max(mission.budgetKUSD.value, 1)) * 100);
           const recent = lastReport ? mission.slots.filter((s) => s.phase === lastReport.phase).flatMap((s) => (a.picks[s.id] ?? []).filter((id) => !(standard[s.id] ?? []).includes(id))) : [];
           return (
@@ -502,8 +575,8 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
         {game.reports.length > 0 && <span className="note small rival-more">⤢ {t.showAllReports}</span>}
       </button>
       {askConfirm && (
-        <Modal title={game.forecastsUsed === 0 && !myForecast ? t.noForecastTitle : t.confirmCheckTitle} onClose={() => setAskConfirm(false)}>
-          {game.forecastsUsed === 0 && !myForecast && <p>{t.noForecastBody}</p>}
+        <Modal title={game.forecastsUsed[player.id] === 0 && !myForecast ? t.noForecastTitle : t.confirmCheckTitle} onClose={() => setAskConfirm(false)}>
+          {game.forecastsUsed[player.id] === 0 && !myForecast && <p>{t.noForecastBody}</p>}
           {unseen.length > 0 && <p>{fmt(t.notSeenYet, { list: unseen.map((sl) => L(sl.label)).join(t.commaSep) })}</p>}
           <div className="mission-actions">
             {canForecast && (!myForecast || stale) && <button type="button" className="primary" onClick={() => { setAskConfirm(false); runForecast(); }}>{fmt(t.runForecast, { n: RUNS })}</button>}
@@ -512,9 +585,10 @@ export function GameScreen({ mission, settings }: { mission: Mission; settings: 
         </Modal>
       )}
       {resolved !== null && <Resolution game={game} phase={resolved} onClose={() => setResolved(null)} />}
-      {allTurns && <Modal title={t.reportsTitle} wide onClose={() => setAllTurns(false)}><TurnReports game={game} heading={false} /></Modal>}
+      {allTurns && <Modal title={t.reportsTitle} wide onClose={() => setAllTurns(false)}><TurnReports game={game} heading={false} viewer={player.id} /></Modal>}
       {brief && <Briefing mission={mission} game={game} onClose={() => setBrief(false)} />}
-      {guide && !brief && <Tutorial onClose={() => setGuide(false)} />}
+      {guide && !brief && !multi && <Tutorial onClose={() => setGuide(false)} />}
     </div>
+    </SeatContext.Provider>
   );
 }

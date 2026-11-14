@@ -9,8 +9,21 @@ export type AgencyKind = 'player' | 'cautious' | 'balanced' | 'bold';
 export const AGENCIES: AgencyKind[] = ['player', 'cautious', 'balanced', 'bold'];
 export const PHASE_COUNT = 5;
 
+/** Who moves a seat: a person at the screen, or the rule-based AI. */
+export type Control = 'human' | 'ai';
+export type AiStyle = 'cautious' | 'balanced' | 'bold';
+
+/** A seat as chosen before the game. Seats are the four agency ids; seat 1 ('player') is always human. */
+export interface SeatSetup { control: Control; name?: string }
+
 export interface Agency {
+  /** Also the seat id: random streams are tied to it, so it never changes. */
   id: AgencyKind;
+  control: Control;
+  /** A human seat's name (play together only). */
+  name?: string;
+  /** How the AI plays this seat (seats 2–4: their own id). */
+  style: AiStyle;
   picks: Picks;
   /** Phase in which each slot was last confirmed. */
   decidedIn: Record<string, number>;
@@ -38,19 +51,50 @@ export interface Game {
   /** Cards drawn in each finished phase. */
   drawn: Map<number, Set<string>>;
   reports: TurnReport[];
-  /** Forecasts used in the current phase. */
-  forecastsUsed: number;
+  /** Solo: one human and three AI agencies. Multi: two to four humans taking turns on one screen. */
+  mode: 'solo' | 'multi';
+  /** Order of the human seats in the current phase. */
+  order: AgencyKind[];
+  /** Forecasts used in the current phase, per seat. */
+  forecastsUsed: Record<AgencyKind, number>;
   practice: boolean;
   /** Whether the hint button is offered (chosen before the game; never changes the draws). */
   hints: boolean;
-  hintsUsed: number;
+  /** Hints used in the whole game, per seat. */
+  hintsUsed: Record<AgencyKind, number>;
   final: Record<AgencyKind, RunResult> | null;
 }
 
 /** Turns of each agency that confirmed slots: what the player does and what the AI does go through the same rules. */
-export function newGame(m: Mission, seed: number, practice = false, hints = true): Game {
-  const agency = (id: AgencyKind): Agency => ({ id, picks: {}, decidedIn: {}, changeKUSD: 0, changeDays: 0, results: new Map() });
-  return { mission: m, seed, phase: 1, agencies: AGENCIES.map(agency), drawn: new Map(), reports: [], forecastsUsed: 0, practice, hints, hintsUsed: 0, final: null };
+const perSeat = (n: number) => Object.fromEntries(AGENCIES.map((id) => [id, n])) as Record<AgencyKind, number>;
+
+/**
+ * Without seats: seat 1 human, the others AI (playing solo). With seats: each seat human or AI; seat 1 is
+ * always human. Two or more humans make it a game played together.
+ */
+export function newGame(m: Mission, seed: number, practice = false, hints = true, seats?: SeatSetup[]): Game {
+  const agency = (id: AgencyKind, i: number): Agency => {
+    const s = seats?.[i];
+    const control: Control = i === 0 ? 'human' : s?.control ?? 'ai';
+    return { id, control, ...(control === 'human' && s?.name ? { name: s.name } : {}), style: id === 'player' ? 'balanced' : id, picks: {}, decidedIn: {}, changeKUSD: 0, changeDays: 0, results: new Map() };
+  };
+  const agencies = AGENCIES.map(agency);
+  const humans = agencies.filter((a) => a.control === 'human').map((a) => a.id);
+  const mode = humans.length >= 2 ? 'multi' : 'solo';
+  return { mission: m, seed, phase: 1, agencies, mode, order: phaseOrder(seed, humans, 1), drawn: new Map(), reports: [], forecastsUsed: perSeat(0), practice, hints, hintsUsed: perSeat(0), final: null };
+}
+
+/**
+ * The order of the human seats in a phase: shuffled on its own stream (nothing else is drawn from it), so the
+ * same seed and seats give the same order. The seat that went first in the previous phase never goes first again.
+ */
+export function phaseOrder(seed: number, humans: AgencyKind[], phase: number): AgencyKind[] {
+  if (humans.length < 2) return [...humans];
+  const rng = new Rng(seed, `order:${phase}`);
+  const out = [...humans];
+  for (let i = out.length - 1; i > 0; i--) { const j = rng.int(i + 1); [out[i], out[j]] = [out[j]!, out[i]!]; }
+  if (phase > 1 && out[0] === phaseOrder(seed, humans, phase - 1)[0]) [out[0], out[1]] = [out[1]!, out[0]!];
+  return out;
 }
 
 /** Cards for a phase, drawn once from the game's own stream so every agency faces the same ones. */
@@ -159,7 +203,8 @@ export function confirmPhase(g: Game, picksByAgency: Record<AgencyKind, Picks>):
     }
   }
 
-  const next: Game = { ...g, agencies, drawn, reports: [...g.reports, report], phase: phase + 1, forecastsUsed: 0 };
+  const humans = agencies.filter((a) => a.control === 'human').map((a) => a.id);
+  const next: Game = { ...g, agencies, drawn, reports: [...g.reports, report], phase: phase + 1, forecastsUsed: perSeat(0), order: phaseOrder(g.seed, humans, phase + 1) };
   if (next.phase > PHASE_COUNT) {
     const all = new Set([...drawn.values()].flatMap((s) => [...s]));
     const final = {} as Record<AgencyKind, RunResult>;

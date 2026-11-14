@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import { MISSIONS, UPCOMING } from '../data/missions';
 import type { Mission } from '../data/types';
 import { FORECAST_SEED, runForecast } from '../engine/forecast';
+import type { AgencyKind, Control, SeatSetup } from '../engine/game';
+import { AGENCIES } from '../engine/game';
 import { RUNS } from './ForecastPanel';
 import { fmt, tk, useLang } from '../i18n';
-import { useCauseName } from './labels';
+import { AGENCY_COLOR, useCauseName } from './labels';
 import { TitleGlobe } from './MissionView';
 
 /** Line art for each destination (the moon and Jupiter get their own 3D views in a later step). */
@@ -51,7 +53,35 @@ function MissionCard({ m, onStart }: { m: Mission; onStart: () => void }) {
 }
 
 /** How the game is played, chosen before it starts (and not changed during it). */
-export interface PlaySettings { tutorial: boolean; hints: boolean; practice: boolean }
+export interface PlaySettings {
+  tutorial: boolean; hints: boolean; practice: boolean;
+  /** Seats when playing together (two or more humans); absent when playing solo. */
+  seats?: SeatSetup[];
+}
+
+/** Seat setup as remembered between visits: a name left untouched stays undefined (shown in the current language). */
+type SeatDraft = { control: Control; name?: string };
+const DEFAULT_SEATS: SeatDraft[] = [{ control: 'human' }, { control: 'human' }, { control: 'ai' }, { control: 'ai' }];
+const loadSeats = (): SeatDraft[] => {
+  try {
+    const v = JSON.parse(localStorage.getItem('seats') ?? 'null') as SeatDraft[] | null;
+    if (Array.isArray(v) && v.length === 4) return v.map((x, i) => ({ control: i === 0 ? 'human' : x.control === 'human' ? 'human' : 'ai', ...(typeof x.name === 'string' ? { name: x.name.slice(0, 12) } : {}) }));
+  } catch { /* storage unavailable */ }
+  return DEFAULT_SEATS;
+};
+const MINUTES_PER_PLAYER = 15;
+
+/** Final names at the start: empty ones take the default; a repeated name gets "2" on the later seat. */
+function finalSeats(seats: SeatDraft[], defaultName: (n: number) => string): SeatSetup[] {
+  const used = new Set<string>();
+  return seats.map((s, i) => {
+    if (s.control !== 'human') return { control: 'ai' };
+    let name = (s.name ?? '').trim() || defaultName(i + 1);
+    if (used.has(name)) name = `${name}2`;
+    used.add(name);
+    return { control: 'human', name };
+  });
+}
 
 const loadFlag = (key: string, def: boolean) => { try { const v = localStorage.getItem(key); return v === null ? def : v === 'on'; } catch { return def; } };
 const saveFlag = (key: string, on: boolean) => { try { localStorage.setItem(key, on ? 'on' : 'off'); } catch { /* storage unavailable */ } };
@@ -67,8 +97,20 @@ export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, s: P
   const setHints = (on: boolean) => { setHintsState(on); saveFlag('allowHints', on); };
   const setPractice = (on: boolean) => { setPracticeState(on); saveFlag('practiceMode', on); };
   const settingLine = practice ? t.settingPractice : !hints ? t.settingNoHints : t.settingStandard;
+  // Solo or together; seats 2–4 human or AI, and the human seats' names. Remembered between visits.
+  const [mode, setModeState] = useState<'solo' | 'multi'>(() => { try { return localStorage.getItem('playMode') === 'multi' ? 'multi' : 'solo'; } catch { return 'solo'; } });
+  const setMode = (x: 'solo' | 'multi') => { setModeState(x); try { localStorage.setItem('playMode', x); } catch { /* storage unavailable */ } };
+  const [seats, setSeatsState] = useState<SeatDraft[]>(loadSeats);
+  const setSeats = (x: SeatDraft[]) => { setSeatsState(x); try { localStorage.setItem('seats', JSON.stringify(x)); } catch { /* storage unavailable */ } };
+  const humans = seats.filter((x) => x.control === 'human').length;
+  const multi = mode === 'multi';
+  const together = multi && humans >= 2;
+  const defaultName = (n: number) => fmt(t.defaultPlayerName, { n });
+  const start = (m: Mission) => onStart(m, together
+    ? { tutorial: false, hints, practice, seats: finalSeats(seats, defaultName) }
+    : { tutorial: guide, hints, practice });
   return (
-    <section className="title">
+    <section className={`title ${multi ? 'multi' : ''}`}>
       <div className="title-hero">
         <TitleGlobe mission={MISSIONS[0]!} />
         <div className="hero-text">
@@ -79,12 +121,42 @@ export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, s: P
           </ol>
         </div>
       </div>
+      <div className="mode-box">
+        <div className="mode-switch" role="radiogroup">
+          <button type="button" role="radio" aria-checked={!multi} className={!multi ? 'on' : ''} onClick={() => setMode('solo')}>{t.modeSolo}</button>
+          <button type="button" role="radio" aria-checked={multi} className={multi ? 'on' : ''} onClick={() => setMode('multi')}>{t.modeMulti}</button>
+        </div>
+        {multi && (
+          <div className="seats">
+            {seats.map((seat, i) => {
+              const id: AgencyKind = AGENCIES[i]!;
+              const set = (x: Partial<SeatDraft>) => setSeats(seats.map((y, k) => (k === i ? { ...y, ...x } : y)));
+              return (
+                <div key={id} className="seat-row">
+                  <span className="seat-dot" style={{ background: AGENCY_COLOR[id] }} aria-hidden />
+                  <span className="seat-n">{fmt(t.seatN, { n: i + 1 })}</span>
+                  {i === 0 ? <span className="seat-kind">{t.seatHuman}</span> : (
+                    <span className="seat-toggle" role="radiogroup" aria-label={fmt(t.seatN, { n: i + 1 })}>
+                      <button type="button" role="radio" aria-checked={seat.control === 'human'} className={seat.control === 'human' ? 'on' : ''} onClick={() => set({ control: 'human' })}>{t.seatHuman}</button>
+                      <button type="button" role="radio" aria-checked={seat.control === 'ai'} className={seat.control === 'ai' ? 'on' : ''} onClick={() => set({ control: 'ai' })}>{t.seatAi}</button>
+                    </span>
+                  )}
+                  {seat.control === 'human'
+                    ? <input className="seat-name" type="text" maxLength={12} aria-label={fmt(t.seatN, { n: i + 1 })} value={seat.name ?? defaultName(i + 1)} onChange={(e) => set({ name: e.target.value.slice(0, 12) })} />
+                    : <span className="seat-ai">{tk(t, `agency_${id}`)} <span className="ai-tag">{t.aiTag}</span></span>}
+                </div>
+              );
+            })}
+            <p className="note small seat-note">{humans >= 2 ? `${fmt(t.playTime, { n: humans * MINUTES_PER_PLAYER, k: humans })} ・ ${t.oneScreen}` : t.soloSame}</p>
+          </div>
+        )}
+      </div>
       <div className="title-row">
         <h2>{t.chooseMission}</h2>
         <span className="title-tools">
           <span className="play-settings" role="group" aria-label={t.playSettings}>
             <span className="ps-label">{t.playSettings}</span>
-            <label className="practice" title={t.showGuideHelp}><input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />{t.showGuide}</label>
+            <label className={`practice ${together ? 'disabled' : ''}`} title={together ? t.guideSoloOnly : t.showGuideHelp}><input type="checkbox" checked={together ? false : guide} disabled={together} onChange={(e) => setGuide(e.target.checked)} />{t.showGuide}{together && <span className="note small"> ({t.guideSoloOnly})</span>}</label>
             <label className="practice" title={t.allowHintsHelp}><input type="checkbox" checked={hints} onChange={(e) => setHints(e.target.checked)} />{t.allowHints}</label>
             <label className="practice" title={t.settingPractice}><input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} />{t.practiceMode}</label>
           </span>
@@ -94,7 +166,7 @@ export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, s: P
       <p className="note small setting-line" aria-live="polite">{settingLine}</p>
       <p className="note small">{t.autoPlanNote}</p>
       <div className="missions">
-        {MISSIONS.map((m) => <MissionCard key={m.id} m={m} onStart={() => onStart(m, { tutorial: guide, hints, practice })} />)}
+        {MISSIONS.map((m) => <MissionCard key={m.id} m={m} onStart={() => start(m)} />)}
         {UPCOMING.map((m) => (
           <div key={m.id} className="mission soon">
             <span className={`diff diff-${m.difficulty}`}>{tk(t, `diff_${m.difficulty}`)}</span>

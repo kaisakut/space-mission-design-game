@@ -64,6 +64,48 @@ console.log('     final:', g1.agencies.map((a) => `${a.id} ${g1.final![a.id].sco
 }
 if (failed) process.exit(1);
 
+// Playing together (step 18). Seats keep the agency ids, so streams and results do not move.
+import { phaseOrder, type SeatSetup } from '../src/engine/game';
+{
+  const playSeats = (seed: number, mission: (typeof MISSIONS)[number], seats?: SeatSetup[]) => {
+    let g = newGame(mission, seed, false, true, seats);
+    const orders: AgencyKind[][] = [];
+    while (g.phase <= 5) {
+      orders.push(g.order);
+      const picks = {} as Record<AgencyKind, Picks>;
+      // Human seats keep the auto-plan (empty picks); AI seats decide from the state at the start of the phase.
+      for (const a of g.agencies) picks[a.id] = a.control === 'human' ? {} : aiPicks(g, a);
+      g = confirmPhase(g, picks);
+    }
+    return { g, orders };
+  };
+  const solo = (s: SeatSetup['control'][]): SeatSetup[] => s.map((control, i) => ({ control, name: control === 'human' ? `P${i + 1}` : undefined }));
+  for (const mission of MISSIONS) {
+    const plain = play(9, mission);
+    const allAi = playSeats(9, mission, solo(['human', 'ai', 'ai', 'ai'])).g;
+    check(JSON.stringify(plain.final) === JSON.stringify(allAi.final) && allAi.mode === 'solo', `${mission.id}: seats left as they are play exactly like the solo game`);
+    const two = playSeats(9, mission, solo(['human', 'human', 'ai', 'ai']));
+    check(two.g.mode === 'multi' && !!two.g.final && Object.keys(two.g.final).length === 4, `${mission.id}: with seat 2 human, all four agencies get a result`);
+    check(JSON.stringify(two.g.reports.map((r) => r.cards)) === JSON.stringify(plain.reports.map((r) => r.cards)), `${mission.id}: a human seat does not change which cards come`);
+    const aiSame = ['balanced', 'bold'].every((id) => JSON.stringify(two.g.agencies.find((a) => a.id === id)!.picks) === JSON.stringify(plain.agencies.find((a) => a.id === id)!.picks));
+    check(aiSame, `${mission.id}: the remaining AI seats choose the same (they never see human picks)`);
+  }
+  const m0 = MISSIONS[0]!;
+  for (const seats of [solo(['human', 'human', 'ai', 'ai']), solo(['human', 'human', 'human', 'ai']), solo(['human', 'human', 'human', 'human'])]) {
+    const a = playSeats(31, m0, seats).orders, b = playSeats(31, m0, seats).orders;
+    const n = seats.filter((x) => x.control === 'human').length;
+    check(JSON.stringify(a) === JSON.stringify(b) && a.every((o) => o.length === n), `${n} humans: the same seed and seats give the same order`);
+    let repeat = false, changes = false;
+    for (let seed = 1; seed <= 200; seed++) {
+      const humans = (['player', 'cautious', 'balanced', 'bold'] as AgencyKind[]).slice(0, n);
+      const os = [1, 2, 3, 4, 5].map((p) => phaseOrder(seed, humans, p));
+      for (let p = 1; p < 5; p++) { if (os[p]![0] === os[p - 1]![0]) repeat = true; if (JSON.stringify(os[p]) !== JSON.stringify(os[p - 1])) changes = true; }
+    }
+    check(!repeat && changes, `${n} humans: the order changes, and no seat goes first two phases running (200 seeds)`);
+  }
+}
+if (failed) process.exit(1);
+
 // One change at a time: how each option moves the standard design, and options or cards that hardly matter.
 // Prints warnings only (they are judgement calls, not failures). `--table` prints every row.
 import { completePicks } from '../src/engine/design';

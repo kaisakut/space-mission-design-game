@@ -6,17 +6,19 @@ import { agencyDesign, agencyForecast, type AgencyKind, type Game } from '../eng
 import { fmt, tk, useLang } from '../i18n';
 import { AutoFit } from './AutoFit';
 import { Flight, FLIGHT_SECONDS } from './Flight';
-import { AGENCY_COLOR, RESULT_MARK, useCardText } from './labels';
+import { AGENCY_COLOR, RESULT_MARK, useAgencyName, useCardText } from './labels';
 
 const RESULT_CLASS: Record<string, string> = { protected: 'good', ready: 'good', partial: 'warn', hit: 'bad', missed: 'warn' };
 
 /** Agency name with its colour dot and short mark, so agencies never differ by colour alone. */
 export function AgencyLabel({ id }: { id: AgencyKind }) {
   const { t } = useLang();
+  const n = useAgencyName();
   return (
     <span className="agency-label">
-      <span className="agency-dot" style={{ background: AGENCY_COLOR[id] }}>{tk(t, `agencyShort_${id}`)}</span>
-      {tk(t, `agency_${id}`)}
+      <span className="agency-dot" style={{ background: AGENCY_COLOR[id] }}>{n.short(id)}</span>
+      {n.name(id)}
+      {n.isAi(id) && <span className="ai-tag">{t.aiTag}</span>}
     </span>
   );
 }
@@ -144,7 +146,7 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
             // With an event to show, unchanged picks give way to it (only enough to say what stayed).
             const changed = picks.filter((p) => p.changed), same = picks.filter((p) => !p.changed).slice(0, cards.length ? Math.max(0, 2 - changed.length) : 3);
             return (
-              <div key={a.id} className={`res-col appear ${a.id === 'player' ? 'me' : ''} ${cards.length === 0 ? 'roomy' : ''}`} style={{ animationDelay: `${i * 0.2}s`, borderTopColor: AGENCY_COLOR[a.id] }}>
+              <div key={a.id} className={`res-col appear ${a.id === 'player' && game.mode !== 'multi' ? 'me' : ''} ${cards.length === 0 ? 'roomy' : ''}`} style={{ animationDelay: `${i * 0.2}s`, borderTopColor: AGENCY_COLOR[a.id] }}>
                 <AgencyLabel id={a.id} />
                 <ul className="res-picks">
                   {changed.map((p) => <li key={`${p.slot}-${p.id}`} className="changed" title={t.changedFromStandard}>{L(byId.get(p.id)!.name)}</li>)}

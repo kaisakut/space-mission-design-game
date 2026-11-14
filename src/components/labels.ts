@@ -1,4 +1,6 @@
+import { createContext, useContext } from 'react';
 import type { Condition, Effect, EventCard, Mission, Outcome } from '../data/types';
+import { AGENCIES, type Agency, type AgencyKind } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
 
 /** Colours and names shared by the forecast, the branch map and the results. */
@@ -82,4 +84,40 @@ export function useCardText(mission: Mission) {
     return card.readyIf ? fmt(t.res_needed, { x: cond(card.readyIf) }) : '';
   };
   return { cond, effect, effects, resultLine };
+}
+
+/** The seats of a game played together; null when playing solo (names then come from the dictionary). */
+export const SeatContext = createContext<Agency[] | null>(null);
+
+/** Short mark from a name: the first character of a Japanese name, the first two letters otherwise. */
+const markOf = (name: string) => {
+  const c = [...name.trim()];
+  if (!c.length) return '?';
+  return /[\u3000-\u9fff\uff00-\uffef]/.test(c[0]!) ? c[0]! : c.slice(0, 2).join('').replace(/^./, (x) => x.toUpperCase());
+};
+
+/** Marks for the human seats; a mark that would repeat gets the seat number added. */
+export function seatMarks(agencies: Agency[]): Partial<Record<AgencyKind, string>> {
+  const out: Partial<Record<AgencyKind, string>> = {};
+  const humans = agencies.filter((a) => a.control === 'human');
+  for (const a of humans) out[a.id] = markOf(a.name ?? '');
+  const base = { ...out };
+  for (const a of humans) if (humans.some((b) => b !== a && base[b.id] === base[a.id])) out[a.id] = `${base[a.id]}${AGENCIES.indexOf(a.id) + 1}`;
+  return out;
+}
+
+/**
+ * Names in one place. Solo: the dictionary names (Your agency, Cautious agency…). Together: a human seat's own
+ * name, an AI seat's style name with an "AI" tag.
+ */
+export function useAgencyName() {
+  const { t } = useLang();
+  const seats = useContext(SeatContext);
+  const marks = seats ? seatMarks(seats) : {};
+  const seat = (id: AgencyKind) => seats?.find((a) => a.id === id);
+  return {
+    name: (id: AgencyKind) => { const a = seat(id); return a?.control === 'human' ? a.name ?? fmt(t.defaultPlayerName, { n: AGENCIES.indexOf(id) + 1 }) : tk(t, `agency_${id}`); },
+    short: (id: AgencyKind) => { const a = seat(id); return a?.control === 'human' ? marks[id] ?? '?' : tk(t, `agencyShort_${id}`); },
+    isAi: (id: AgencyKind) => seat(id)?.control === 'ai',
+  };
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { GameScreen } from './components/GameScreen';
 import { EventLibrary } from './components/EventLibrary';
 import { Glossary } from './components/Glossary';
+import { Modal } from './components/Modal';
 import { TitleScreen, type PlaySettings } from './components/TitleScreen';
 import type { Mission } from './data/types';
 import { useLang } from './i18n';
@@ -19,6 +20,9 @@ export function App() {
   const [play, setPlay] = useState<{ mission: Mission; settings: PlaySettings; key: number } | null>(null);
   const [glossary, setGlossary] = useState(false);
   const [library, setLibrary] = useState(false);
+  // Playing together: leaving the game asks first (nothing is saved).
+  const [askQuit, setAskQuit] = useState(false);
+  const leave = () => { setPlay(null); setLibrary(false); setAskQuit(false); };
   const [size, setSize] = useState(loadSize);
   const [sound, setSound] = useState(soundEnabled);
   useEffect(() => {
@@ -31,7 +35,7 @@ export function App() {
       <header className="app-header">
         <h1>{t.appTitle}</h1>
         <div className="header-actions">
-          {(play || library) && <button type="button" className="lang-toggle" onClick={() => { setPlay(null); setLibrary(false); }}>{t.backToTitle}</button>}
+          {(play || library) && <button type="button" className="lang-toggle" onClick={() => (play?.settings.seats ? setAskQuit(true) : leave())}>{t.backToTitle}</button>}
           <button type="button" className="lang-toggle" data-tour="help" onClick={() => setGlossary(true)}>{t.help}</button>
           <span className="size-ctl">
             <button type="button" className="lang-toggle" aria-label={t.textSmaller} title={t.textSmaller} onClick={() => step(-1)}>A−</button>
@@ -50,6 +54,15 @@ export function App() {
             : <TitleScreen onStart={(mission, settings) => setPlay({ mission, settings, key: Date.now() })} onLibrary={() => setLibrary(true)} />}
       </main>
       {glossary && <Glossary onClose={() => setGlossary(false)} />}
+      {askQuit && (
+        <Modal title={t.backToTitle} onClose={() => setAskQuit(false)}>
+          <p>{t.quitGame}</p>
+          <div className="mission-actions">
+            <button type="button" className="secondary" onClick={leave}>{t.quitYes}</button>
+            <button type="button" className="primary" onClick={() => setAskQuit(false)}>{t.quitNo}</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

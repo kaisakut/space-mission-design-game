@@ -9,15 +9,16 @@ import { Rng } from '../engine/rng';
 import { firstFailure, simulate } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
 import { useEffect, useMemo, useState } from 'react';
-import { OUTCOME_COLOR, RESULT_MARK, useCardText, useCauseName, useOutcomeName } from './labels';
+import { OUTCOME_COLOR, RESULT_MARK, useAgencyName, useCardText, useCauseName, useOutcomeName } from './labels';
 import { Modal } from './Modal';
 import { AgencyLabel, Resolution } from './Resolution';
 
 const RESULT_CLASS: Record<EventResult, string> = { protected: 'good', ready: 'good', partial: 'warn', hit: 'bad', missed: 'warn' };
 
 /** What happened after each confirmed phase: the shared cards, how each agency fared, and what the rivals chose. */
-export function TurnReports({ game, heading = true }: { game: Game; heading?: boolean }) {
+export function TurnReports({ game, heading = true, viewer = 'player' }: { game: Game; heading?: boolean; viewer?: AgencyKind }) {
   const { t, L } = useLang();
+  const agencyName = useAgencyName();
   const m = game.mission;
   const byId = new Map(m.options.map((o) => [o.id, o]));
   if (!game.reports.length) return null;
@@ -44,18 +45,18 @@ export function TurnReports({ game, heading = true }: { game: Game; heading?: bo
                 <div className="badges">
                   {game.agencies.map((a) => {
                     const res = r.results[a.id][id];
-                    return res ? <span key={a.id} className={`badge ${RESULT_CLASS[res]}`}>{tk(t, `agency_${a.id}`)}: {tk(t, `result_${res}`)}</span> : null;
+                    return res ? <span key={a.id} className={`badge ${RESULT_CLASS[res]}`}>{agencyName.name(a.id)}: {tk(t, `result_${res}`)}</span> : null;
                   })}
                 </div>
               </div>
             );
           })}
           <ul className="rivals">
-            {game.agencies.filter((a) => a.id !== 'player').map((a) => {
+            {game.agencies.filter((a) => a.id !== viewer).map((a) => {
               const chosen = m.slots.filter((s) => s.phase === r.phase).flatMap((s) => (a.picks[s.id] ?? []).map((id) => byId.get(id))).filter(Boolean).map((o) => L(o!.name));
               const d = agencyDesign(game, a);
               const used = Math.round((d.gauges.budget.used / Math.max(m.budgetKUSD.value, 1)) * 100);
-              return <li key={a.id}><b>{tk(t, `agency_${a.id}`)}</b>: {chosen.join('、') || '—'} <span className="note">{fmt(t.budgetUsed, { n: used })}</span></li>;
+              return <li key={a.id}><b>{agencyName.name(a.id)}</b>: {chosen.join('、') || '—'} <span className="note">{fmt(t.budgetUsed, { n: used })}</span></li>;
             })}
           </ul>
         </div>
@@ -75,7 +76,8 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
   const final = game.final!;
   const text = useCardText(m);
   const order = [...game.agencies].sort((a, b) => final[b.id].score.total - final[a.id].score.total);
-  const name = (id: AgencyKind) => tk(t, `agency_${id}`);
+  const agencyName = useAgencyName();
+  const name = (id: AgencyKind) => agencyName.name(id);
   // Inside a sentence the player is "you", not "Your agency".
   const nameIn = (id: AgencyKind, start = false) => (id === 'player' ? (start ? t.youStart : t.youIn) : name(id));
   const lessonFor = (card: EventCard, id: AgencyKind) => {
@@ -200,7 +202,7 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
         </span>
         <b className="final-rank appear" style={d(rankAt)}>{fmt(t.resultsRank, { n: ord(rank) })}</b>
       </div>
-      {game.hintsUsed > 0 && <p className="note small final-hints">{fmt(t.hintsUsed, { n: game.hintsUsed })}</p>}
+      {game.mode !== 'multi' && game.hintsUsed.player > 0 && <p className="note small final-hints">{fmt(t.hintsUsed, { n: game.hintsUsed.player })}</p>}
       <div className="final-bars">
         {order.map((a, i) => {
           const r = final[a.id];

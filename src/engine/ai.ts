@@ -22,7 +22,7 @@ export function aiPicks(g: Game, a: Agency): Picks {
       const pend = pendingChanges(g, a, trial);
       // Every option of a slot is judged on the same random stream, so the comparison is fair.
       const f = agencyForecast(g, a, trial, AI_RUNS, `ai:${a.id}:${s.id}`, pend);
-      return a.id === 'cautious' ? f.score.p10 + 30 * f.successShare : a.id === 'balanced' ? f.score.p50 + 10 * f.successShare : f.score.p90 + 5 * f.successShare;
+      return a.style === 'cautious' ? f.score.p10 + 30 * f.successShare : a.style === 'balanced' ? f.score.p50 + 10 * f.successShare : f.score.p90 + 5 * f.successShare;
     };
     // First the best single option; then, in a multi-choice slot of instruments (no "none" option),
     // keep adding the option that helps most while it helps and the slot allows more.
