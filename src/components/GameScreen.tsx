@@ -15,6 +15,7 @@ import { MissionView } from './MissionView';
 import { useCardText, useCauseName } from './labels';
 import { Modal } from './Modal';
 import { OptionCard, type Diff } from './OptionCard';
+import { Briefing } from './Briefing';
 import { Icon } from './icons';
 import { FinalScreen, TurnReports } from './Reports';
 import { AgencyLabel, Resolution } from './Resolution';
@@ -34,12 +35,17 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
   const [tab, setTab] = useState(1);
   const [draft, setDraft] = useState<Picks>({});
   const [guide, setGuide] = useState(tutorial);
+  // The mission briefing opens first; the guide (if on) starts after it.
+  const [brief, setBrief] = useState(true);
   const [mine, setMine] = useState<{ f: Forecast; key: string; phase: number } | null>(null);
   const [resolved, setResolved] = useState<number | null>(null);
   const [askConfirm, setAskConfirm] = useState(false);
   const [allTurns, setAllTurns] = useState(false);
   const [flashSlot, setFlashSlot] = useState<string | null>(null);
   const [hover, setHover] = useState<{ slot: string; id: string } | null>(null);
+  // The hint button: the single change in this phase expected to help most, lit until the design changes.
+  const [hinted, setHinted] = useState<{ slot: string; id: string; text: string; key: string } | { none: true; key: string } | null>(null);
+  const [hintBusy, setHintBusy] = useState(false);
   const player = game.agencies.find((a) => a.id === 'player')!;
   const working = { ...player.picks, ...draft };
   const pending = useMemo(() => pendingChanges(game, player, working), [game, player, working]);
@@ -116,6 +122,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     const tight = (x: typeof d) => RESOURCES.filter((r) => x.gauges[r].margin < LOW_MARGIN).length;
     play(blocked(d) && !blocked(state) ? 'block' : tight(d) > tight(state) ? 'warn' : 'select');
     setDraft(next);
+    setHinted(null);
   };
 
   const runForecast = () => {
@@ -141,6 +148,38 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     setAskConfirm(false);
     setTab(Math.min(g.phase, PHASE_COUNT));
     if (g.phase <= PHASE_COUNT) setResolved(phase);
+  };
+  // Try every other option of this phase's boxes once with the same forecast, and light the one that does
+  // most for the expected score (success counts too). Runs in the next tick so the button can show it is working.
+  const showHint = () => {
+    setHintBusy(true);
+    setTimeout(() => {
+      const runs = 60;
+      const value = (f: Forecast) => f.score.p50 + 20 * f.successShare;
+      const now = agencyForecast(game, player, working, runs, 'baseline', pending, FORECAST_SEED);
+      let best: { slot: string; id: string; f: Forecast } | null = null;
+      for (const s of mission.slots.filter((x) => x.phase === game.phase)) {
+        if (changeCost(mission, player, s.id, ['__probe__'], game.phase).locked) continue;
+        for (const id of s.options) {
+          if ((state.picks[s.id] ?? []).includes(id)) continue;
+          const alt = { ...player.picks, ...nextDraft(s.id, id, s.multi) };
+          const altPending = pendingChanges(game, player, alt);
+          const d = agencyDesign(game, player, alt, altPending);
+          if (d.issues.some((i) => i.level === 'blocker')) continue;
+          const f = agencyForecast(game, player, alt, runs, 'baseline', altPending, FORECAST_SEED);
+          if (!best || value(f) > value(best.f)) best = { slot: s.id, id, f };
+        }
+      }
+      if (best && value(best.f) > value(now) + 0.5) {
+        const pct = (x: number) => Math.round(x * 100);
+        setHinted({ slot: best.slot, id: best.id, key: designKey, text: fmt(t.hintText, { a: pct(now.successShare), b: pct(best.f.successShare), s: now.score.p50, s2: best.f.score.p50 }) });
+        setTab(game.phase);
+        setFlashSlot(best.slot);
+        setTimeout(() => setFlashSlot(null), 1200);
+      } else setHinted({ none: true, key: designKey });
+      setHintBusy(false);
+      play('select');
+    }, 30);
   };
   const confirm = () => (game.forecastsUsed === 0 && !myForecast ? setAskConfirm(true) : doConfirm());
   const restart = (seed = newSeed()) => { setGame(newGame(mission, seed, game.practice)); setDraft({}); setMine(null); setTab(1); };
@@ -212,7 +251,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
     <div className="game">
       <div className="turnbar">
         <div className="turn-title" title={L(mission.summary)}>
-          <b>{L(mission.name)}</b>
+          <button type="button" className="link-btn turn-name" title={t.briefOpen} onClick={() => setBrief(true)}><b>{L(mission.name)}</b> <span className="info-btn" aria-hidden>i</span></button>
           <span className="note">{fmt(t.turnTitle, { n: game.phase, total: PHASE_COUNT, name: tk(t, `phase${game.phase}`) })}</span>
         </div>
         <ol className="progress" role="tablist">
@@ -232,7 +271,11 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
           <input type="checkbox" checked={game.practice} onChange={(e) => setGame({ ...game, practice: e.target.checked })} />
           {t.practiceShort}
         </label>
-        <div className="turn-actions" data-tour="confirm">{forecastBtn}{confirmBtn}</div>
+        <div className="turn-actions" data-tour="confirm">
+          {!over && <button type="button" className="secondary hint-btn" onClick={showHint} disabled={hintBusy} title={t.hintHelp}>💡 {hintBusy ? t.hintBusy : t.hintButton}</button>}
+          {hinted && 'none' in hinted && hinted.key === designKey && <span className="hint-none">{t.hintNone}</span>}
+          {forecastBtn}{confirmBtn}
+        </div>
       </div>
       <div className="game-body">
         <div className={`col col-left ${mission.view ? 'with-view' : ''}`}>
@@ -300,6 +343,9 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
                           diffs={pv?.diffs} blocks={pv?.blocks}
                           reason={wrongOrbit ? t.cannotReachOrbit : undefined}
                           hint={c && c.kUSD > 0 && !locked ? fmt(t.changeCostHint, { k: c.kUSD.toLocaleString(), d: c.days }) : undefined}
+                          events={mission.events}
+                          hinted={!!hinted && 'slot' in hinted && hinted.key === designKey && hinted.slot === s.id && hinted.id === id}
+                          hintText={hinted && 'slot' in hinted ? hinted.text : undefined}
                           onPick={() => pick(s.id, id, s.multi)}
                           onHover={(on) => setHover(on ? { slot: s.id, id } : null)}
                         />
@@ -348,7 +394,8 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       )}
       {resolved !== null && <Resolution game={game} phase={resolved} onClose={() => setResolved(null)} />}
       {allTurns && <Modal title={t.reportsTitle} wide onClose={() => setAllTurns(false)}><TurnReports game={game} heading={false} /></Modal>}
-      {guide && <Tutorial mission={mission} autoShare={baseline.successShare} onClose={() => setGuide(false)} />}
+      {brief && <Briefing mission={mission} onClose={() => setBrief(false)} />}
+      {guide && !brief && <Tutorial mission={mission} autoShare={baseline.successShare} onClose={() => setGuide(false)} />}
     </div>
   );
 }

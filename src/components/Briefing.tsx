@@ -1,0 +1,57 @@
+import type { Mission } from '../data/types';
+import { fmt, useLang } from '../i18n';
+import { Icon } from './icons';
+import { Modal } from './Modal';
+
+/**
+ * Before the first phase: what this mission is for, how the score is made, and the three things on screen
+ * worth watching. One page, plain words; it can be opened again from the mission name.
+ */
+export function Briefing({ mission, onClose }: { mission: Mission; onClose: () => void }) {
+  const { t, L } = useLang();
+  const r = mission.rubric;
+  const parts: { key: 'primary' | 'secondary' | 'science' | 'budget' | 'schedule'; text: string }[] = [
+    { key: 'primary', text: L(mission.primary.name) },
+    { key: 'secondary', text: mission.secondary.map((s) => L(s.name)).join(t.listSep) },
+    { key: 'science', text: fmt(t.briefScience, { unit: L(mission.rules.scienceUnit).replace(/^件の/, '') }) },
+    { key: 'budget', text: t.briefBudget },
+    { key: 'schedule', text: t.briefSchedule },
+  ];
+  return (
+    <Modal title={L(mission.name)} onClose={onClose} wide>
+      <div className="brief">
+        <p className="brief-lead">{L(mission.summary)}</p>
+        <section>
+          <h3><Icon name="target" size="1.1em" /> {t.briefGoal}</h3>
+          <p>{L(mission.primary.description)}</p>
+          <p className="note">{t.briefWin}</p>
+        </section>
+        <section>
+          <h3><Icon name="coins" size="1.1em" /> {t.briefScore}</h3>
+          <table className="brief-score">
+            <tbody>
+              {parts.map((p) => (
+                <tr key={p.key}>
+                  <th><span className={`fb-part fb-${p.key}`} />{t[`part_${p.key}` as 'part_primary']}</th>
+                  <td className="pts">{r[p.key].value}</td>
+                  <td>{p.text}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h3><Icon name="eye" size="1.1em" /> {t.briefWatch}</h3>
+          <ol className="brief-watch">
+            <li><b>{t.briefWatch1}</b> {t.briefWatch1Text}</li>
+            <li><b>{t.briefWatch2}</b> {t.briefWatch2Text}</li>
+            <li><b>{t.briefWatch3}</b> {t.briefWatch3Text}</li>
+          </ol>
+        </section>
+        <div className="mission-actions">
+          <button type="button" className="primary" onClick={onClose}>{t.briefStart} ▶</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}

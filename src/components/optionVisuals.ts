@@ -1,4 +1,4 @@
-import type { DecisionSlot, Option, Sourced } from '../data/types';
+import type { Condition, DecisionSlot, EventCard, Option, Sourced } from '../data/types';
 import type { IconName } from './icons';
 
 /** The icon an option shows: its own, or one from its kind. */
@@ -42,4 +42,53 @@ export function levels(slot: DecisionSlot, peers: Option[], solar?: number): Map
   const distinct = [...new Set(vals.filter((v) => v > 0))].sort((a, b) => a - b);
   peers.forEach((o, i) => out.set(o.id, { n: vals[i]! > 0 ? distinct.indexOf(vals[i]!) + 1 : 0, max: distinct.length, share: vals[i]! }));
   return out;
+}
+
+/** A number of an option for comparison, with the direction that is good for the player. */
+type Measure = { key: string; good: 'high' | 'low'; of: (o: Option) => number };
+const MEASURES: Measure[] = [
+  { key: 'downlink', good: 'high', of: (o) => num((o as { downlinkMBPerMin?: unknown }).downlinkMBPerMin) },
+  { key: 'generates', good: 'high', of: (o) => num((o as { generatesW?: unknown }).generatesW) + num((o as { rtgW?: unknown }).rtgW) },
+  { key: 'contact', good: 'high', of: (o) => num((o as { contactMinPerDay?: unknown }).contactMinPerDay) },
+  { key: 'reliability', good: 'high', of: (o) => num((o as { reliability?: unknown }).reliability) },
+  { key: 'detect', good: 'high', of: (o) => (o.kind === 'part' && o.observes ? num(o.detectShare) || 1 : 0) },
+  { key: 'cost', good: 'low', of: (o) => num(o.cost) },
+  { key: 'mass', good: 'low', of: (o) => num((o as { massKg?: unknown }).massKg) },
+  { key: 'power', good: 'low', of: (o) => num((o as { powerW?: unknown }).powerW) },
+  { key: 'days', good: 'low', of: (o) => num((o as { leadDays?: unknown }).leadDays) },
+];
+
+/**
+ * In plain words, what picking this option does compared with the others in its box: where it is the best
+ * (strengths), where it is the most expensive or heaviest (costs), and which event cards it guards against
+ * on its own. Built from the data only, so it holds for every mission.
+ */
+export function plainEffect(o: Option, peers: Option[], events: EventCard[]): { strengths: string[]; costs: string[]; guards: { id: string; full: boolean }[] } {
+  const strengths: string[] = [], costs: string[] = [];
+  if (peers.length > 1) for (const m of MEASURES) {
+    const vals = peers.map(m.of);
+    const v = m.of(o);
+    const hi = Math.max(...vals), lo = Math.min(...vals);
+    if (hi === lo) continue;
+    const count = (x: number) => vals.filter((y) => y === x).length;
+    if (m.good === 'high' && v === hi && v > 0 && count(v) === 1) strengths.push(m.key);
+    if (m.good === 'low' && v === hi && v > 0 && count(v) === 1) costs.push(m.key);
+    if (m.good === 'low' && v === lo && count(v) === 1 && hi > 0) strengths.push(`${m.key}Low`);
+  }
+  // Event cards this option alone makes harmless (or partly harmless): tags and settings in their conditions.
+  const meets = (c: Condition): boolean => {
+    switch (c.kind) {
+      case 'hasTag': return !!o.tags?.includes(c.tag);
+      case 'setting': return 'settings' in o && num(o.settings?.[c.key]) >= c.atLeast && o.settings?.[c.key] !== undefined;
+      case 'settingAtMost': return 'settings' in o && o.settings?.[c.key] !== undefined && num(o.settings?.[c.key]) <= c.atMost;
+      case 'any': return c.of.some(meets);
+      default: return false;
+    }
+  };
+  const guards: { id: string; full: boolean }[] = [];
+  for (const e of events) {
+    if (e.protectedIf && meets(e.protectedIf)) guards.push({ id: e.id, full: true });
+    else if (e.partialIf && meets(e.partialIf)) guards.push({ id: e.id, full: false });
+  }
+  return { strengths, costs, guards };
 }

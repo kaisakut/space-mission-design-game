@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SOURCE_BY_ID } from '../data/sources';
-import type { DecisionSlot, MissionViewConfig, Option, Sourced } from '../data/types';
+import type { DecisionSlot, EventCard, MissionViewConfig, Option, Sourced } from '../data/types';
 import { fmt, tk, useLang } from '../i18n';
 import { Modal } from './Modal';
 import { Icon } from './icons';
 import { MiniDiagram, hasDiagram } from './MiniDiagram';
-import { levels, optionIcon } from './optionVisuals';
+import { levels, optionIcon, plainEffect } from './optionVisuals';
 
 /** One headline number. `num` is set when it can be compared across a slot's options (drawn as a bar). */
 type Stat = { key: string; text: string; num?: number };
@@ -83,16 +83,24 @@ function Arc({ share, label }: { share: number; label: string }) {
   );
 }
 
-export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick, onHover, slot, peers, view, compact }: {
+export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, standard, diffs, reason, blocks, onPick, onHover, slot, peers, view, compact, events, hinted, hintText }: {
   option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number;
   hint?: string; standard?: boolean; diffs?: Diff[]; reason?: string; blocks?: string; onPick: () => void; onHover?: (on: boolean) => void;
   /** The slot and its options, for the level marks and the comparison bars. */
   slot?: DecisionSlot; peers?: Option[]; view?: MissionViewConfig;
   /** Leave out the description line (it stays under "i"), for phases with many boxes. */
   compact?: boolean;
+  /** The mission's event cards, for "protects against" in plain words. */
+  events?: EventCard[];
+  /** Lit by the hint button: the change expected to help most, with what it is expected to do. */
+  hinted?: boolean;
+  hintText?: string;
 }) {
   const { t, L } = useLang();
   const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // A hinted card scrolls into view in its column.
+  useEffect(() => { if (hinted) box.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [hinted]);
   const stats = headline(option, t, orbitId, solar);
   // Largest value of each comparable number across the slot; rows that are 0 everywhere are dropped.
   const peerMax = new Map<string, number>();
@@ -102,8 +110,14 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
   const levelLabel = lv && slot?.level ? fmt(t.levelOf, { label: L(slot.level.label), n: lv.n, max: lv.max }) : '';
   const cam = option.kind === 'part' && (option.observes === 'day' || option.observes === 'dayNight') ? option : null;
   const detect = cam?.detectShare?.value;
+  // In plain words: where this option is the best in its box, what it costs, and which cards it guards against.
+  const eff = peers && peers.length > 1 ? plainEffect(option, peers, events ?? []) : null;
+  // A guard every option in the box shares tells nothing about this choice.
+  const peerGuards = peers && events ? peers.map((p) => new Set(plainEffect(p, peers, events).guards.filter((g) => g.full).map((g) => g.id))) : [];
+  const guards = (eff?.guards ?? []).filter((g) => !(g.full && peerGuards.every((set) => set.has(g.id)))).slice(0, 2);
+  const cardName = (id: string) => { const e = events?.find((x) => x.id === id); return e ? L(e.name) : id; };
   return (
-    <div className={`opt ${selected ? 'on' : ''} ${disabled ? 'off' : ''}`}
+    <div ref={box} className={`opt ${selected ? 'on' : ''} ${disabled ? 'off' : ''} ${hinted ? 'hinted' : ''}`}
       onMouseEnter={() => onHover?.(true)} onMouseLeave={() => onHover?.(false)} onFocus={() => onHover?.(true)} onBlur={() => onHover?.(false)}>
       <div className="opt-row">
         <label className="opt-main">
@@ -129,6 +143,14 @@ export function OptionCard({ option, selected, disabled, type, name, orbitId, so
           </span>
           <span aria-hidden>{cam.observes === 'dayNight' ? t.observesDayNight : t.observesDay}</span>
           {detect !== undefined && detect < 1 && <Dots n={Math.max(1, Math.round(detect * 3))} max={3} label={fmt(t.detectOf, { n: Math.max(1, Math.round(detect * 3)), max: 3 })} />}
+        </div>
+      )}
+      {hinted && hintText && <div className="opt-hint"><b>{t.hintLabel}</b> {hintText}</div>}
+      {eff && (eff.strengths.length > 0 || eff.costs.length > 0 || guards.length > 0) && (
+        <div className="opt-eff">
+          {eff.strengths.length > 0 && <span className="eff-good">◎ {eff.strengths.slice(0, 2).map((k) => tk(t, `eff_${k}`)).join(t.listSep)}</span>}
+          {guards.map((g) => <span key={g.id} className="eff-guard"><Icon name="shield" size="1em" /> {g.full ? t.effGuard : t.effGuardPart}{t.colonSep}{cardName(g.id)}</span>)}
+          {eff.costs.length > 0 && <span className="eff-cost">△ {t.effCost}{t.colonSep}{eff.costs.slice(0, 2).map((k) => tk(t, `eff_${k}`)).join(t.listSep)}</span>}
         </div>
       )}
       {!compact && <div className="opt-line">{L(option.description)}</div>}
