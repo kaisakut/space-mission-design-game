@@ -7,6 +7,7 @@ import { fmt, tk, useLang } from '../i18n';
 import { BranchMap } from './BranchMap';
 import { OUTCOME_COLOR, useCauseName, useOutcomeName } from './labels';
 import { Term } from './Glossary';
+import { Modal } from './Modal';
 
 /** Runs per forecast: enough for stable percentages, and still instant in the browser. */
 const RUNS = 100;
@@ -43,41 +44,58 @@ export function ForecastPanel({ mission, designKey, run, left }: {
   const outcomeName = useOutcomeName(mission);
   const nameOf = (k: string) => (OUTCOMES as string[]).includes(k) ? outcomeName(k as Outcome) : tk(t, `state_${k}`);
 
+  const [full, setFull] = useState(false);
+  const map = (compact: boolean) => result?.f.tree && (
+    <BranchMap
+      tree={result.f.tree}
+      phases={5}
+      colorOf={(k) => OUTCOME_COLOR[k as Outcome] ?? '#9aa5b1'}
+      nameOf={nameOf}
+      phaseName={(p) => fmt(t.phaseTab, { n: p, name: tk(t, `phase${p}`) })}
+      finalOrder={[...OUTCOMES]}
+      reasonOf={reasonOf}
+      compact={compact}
+    />
+  );
+  const summary = result && (
+    <div className="summary">
+      <div className="big"><span>{t.successChance}</span><b>{Math.round(result.f.successShare * 100)}%</b></div>
+      <div className="big"><span><Term k="median">{t.scoreRange}</Term></span><b>{result.f.score.p50}</b><small><Term k="percentile">{fmt(t.scoreRangeNote, { lo: result.f.score.p10, hi: result.f.score.p90 })}</Term></small></div>
+      <div className="causes">
+        <span>{t.topCauses}</span>
+        {result.f.topCauses.length === 0 ? <p className="ok">{t.noCauses}</p> : (
+          <ol>{result.f.topCauses.slice(0, 3).map(([c, share]) => <li key={c}>{causeName(c)} <small>{fmt(t.causeShare, { n: Math.round(share * 100) })}</small></li>)}</ol>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <section className="panel forecast">
-      <h2><Term k="forecast">{t.forecastTitle}</Term></h2>
-      <p className="note">{t.forecastNote}</p>
-      <div className="controls">
-        <button type="button" className="primary" disabled={left === 0} onClick={() => { const f = run(RUNS); if (f) setResult({ f, picks: key }); }}>
+    <section className="card forecast">
+      <div className="card-head">
+        <h2><Term k="forecast">{t.forecastTitle}</Term></h2>
+        <button type="button" className="primary" disabled={left === 0} title={t.forecastNote} onClick={() => { const f = run(RUNS); if (f) setResult({ f, picks: key }); }}>
           {fmt(t.runForecast, { n: RUNS })}
         </button>
+      </div>
+      <div className="card-sub">
         {left !== null && <span className="note">{left > 0 ? fmt(t.forecastLeft, { n: left }) : t.forecastNoneLeft}</span>}
         {stale && <span className="warn">{t.forecastStale}</span>}
       </div>
-      {result && (
-        <>
-          <div className="summary">
-            <div className="big"><span>{t.successChance}</span><b>{Math.round(result.f.successShare * 100)}%</b></div>
-            <div className="big"><span><Term k="median">{t.scoreRange}</Term></span><b>{result.f.score.p50}</b><small><Term k="percentile">{fmt(t.scoreRangeNote, { lo: result.f.score.p10, hi: result.f.score.p90 })}</Term></small></div>
-            <div className="causes">
-              <span>{t.topCauses}</span>
-              {result.f.topCauses.length === 0 ? <p className="ok">{t.noCauses}</p> : (
-                <ol>{result.f.topCauses.map(([c, share]) => <li key={c}>{causeName(c)} <small>{fmt(t.causeShare, { n: Math.round(share * 100) })}</small></li>)}</ol>
-              )}
-            </div>
-          </div>
-          {result.f.tree && (
-            <BranchMap
-              tree={result.f.tree}
-              phases={5}
-              colorOf={(k) => OUTCOME_COLOR[k as Outcome] ?? '#9aa5b1'}
-              nameOf={nameOf}
-              phaseName={(p) => fmt(t.phaseTab, { n: p, name: tk(t, `phase${p}`) })}
-              finalOrder={[...OUTCOMES]}
-              reasonOf={reasonOf}
-            />
-          )}
-        </>
+      {!result && <p className="note">{t.forecastEmpty}</p>}
+      {summary}
+      {result?.f.tree && (
+        <button type="button" className="map-preview" title={t.openFull} onClick={() => setFull(true)}>
+          {map(true)}
+          <span className="expand">⤢ {t.openFull}</span>
+        </button>
+      )}
+      {full && result && (
+        <Modal title={t.forecastTitle} wide onClose={() => setFull(false)}>
+          {stale && <p className="warn">{t.forecastStale}</p>}
+          {summary}
+          {map(false)}
+        </Modal>
       )}
     </section>
   );

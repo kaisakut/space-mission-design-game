@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { leavesOf, type BranchNode } from '../engine/branchTree';
 import { fmt, useLang } from '../i18n';
 
@@ -22,6 +21,8 @@ export interface BranchMapProps {
   finalOrder?: string[];
   /** Why a branch split off: a short title and a detail line. Without it, the label shows status and run count. */
   reasonOf?: (n: BranchNode) => { title: string; detail: string } | null;
+  /** Figure only, for the small preview; the full view adds the legend and the table of reasons. */
+  compact?: boolean;
 }
 
 const BG_SPLIT = 'rgba(255, 183, 77, 0.06)';
@@ -29,15 +30,8 @@ const SPLIT = '#ffb74d';
 const TEXT = '#e8ecf4';
 const MUTED = '#8c9ab8';
 
-export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder = [], reasonOf }: BranchMapProps) {
+export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder = [], reasonOf, compact = false }: BranchMapProps) {
   const { t } = useLang();
-  const [zoom, setZoom] = useState(false);
-  useEffect(() => {
-    if (!zoom) return;
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setZoom(false); };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [zoom]);
 
   const T = phases;
   const total = tree.runs.length || 1;
@@ -72,8 +66,8 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
     return sorted.map((k) => `${nameOf(k)} ${n.finalCounts[k]}`).join(' / ');
   };
 
-  const figure = (big: boolean) => (
-    <svg viewBox={`0 0 ${W} ${H}`} style={big ? { width: Math.max(W * 1.35, 1300) } : { width: '100%' }} role="img" aria-label={t.branchMapTitle}>
+  const figure = () => (
+    <svg viewBox={`0 0 ${W} ${H}`} className="br-svg" role="img" aria-label={t.branchMapTitle}>
       {Array.from({ length: T }, (_, i) => i + 1).map((p) => (
         <g key={p}>
           {splits.has(p) && <rect x={xc(p) - colW / 2 + 2} y={TOP - 8} width={colW - 4} height={H - TOP + 4} fill={BG_SPLIT} rx={6} />}
@@ -136,20 +130,10 @@ export function BranchMap({ tree, phases, colorOf, nameOf, phaseName, finalOrder
     </svg>
   );
 
+  if (compact) return <div className="branchmap compact">{figure()}</div>;
   return (
     <div className="branchmap">
-      <div className="br-figure" onClick={() => setZoom(true)} title={t.branchZoom}>
-        {figure(false)}
-      </div>
-      {zoom && (
-        <div className="br-overlay" onClick={() => setZoom(false)}>
-          <div className="br-overlay-bar">
-            <b>{t.branchMapTitle}</b>
-            <button type="button" onClick={() => setZoom(false)}>{t.close}</button>
-          </div>
-          <div className="br-overlay-body" onClick={(e) => e.stopPropagation()}>{figure(true)}</div>
-        </div>
-      )}
+      {figure()}
       <p className="note">{t.branchLegend}</p>
       {reasonOf && (
         <table className="br-table">

@@ -6,6 +6,15 @@ export const en = {
   start: 'Start',
   comingSoon: 'Under construction during the NASA Space Apps Challenge 2026.',
   close: 'Close',
+  textSmaller: 'Smaller text',
+  textLarger: 'Larger text',
+  openFull: 'Open full view',
+  latestReport: 'Last turn',
+  noReportYet: 'After you confirm a phase, what happened appears here.',
+  showAllReports: 'All turns',
+  forecastEmpty: 'Run a forecast to see where this design tends to end up.',
+  rivalsTitle: 'Rivals',
+  issuesCount: '{b} blocking · {w} at risk',
 
   // Forecast branch map
   branchMapTitle: 'Forecast branch map',
@@ -91,10 +100,10 @@ export const en = {
   val_day: 'day {n}',
   stat_deltaV: 'Δv (m/s)',
   stat_failPerYear: 'Failure chance per year',
-  stat_science: 'Science value per fire',
+  stat_science: 'Science value per observation',
   stat_setting: 'Setting',
   stat_storage: 'Storage (MB)',
-  stat_opportunities: 'Observation chances per year',
+  stat_opportunities: 'Observation chances',
   // Forecast
   forecastTitle: 'Forecast',
   forecastNote: 'Fly the current design to the end many times. Undecided items use the standard choice. Forecasting never changes what will really happen.',

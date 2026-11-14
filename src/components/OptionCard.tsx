@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SOURCE_BY_ID } from '../data/sources';
 import type { Option, Sourced } from '../data/types';
 import { fmt, tk, useLang } from '../i18n';
+import { Modal } from './Modal';
 
 type Stat = { key: string; text: string };
 
@@ -50,41 +51,44 @@ function sourcedFields(o: Option): [string, Sourced<unknown>][] {
   return out;
 }
 
-export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, onPick }: {
-  option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number; onPick: () => void;
+export function OptionCard({ option, selected, disabled, type, name, orbitId, solar, hint, onPick }: {
+  option: Option; selected: boolean; disabled?: boolean; type: 'radio' | 'checkbox'; name: string; orbitId: string | null; solar?: number; hint?: string; onPick: () => void;
 }) {
   const { t, L } = useLang();
   const [open, setOpen] = useState(false);
   const stats = headline(option, t, orbitId, solar);
   return (
     <div className={`opt ${selected ? 'on' : ''} ${disabled ? 'off' : ''}`}>
-      <label className="opt-main">
-        <input type={type} name={name} checked={selected} disabled={disabled} onChange={onPick} />
-        <span className="opt-name">{L(option.name)}</span>
-      </label>
-      <p className="opt-desc">{L(option.description)}</p>
+      <div className="opt-row">
+        <label className="opt-main">
+          <input type={type} name={name} checked={selected} disabled={disabled} onChange={onPick} />
+          <span className="opt-name">{L(option.name)}</span>
+        </label>
+        <button type="button" className="info-btn" aria-label={t.details} title={t.details} onClick={() => setOpen(true)}>i</button>
+      </div>
       {stats.length > 0 && (
-        <dl className="opt-stats">
-          {stats.map((s) => (
-            <div key={s.key}><dt>{tk(t, s.key)}</dt><dd>{s.text}</dd></div>
-          ))}
-        </dl>
+        <div className="opt-stats">
+          {stats.map((s) => <span key={s.key}><span className="field">{tk(t, s.key)}</span> {s.text}</span>)}
+        </div>
       )}
-      <button type="button" className="link-btn" onClick={() => setOpen(!open)}>{open ? t.hideDetails : t.details}</button>
+      {hint && <div className="change-cost">{hint}</div>}
       {open && (
-        <ul className="opt-details">
-          {sourcedFields(option).map(([k, v]) => (
-            <li key={k}>
-              <span className="field">{tk(t, FIELD_LABEL[k.split('.')[0]!] ?? k)}{k.includes('.') ? ` (${k.split('.')[1]})` : ''}</span>: <b>{Array.isArray(v.value) ? v.value.join(', ') : String(v.value)}</b>{' '}
-              <span className={`basis basis-${v.basis}`}>{tk(t, `basis_${v.basis}`)}</span>
-              {v.sources?.map((id) => {
-                const s = SOURCE_BY_ID.get(id);
-                return s ? <a key={id} href={s.url} target="_blank" rel="noreferrer" className="src">{s.publisher}</a> : null;
-              })}
-              {v.note && <div className="note">{L(v.note)}</div>}
-            </li>
-          ))}
-        </ul>
+        <Modal title={L(option.name)} onClose={() => setOpen(false)}>
+          <p className="opt-desc">{L(option.description)}</p>
+          <ul className="opt-details">
+            {sourcedFields(option).map(([k, v]) => (
+              <li key={k}>
+                <span className="field">{tk(t, FIELD_LABEL[k.split('.')[0]!] ?? k)}{k.includes('.') ? ` (${k.split('.')[1]})` : ''}</span>: <b>{Array.isArray(v.value) ? v.value.join(', ') : String(v.value)}</b>{' '}
+                <span className={`basis basis-${v.basis}`}>{tk(t, `basis_${v.basis}`)}</span>
+                {v.sources?.map((id) => {
+                  const src = SOURCE_BY_ID.get(id);
+                  return src ? <a key={id} href={src.url} target="_blank" rel="noreferrer" className="src">{src.publisher}</a> : null;
+                })}
+                {v.note && <div className="note">{L(v.note)}</div>}
+              </li>
+            ))}
+          </ul>
+        </Modal>
       )}
     </div>
   );

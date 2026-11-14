@@ -1,21 +1,38 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GameScreen } from './components/GameScreen';
 import { Glossary } from './components/Glossary';
 import { TitleScreen } from './components/TitleScreen';
 import type { Mission } from './data/types';
 import { useLang } from './i18n';
 
+/** Base text size steps (px of 1rem). Every part of the game screen is sized from this. */
+const SIZES = [11, 12, 13, 14, 15, 16, 18];
+const loadSize = () => {
+  try { const v = Number(localStorage.getItem('uiTextSize')); if (SIZES.includes(v)) return v; } catch { /* storage unavailable */ }
+  return 14;
+};
+
 export function App() {
   const { lang, t, toggle } = useLang();
   const [play, setPlay] = useState<{ mission: Mission; tutorial: boolean; key: number } | null>(null);
   const [glossary, setGlossary] = useState(false);
+  const [size, setSize] = useState(loadSize);
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${size}px`;
+    try { localStorage.setItem('uiTextSize', String(size)); } catch { /* storage unavailable */ }
+  }, [size]);
+  const step = (d: number) => setSize(SIZES[Math.min(SIZES.length - 1, Math.max(0, SIZES.indexOf(size) + d))]!);
   return (
-    <div className="app" lang={lang}>
+    <div className={`app ${play ? 'in-game' : ''}`} lang={lang}>
       <header className="app-header">
         <h1>{t.appTitle}</h1>
         <div className="header-actions">
           {play && <button type="button" className="lang-toggle" onClick={() => setPlay(null)}>{t.backToTitle}</button>}
           <button type="button" className="lang-toggle" data-tour="help" onClick={() => setGlossary(true)}>{t.help}</button>
+          <span className="size-ctl">
+            <button type="button" className="lang-toggle" aria-label={t.textSmaller} title={t.textSmaller} onClick={() => step(-1)}>A−</button>
+            <button type="button" className="lang-toggle" aria-label={t.textLarger} title={t.textLarger} onClick={() => step(1)}>A＋</button>
+          </span>
           <button type="button" className="lang-toggle" onClick={toggle}>{t.langToggle}</button>
         </div>
       </header>
