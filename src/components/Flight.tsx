@@ -92,7 +92,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
         })}
         <p className="note small">
           {fmt(t.flightCounted, { unit: L(m.rules.scienceUnit).replace(/^件の/, '') })}
-          {m.view?.fires ? ` · ${t.firesSource}` : ''}
+          {(m.view?.kind === 'earthOrbit' && m.view.fires) ? ` · ${t.firesSource}` : ''}
           {usesDonki ? ` · ${t.stormSource}` : ''}
         </p>
       </div>

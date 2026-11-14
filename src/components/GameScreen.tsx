@@ -227,7 +227,7 @@ export function GameScreen({ mission, tutorial = false }: { mission: Mission; tu
       <div className="game-body">
         <div className={`col col-left ${mission.view ? 'with-view' : ''}`}>
         {mission.view && <div className="mv-wrap" data-tour="view"><MissionView mission={mission} state={state} ghost={ghost} /></div>}
-        <AutoFit className="left-rest" data-tour="gauges" min={0.8}>
+        <AutoFit className="left-rest" data-tour="gauges" min={0.75}>
           <Gauges gauges={state.gauges} flash={flash} />
           {pending.kUSD > 0 && <p className="warn small">{fmt(t.pendingChange, { k: pending.kUSD.toLocaleString(), d: pending.days })}</p>}
           {player.changeKUSD > 0 && <p className="note small">{fmt(t.paidChanges, { k: player.changeKUSD.toLocaleString() })}</p>}

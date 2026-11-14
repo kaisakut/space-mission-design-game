@@ -25,6 +25,16 @@ const SUN_NOTE = tx(
 
 export const lunarIceRover: Mission = {
   id: 'lunar-ice-rover',
+  view: {
+    kind: 'lunarPole',
+    // Display values only: sunlit share and Earth-in-view share chosen to match the sites' descriptions.
+    sites: {
+      'site-ridge': { x: 0.38, y: -0.3, sun: 0.8, earth: 0.6 },
+      'site-nobile': { x: -0.05, y: 0.12, sun: 0.6, earth: 0.45 },
+      'site-coldtrap': { x: -0.38, y: 0.42, sun: 0.4, earth: 0.3 },
+    },
+    crater: { x: -0.55, y: 0.58, r: 0.2 },
+  },
   name: tx('Lunar South Pole Ice Rover', '月南極の水氷探査ローバー'),
   summary: tx(
     'Land a rover near the Moon’s south pole and map where water ice is, before the cold and dark end the mission.',

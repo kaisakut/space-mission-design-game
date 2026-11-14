@@ -38,7 +38,7 @@ npm run build
 _Being written: all libraries, data, code and images used in this project._
 
 - [React](https://react.dev/) (MIT) — user interface.
-- [three.js](https://threejs.org/) (MIT) — the 3D mission view.
+- [three.js](https://threejs.org/) (MIT) — the 3D mission view. Earth uses the NASA Blue Marble image below; Jupiter's bands, the radiation belts and the lunar south-pole disc are drawn in code (no outside images), as explanatory pictures that are not to scale.
 - Sound effects are synthesised in code with the Web Audio API; the game uses no audio files.
 - NASA Visible Earth, [Blue Marble: Land Surface, Shallow Water, and Shaded Topography](https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography) (NASA Goddard Space Flight Center, Reto Stöckli; public domain) — Earth texture, `public/textures/earth_day_2048.jpg` (taken from the Wikimedia Commons copy of the NASA file and resized to 2048 × 1024).
 

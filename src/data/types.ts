@@ -315,4 +315,17 @@ export type MissionViewConfig = {
   wings: string[];
   /** Draw the real 2024 fires (data/firms-cells-2024.json) and light the ones the camera passes over. */
   fires?: boolean;
+} | {
+  kind: 'jupiterSystem';
+  /** How each tour option is drawn: flybys from a long ellipse, orbiting Europa, or staying out at Ganymede. */
+  paths: Record<string, 'flybys' | 'europaOrbit' | 'ganymede'>;
+} | {
+  kind: 'lunarPole';
+  /**
+   * Where each landing site sits on the polar disc (x, y within a unit circle, south pole at the centre) and
+   * how much of the time it is sunlit and sees Earth. Display values: the data has no coordinates for the sites.
+   */
+  sites: Record<string, { x: number; y: number; sun: number; earth: number }>;
+  /** The permanently shadowed crater, drawn dark (display value). */
+  crater: { x: number; y: number; r: number };
 };

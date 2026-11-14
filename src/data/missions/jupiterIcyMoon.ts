@@ -19,6 +19,10 @@ const CONTACT_NOTE = tx('Game value for Deep Space Network passes per day, avera
 
 export const jupiterIcyMoon: Mission = {
   id: 'jupiter-icy-moon',
+  view: {
+    kind: 'jupiterSystem',
+    paths: { 'tour-flybys': 'flybys', 'tour-europa-orbit': 'europaOrbit', 'tour-ganymede': 'ganymede' },
+  },
   name: tx('Icy Moon Explorer at Jupiter', '木星の氷衛星探査機'),
   summary: tx(
     'Send a spacecraft to Jupiter to look for an ocean under Europa’s ice, through the harshest radiation of any planet.',
