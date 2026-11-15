@@ -382,8 +382,8 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
     // What the player changed from the auto-plan in the last phase always comes first; then the events.
     const changed = mission.slots.filter((s) => s.phase === lastReport.phase)
       .flatMap((s) => (player.picks[s.id] ?? []).filter((id) => !(standard[s.id] ?? []).includes(id)))
-      .map((id) => L(optionById.get(id)!.name));
-    if (changed.length) why.push(fmt(t.wasYouChose, { list: changed.join(t.listSep) }));
+      .map((id) => fmt(t.quoted, { x: L(optionById.get(id)!.name) }));
+    if (changed.length) why.push(fmt(t.wasYouChose, { list: changed.join(t.quotedSep) }));
     const res = lastReport.cards.map((id) => ({ id, r: lastReport.results.player[id]! }));
     const fit = res.filter(({ r }) => (up ? r === 'protected' || r === 'ready' : r === 'hit' || r === 'partial' || r === 'missed'));
     why.push(...fit.map(({ id, r }) => fmt(tk(t, `was_${r}`), { name: L(mission.events.find((e) => e.id === id)!.name) })));
@@ -394,6 +394,30 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseline]);
 
+  // The top bar keeps its buttons whole: when it does not fit, first the ①②③ steps go, then the buttons move to a
+  // second line (right-aligned). The mission name is shortened only if even that is not enough.
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barFit, setBarFit] = useState(0);
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return; // not on the turn screen
+    const over = () => {
+      const r = bar.getBoundingClientRect(), act = bar.querySelector('.turn-actions')?.getBoundingClientRect();
+      const nameEl = bar.querySelector('.turn-title b') as HTMLElement | null;
+      return (act ? act.right > r.right - 2 : false) || bar.scrollWidth > bar.clientWidth + 1 || (!!nameEl && nameEl.scrollWidth > nameEl.clientWidth + 1);
+    };
+    const fit = () => {
+      for (const lvl of [0, 1, 2]) {
+        bar.classList.toggle('no-steps', lvl >= 1); bar.classList.toggle('wrap', lvl >= 2);
+        if (!over() || lvl === 2) { setBarFit(lvl); return; }
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(bar.parentElement ?? bar);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [t, game.phase, multi, myForecast, stale, game.hints, stage, resolved]);
   if (over && game.final) {
     return <SeatContext.Provider value={seats}><div className="final-wrap"><FinalScreen game={game} onRestart={() => restart()} onReplaySame={() => restart(game.seed)} /></div></SeatContext.Provider>;
   }
@@ -424,7 +448,7 @@ export function GameScreen({ mission, settings, onOver }: { mission: Mission; se
   return (
     <SeatContext.Provider value={seats}>
     <div className={`game ${multi ? 'turn-multi' : ''}`} style={multi ? { ['--seat' as string]: AGENCY_COLOR[player.id] } : undefined}>
-      <div className="turnbar">
+      <div ref={barRef} className={`turnbar ${barFit >= 1 ? 'no-steps' : ''} ${barFit >= 2 ? 'wrap' : ''}`}>
         <div className="turn-title" title={L(mission.summary)}>
           {/* A replay with the same events says so beside the mission name. */}
           {game.sameEvents ? <span className="turn-name-row">{name}<span className="tag-setting">{t.tagSameEvents}</span></span> : name}

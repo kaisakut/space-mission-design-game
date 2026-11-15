@@ -873,3 +873,15 @@ button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
 .fl-head { grid-template-columns: minmax(0, 9fr) minmax(3em, 11fr) calc(var(--cnt, 3ch) * 1.2 + 0.3em); }
 .fl-head .fl-count { white-space: nowrap; flex-shrink: 0; }
 .fl-head .agency-label { display: flex; align-items: center; gap: 0.3em; } .fl-head .agency-dot { flex: none; }
+/* Top bar that does not fit: no ①②③ steps; then the buttons on a second line, never cut. */
+.turnbar.no-steps .steps { display: none; }
+.turnbar.wrap { flex-wrap: wrap; row-gap: 0.3em; }
+.turnbar.wrap .turn-actions { flex: 1 0 100%; justify-content: flex-end; }
+.turn-actions button { flex: none; }
+/* The banner grows with its text (large text sizes), never cuts it; the globe follows its height. */
+.title-hero { height: auto; min-height: clamp(9rem, calc(100vh - 36.5rem), 34rem); display: flex; }
+.title-hero .hero-text { height: auto; }
+.title.multi .title-hero { height: auto; min-height: clamp(7rem, calc(100vh - 43rem), 34rem); }
+/* A name that does not fit in the flight column ends with an ellipsis. */
+.fl-head .agency-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-head .ai-tag { flex: none; }

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { play, stopAll } from '../audio/sfx';
-import type { Condition, EventCard } from '../data/types';
+import type { EventCard } from '../data/types';
 import { completePicks } from '../engine/design';
 import { agencyDesign, agencyForecast, type AgencyKind, type Game } from '../engine/game';
 import { fmt, tk, useLang } from '../i18n';
 import { AutoFit } from './AutoFit';
 import { Icon } from './icons';
 import { Flight, FLIGHT_SECONDS } from './Flight';
-import { AGENCY_COLOR, RESULT_MARK, useAgencyName, useCardText } from './labels';
+import { AGENCY_COLOR, conditionOptions, RESULT_MARK, useAgencyName, useCardText } from './labels';
 import type { AgencyKind as Seat } from '../engine/game';
 
 const RESULT_CLASS: Record<string, string> = { protected: 'good', ready: 'good', partial: 'warn', hit: 'bad', missed: 'warn' };
@@ -19,7 +19,7 @@ export function AgencyLabel({ id }: { id: AgencyKind }) {
   return (
     <span className="agency-label">
       <span className="agency-dot" style={{ background: AGENCY_COLOR[id] }}>{n.short(id)}</span>
-      {n.name(id)}
+      <span className="agency-name">{n.name(id)}</span>
       {n.isAi(id) && <span className="ai-tag">{t.aiTag}</span>}
     </span>
   );
@@ -65,17 +65,8 @@ export function Resolution({ game, phase, onClose }: { game: Game; phase: number
   }, []);
   // When everyone was protected: only the picks that did it (from all agencies, no repeats, two at most), not the
   // whole condition; the full condition is in the event library.
-  const condOptions = (c: Condition): string[] => {
-    switch (c.kind) {
-      case 'hasTag': return m.options.filter((o) => o.tags?.includes(c.tag)).map((o) => o.id);
-      case 'setting': return m.options.filter((o) => o.kind === 'choice' && (o.settings?.[c.key]?.value ?? -Infinity) >= c.atLeast).map((o) => o.id);
-      case 'settingAtMost': return m.options.filter((o) => o.kind === 'choice' && o.settings?.[c.key] !== undefined && o.settings[c.key]!.value <= c.atMost).map((o) => o.id);
-      case 'all': case 'any': return c.of.flatMap(condOptions);
-      default: return [];
-    }
-  };
   const protectedBy = (card: EventCard): string => {
-    const useful = new Set([...(card.protectedIf ? condOptions(card.protectedIf) : [])]);
+    const useful = new Set(card.protectedIf ? conditionOptions(m, card.protectedIf) : []);
     const used = [...new Set(game.agencies.flatMap((a) => Object.values(a.picks).flat().filter((id): id is string => !!id && useful.has(id))))];
     if (!used.length) return text.resultLine(card, 'protected');
     const names = used.slice(0, 2).map((id) => fmt(t.quoted, { x: L(byId.get(id)!.name) })).join(t.quotedSep);

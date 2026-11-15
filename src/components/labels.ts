@@ -133,3 +133,14 @@ export function useAgencyName() {
     tidy: (text: string) => (t.nameSpace ? text.replace(/ +/g, ' ').replace(/ ?([、。：「」（）]) ?/g, '$1').trim() : text),
   };
 }
+
+/** The options that can satisfy a condition (directly or as one side of all/any), for naming the picks behind a result. */
+export function conditionOptions(m: Mission, c: Condition): string[] {
+  switch (c.kind) {
+    case 'hasTag': return m.options.filter((o) => o.tags?.includes(c.tag)).map((o) => o.id);
+    case 'setting': return m.options.filter((o) => o.kind === 'choice' && (o.settings?.[c.key]?.value ?? -Infinity) >= c.atLeast).map((o) => o.id);
+    case 'settingAtMost': return m.options.filter((o) => o.kind === 'choice' && o.settings?.[c.key] !== undefined && o.settings[c.key]!.value <= c.atMost).map((o) => o.id);
+    case 'all': case 'any': return c.of.flatMap((x) => conditionOptions(m, x));
+    default: return [];
+  }
+}

@@ -9,7 +9,7 @@ import { Rng } from '../engine/rng';
 import { firstFailure, outcomeCause, simulate } from '../engine/simulate';
 import { fmt, tk, useLang } from '../i18n';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
-import { OUTCOME_COLOR, RESULT_MARK, useAgencyName, useCardText, useCauseName, useOutcomeName } from './labels';
+import { conditionOptions, OUTCOME_COLOR, RESULT_MARK, useAgencyName, useCardText, useCauseName, useOutcomeName } from './labels';
 import { Modal } from './Modal';
 import { AgencyLabel, Resolution } from './Resolution';
 
@@ -147,8 +147,14 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
       const rel = gapParts.findIndex(related);
       return { o, rel: rel < 0 ? 9 : rel, costGap };
     }));
-    return rows.sort((p, q) => p.rel - q.rel || q.costGap - p.costGap).slice(0, 2).map((r) => L(r.o.name));
+    const top = rows.sort((p, q) => p.rel - q.rel || q.costGap - p.costGap).slice(0, 2);
+    // Lost to a fault testing did not find: the rival's testing choice belongs in the list.
+    const test = rows.find((r) => m.slots.find((s) => s.id === 'testing')?.options.includes(r.o.id));
+    if (outcomeCause(m, final[sel]) === 'earlyFailure' && test && !top.includes(test)) top.push(test);
+    return top.map((r) => L(r.o.name));
   };
+  const testSlot = m.slots.find((s) => s.id === 'testing');
+  const hiddenFaultText = fmt(t.hiddenFault, { item: testSlot ? L(testSlot.label) : '' });
 
   // The auto-plan flown through the same cards and the same failure draws as the agency explained.
   const standard = useMemo(() => {
@@ -163,9 +169,15 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
   const flew = (a: AgencyKind, phase: number) => phase < 5 || !['noLaunch', 'launchFailure', 'orbitFailure'].includes(final[a].outcome);
   const diffs = game.reports.flatMap((r) => r.cards.map((id) => ({ r, card: m.events.find((e) => e.id === id)! }))).filter(({ r, card }) => {
     const res = game.agencies.filter((a) => flew(a.id, r.phase)).map((a) => r.results[a.id][card.id]);
-    const bad = res.filter((x) => BAD.has(x ?? '')).length;
-    return bad > 0 && bad < res.length;
+    // Any two different results count, a full hit next to a partial one too.
+    return new Set(res).size > 1;
   });
+  // Agencies that got off lightly (a partial hit where others took the full one), with the picks that did it.
+  const lighter = (card: EventCard, ids: AgencyKind[]) => {
+    const useful = new Set(card.partialIf ? conditionOptions(m, card.partialIf) : []);
+    const used = [...new Set(ids.flatMap((a) => Object.values(game.agencies.find((x) => x.id === a)!.picks).flat().filter((id): id is string => !!id && useful.has(id))))];
+    return used.slice(0, 2).map((id) => fmt(t.quoted, { x: L(m.options.find((o) => o.id === id)!.name) })).join(t.quotedSep);
+  };
 
   /** How much a card really cost an agency: the effect itself, or, for a raised failure risk, whether a part then failed. */
   const harm = (card: EventCard, a: AgencyKind, res: EventResult) => {
@@ -250,13 +262,20 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
         <div className="why-box">
           <h3>{multi ? tidy(rank === 1 && !tied ? fmt(t.whyWonOf, { name: nameIn(sel) }) : fmt(tied ? t.whyRankTiedOf : t.whyRankOf, { name: nameIn(sel), n: ord(rank) })) : rank === 1 && !tied ? t.whyWon : fmt(tied ? t.whyRankTied : t.whyRank, { n: ord(rank) })}</h3>
           {(() => { const c = outcomeCause(m, me); return ['fullSuccess', 'partialSuccess'].includes(me.outcome) ? null : <p className="why-cause">✕ {outcomeName(me.outcome)}{c && causeName(c) !== outcomeName(me.outcome) ? `${t.colonSep}${causeName(c)}` : ''}</p>; })()}
+          {outcomeCause(m, me) === 'earlyFailure' && <p className="note small why-hint">{hiddenFaultText}</p>}
           <p><b>{fmt(rank === 1 ? t.leadOverSecond : t.gapToFirst, { x: sign(me.score.total - final[leader].score.total) })}</b> <span className="note small">({multi ? agencyName.inText(leader) : name(leader)})</span></p>
           <table className="why-table"><tbody>
             {why.map((g) => (
               <tr key={g.k}>
                 <th><span className={`fb-part fb-${g.k}`} />{tk(t, `part_${g.k}`)}</th>
                 <td className={g.x < 0 ? 'bad' : 'good'}>{sign(g.x)}</td>
-                <td className="note small">{fmt(t.whyVs, { a: detail(sel, g.k), b: detail(leader, g.k) })}</td>
+                <td className="note small">{(() => {
+                  // Same words on both sides (e.g. both lost in operation) say nothing: give the points instead.
+                  const a = detail(sel, g.k), b = detail(leader, g.k);
+                  if (a !== b || g.k !== 'primary') return fmt(t.whyVs, { a, b });
+                  const pts = (id: AgencyKind) => fmt(t.whyPointsOf, { x: Math.round(final[id].score.primary * 10) / 10, max: m.rubric.primary.value });
+                  return fmt(t.whyVs, { a: pts(sel), b: pts(leader) });
+                })()}</td>
               </tr>
             ))}
           </tbody></table>
@@ -288,7 +307,11 @@ export function FinalResults({ game, onRestart, onReplaySame, onAllTurns }: { ga
               const good = who.filter((a) => !BAD.has(r.results[a][card.id] ?? ''));
               const bad = who.filter((a) => BAD.has(r.results[a][card.id] ?? ''));
               const why1 = (a: AgencyKind) => text.resultLine(card, r.results[a][card.id]!) || '—';
-              const summary = multi
+              // Everyone was hit, some only partly: say who got off lightly and what they had picked.
+              const part = bad.filter((a) => r.results[a][card.id] === 'partial');
+              const allHit = good.length === 0 && part.length > 0;
+              const lightText = allHit ? fmt(lighter(card, part) ? t.partialOnlyBy : t.partialOnly, { agency: multi ? names(part) : names(part), picks: lighter(card, part) }) : '';
+              const summary = allHit ? (multi ? tidy(lightText) : lightText) : multi
                 ? tidy(good.length === 1 ? fmt(t.onlyOneProtected, { agency: nameIn(good[0]!), why: why1(good[0]!) })
                   : bad.length === 1 ? `${fmt(t.onlyOneHit, { agency: nameIn(bad[0]!) })} ${lessonFor(card, bad[0]!)}`
                   : fmt(t.splitResult, { good: names(good), bad: names(bad, false) }))

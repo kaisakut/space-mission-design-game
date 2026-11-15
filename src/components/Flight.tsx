@@ -154,6 +154,8 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
   // events that cut its results first, then what it carried or planned differently from the best one.
   const gapReason = (a: Agency): string | null => {
     const r = final[a.id];
+    // Lost to a hidden fault: say what it was and what lowers it (the outcome's name alone does not).
+    if (outcomeCause(m, r) === 'earlyFailure') { const ts = m.slots.find((s) => s.id === 'testing'); return fmt(t.hiddenFault, { item: ts ? L(ts.label) : '' }); }
     if (best <= 0 || !flewOf(r.outcome)) return null;
     const top = game.agencies.find((x) => final[x.id].delivered === best)!;
     const hurt = (id: string, who: Agency) => { const x = game.reports.find((rep) => rep.cards.includes(id))?.results[who.id][id]; return x === 'hit' || x === 'partial'; };
@@ -320,31 +322,33 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
  */
 function TimelineMarks({ marks, delay, name }: { marks: { id: string; at: number; card: EventCard }[]; delay: (at: number) => CSSProperties; name: (c: EventCard) => string }) {
   const box = useRef<HTMLSpanElement>(null);
-  const [place, setPlace] = useState<Record<string, number>>({});
+  const [place, setPlace] = useState<Record<string, { lv: number; dx: number }>>({});
   useLayoutEffect(() => {
     const track = box.current?.parentElement;
     if (!track) return;
     const W = track.clientWidth;
     const ends = [-Infinity, -Infinity, -Infinity];
-    const out: Record<string, number> = {};
+    const out: Record<string, { lv: number; dx: number }> = {};
     for (const mk of marks) {
       const el = track.querySelector<HTMLElement>(`[data-mark="${mk.id}"]`);
       const w = el ? el.getBoundingClientRect().width : 0;
-      const x = mk.at * W, left = x - w / 2, right = x + w / 2;
+      // A name that would run past either end of the track moves inward; the icon stays at its time.
+      const x = mk.at * W, dx = x - w / 2 < 0 ? w / 2 - x : x + w / 2 > W ? W - x - w / 2 : 0;
+      const left = x + dx - w / 2, right = x + dx + w / 2;
       const lv = ends.findIndex((e) => left > e + 6);
-      if (lv >= 0) { out[mk.id] = lv; ends[lv] = right; } else out[mk.id] = -1;
+      if (lv >= 0) { out[mk.id] = { lv, dx }; ends[lv] = right; } else out[mk.id] = { lv: -1, dx };
     }
     if (JSON.stringify(out) !== JSON.stringify(place)) setPlace(out);
-    const top = Math.max(0, ...Object.values(out));
+    const top = Math.max(0, ...Object.values(out).map((o) => o.lv));
     track.dataset.levels = String(top + 1);
   });
   return (
     <span ref={box} className="fa-marks">
       {marks.map(({ id, at, card }) => {
-        const lv = place[id] ?? 0;
+        const lv = place[id]?.lv ?? 0, dx = place[id]?.dx ?? 0;
         return (
           <span key={id} data-mark={id} className={`fa-event appear lv${Math.max(0, lv)} ${lv < 0 ? 'icon-only' : ''}`} style={{ left: `${at * 100}%`, ...delay(at) }} title={name(card)}>
-            <CardIcon card={card} /><span className="fa-name" aria-hidden={lv < 0}>{name(card)}</span>
+            <CardIcon card={card} /><span className="fa-name" aria-hidden={lv < 0} style={dx ? { transform: `translateX(${Math.round(dx)}px)` } : undefined}>{name(card)}</span>
           </span>
         );
       })}
