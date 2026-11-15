@@ -49,6 +49,8 @@ export function Briefing({ mission, game, onClose }: { mission: Mission; game: G
             <li><b>{t.briefWatch2}</b> {t.briefWatch2Text}</li>
             <li><b>{t.briefWatch3}</b> {game.hints ? t.briefWatch3Text : t.briefWatch3TextNoHint}</li>
           </ol>
+          {/* Earlier decisions can be changed, at a cost that grows: shown to everyone, guide or not. */}
+          <p className="brief-change">{t.briefChange}</p>
         </section>
         {game.mode === 'multi' && (
           <section>
