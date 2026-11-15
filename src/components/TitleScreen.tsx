@@ -179,6 +179,8 @@ export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, s: P
         ))}
       </div>
       <p className="note small">{t.dataNote}</p>
+      {/* NASA asks that its images name NASA as the source. */}
+      <p className="note small">{t.earthCredit}</p>
     </section>
   );
 }

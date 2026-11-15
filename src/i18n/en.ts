@@ -138,6 +138,7 @@ export const en = {
   seeResults: 'See the results',
   cardChance: 'chance {n}%',
   firesSourceShort: 'Fires: NASA FIRMS, 2024',
+  earthCredit: "Earth image: NASA Visible Earth (Blue Marble), NASA Goddard Space Flight Center / Reto Stöckli",
   firesSource: 'Fires: real 2024 detections (NASA FIRMS)',
   stormSource: 'Storm odds: NASA DONKI records',
   flightInOrbit: 'Operating in orbit',

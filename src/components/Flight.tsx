@@ -307,7 +307,7 @@ export function Flight({ game, start, instant }: { game: Game; start: number; in
         <div className="fa-ticks">{ticks.map((x, i) => <span key={i}>{x}</span>)}</div>
         <p className="note small">
           {fmt(t.flightCounted, { unit: L(m.rules.scienceUnit).replace(/^件の/, '') })}
-          {view?.fires ? ` · ${t.firesSource}` : ''}
+          {view?.fires ? ` · ${t.firesSource} · ${t.earthCredit}` : ''}
           {usesDonki ? ` · ${t.stormSource}` : ''}
         </p>
       </div>

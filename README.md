@@ -3,6 +3,8 @@
 A turn-based space mission design wargame built for the **NASA Space Apps Challenge 2026**
 (challenge: *Space Mission Design Game*).
 
+Team deeptier: Kaisaku Takeuchi and Takahiro Tanaka.
+
 ## Play
 
 - Live version: https://kaisakut.github.io/space-mission-design-game/
@@ -83,7 +85,7 @@ All libraries, data, code and images used in this project.
   - [React](https://react.dev/) and react-dom (MIT) — user interface.
   - [three.js](https://threejs.org/) (MIT) — the 3D mission view. Earth uses the NASA Blue Marble image below; Jupiter's bands, the radiation belts and the lunar south-pole disc are drawn in code (no outside images), as explanatory pictures that are not to scale.
   - Build tools: [Vite](https://vite.dev/) (MIT), [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) (MIT), [TypeScript](https://www.typescriptlang.org/) (Apache-2.0), and the @types packages (MIT).
-- **Image:** NASA Visible Earth, [Blue Marble: Land Surface, Shallow Water, and Shaded Topography](https://web.archive.org/web/20260128022646/https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography) (Internet Archive copy; the NASA page now redirects) (NASA Goddard Space Flight Center, Reto Stöckli; public domain) — Earth texture, `public/textures/earth_day_2048.jpg` (taken from the Wikimedia Commons copy of the NASA file and resized to 2048 × 1024). This is the only image file in the game.
+- **Image:** NASA Visible Earth, [Blue Marble: Land Surface, Shallow Water, and Shaded Topography](https://web.archive.org/web/20260128022646/https://visibleearth.nasa.gov/images/57752/blue-marble-land-surface-shallow-water-and-shaded-topography) (Internet Archive copy; the NASA page now redirects) (NASA Goddard Space Flight Center, Reto Stöckli; public domain) — Earth texture, `public/textures/earth_day_2048.jpg` (taken from the Wikimedia Commons copy of the NASA file and resized to 2048 × 1024). This is the only image in the game that was not drawn for it.
 - **Sound:** synthesised in code with the Web Audio API; the game uses no audio files.
 - **Icons and diagrams:** drawn in code for this game (`src/components/icons.tsx`, `MiniDiagram.tsx`); the favicon is an original drawing.
 - **Earlier code by the author:** the forecast branch map and the seeded random-number generator (`src/components/BranchMap.tsx`, `src/engine/branchTree.ts`, `src/engine/rng.ts`; about 460 lines) were ported from the author's own earlier, unpublished simulator (TACTICA DSS). The random-number algorithm is the public xoshiro128**.

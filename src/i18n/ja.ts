@@ -140,6 +140,7 @@ export const ja: Messages = {
   seeResults: '結果を見る',
   cardChance: '起きる確率 {n}%',
   firesSourceShort: '火災：NASA FIRMS（2024年）',
+  earthCredit: "地球の画像：NASA Visible Earth（Blue Marble）、NASAゴダード宇宙飛行センター／Reto Stöckli",
   firesSource: '火災：2024年の実際の検知（NASA FIRMS）',
   stormSource: '太陽嵐の確率：NASA DONKI の記録',
   flightInOrbit: '軌道上で稼働中',
