@@ -114,7 +114,9 @@ export function TitleScreen({ onStart, onLibrary }: { onStart: (m: Mission, s: P
       <div className="title-hero">
         <TitleGlobe mission={MISSIONS[0]!} />
         <div className="hero-text">
-          <p className="hero-name">{t.appTitle}</p>
+          {/* The name, then what it is in smaller type ("trade space": the range of design choices). */}
+          <p className="hero-name">{t.appName}</p>
+          <p className="hero-sub">{t.appSubtitle}</p>
           <p className="tagline">{t.tagline}</p>
           <ol className="flow" aria-label={t.flowLabel}>
             {[t.flow1, t.flow2, t.flow3, t.flow4].map((x, i) => <li key={x}><span className="flow-n">{i + 1}</span>{x}</li>)}

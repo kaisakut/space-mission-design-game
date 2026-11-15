@@ -1,4 +1,4 @@
-# Space Mission Design Game
+# Trade Space: A Mission Design Game
 
 A turn-based space mission design wargame built for the **NASA Space Apps Challenge 2026**
 (challenge: *Space Mission Design Game*).

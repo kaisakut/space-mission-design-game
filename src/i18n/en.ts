@@ -1,6 +1,8 @@
 // English is the default language: the submission and judging are in English.
 export const en = {
-  appTitle: 'Space Mission Design Game',
+  appTitle: 'Trade Space: A Mission Design Game',
+  appName: 'Trade Space',
+  appSubtitle: 'A Mission Design Game',
   tagline: 'Design, forecast and fly a mission against rival agencies.',
   langToggle: '日本語',
   start: 'Start',

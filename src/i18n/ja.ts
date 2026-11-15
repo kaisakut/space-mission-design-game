@@ -2,7 +2,9 @@ import type { Messages } from './index';
 
 // 日本語の辞書。キーは en.ts と同じものをすべて持つ（型で抜けを検出する）。
 export const ja: Messages = {
-  appTitle: '宇宙ミッション設計ゲーム',
+  appTitle: 'Trade Space：ミッション設計ゲーム',
+  appName: 'Trade Space',
+  appSubtitle: 'ミッション設計ゲーム',
   tagline: 'ライバル機関と競いながら、ミッションを設計し、予測し、飛ばそう。',
   langToggle: 'English',
   start: 'はじめる',

@@ -34,7 +34,7 @@ export function App() {
   return (
     <div className={`app ${play || library ? 'in-game' : ''}`} lang={lang}>
       <header className="app-header">
-        <h1>{t.appTitle}</h1>
+        <h1 title={t.appTitle}>{t.appName}</h1>
         <div className="header-actions">
           {(play || library) && <button type="button" className="lang-toggle" onClick={() => (play?.settings.seats && !gameOver ? setAskQuit(true) : leave())}>{t.backToTitle}</button>}
           <button type="button" className="lang-toggle" data-tour="help" onClick={() => setGlossary(true)}>{t.help}</button>

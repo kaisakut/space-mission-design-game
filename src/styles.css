@@ -885,3 +885,5 @@ button.primary, button.secondary, .lang-toggle { white-space: nowrap; }
 /* A name that does not fit in the flight column ends with an ellipsis. */
 .fl-head .agency-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fl-head .ai-tag { flex: none; }
+.hero-sub { margin: -0.15em 0 0.5em; font-size: clamp(1.05rem, 1.6vw, 1.4rem); font-weight: 600; color: #cfe0ff; }
+.hero-name { margin-bottom: 0.1em; }
