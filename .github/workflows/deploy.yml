@@ -1,13 +1,11 @@
-# Builds the game and publishes it to GitHub Pages.
-# While the repository is private this runs only when started by hand (Actions > Run workflow),
-# because GitHub Pages on the Free plan needs a public repository.
-# After switching to public and enabling Pages (Settings > Pages > Source: GitHub Actions),
-# add the push trigger back:
-#   push:
-#     branches: [main]
+# Builds the game and publishes it to GitHub Pages (https://kaisakut.github.io/space-mission-design-game/).
+# Runs on every push to main, and can also be started by hand (Actions > Run workflow).
+# Pages must be set to Settings > Pages > Source: GitHub Actions.
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
