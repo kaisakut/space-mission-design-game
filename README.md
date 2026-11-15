@@ -5,7 +5,7 @@ A turn-based space mission design wargame built for the **NASA Space Apps Challe
 
 ## Play
 
-- Live version: _coming soon_
+- Live version: https://kaisakut.github.io/space-mission-design-game/
 - Demo slides: [`docs/Trade_Space_demo.pdf`](docs/Trade_Space_demo.pdf)
 - Language: English (default) / Japanese — switch with the button in the top-right corner.
 
